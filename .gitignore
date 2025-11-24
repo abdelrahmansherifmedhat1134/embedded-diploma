@@ -1,0 +1,14 @@
+# Compilation & Object files
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.d
+
+# IDE & System files
+.vscode/
+.idea/
+.DS_Store
+*.swp
