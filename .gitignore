@@ -1,14 +1,34 @@
-# Compilation & Object files
+# Local-only folders
+_Archive/
+c_code/
+
+# Course material (copyrighted, kept locally)
+Course_Material/lectures/
+03_RTOS/docs/
+
+# Build outputs
+*.exe
 *.o
 *.obj
 *.elf
-*.bin
 *.hex
+*.bin
 *.map
 *.d
+*.a
 
-# IDE & System files
-.vscode/
-.idea/
+# PlatformIO / clangd
+.pio/
+.cache/
+compile_commands.json
+**/firmware/**/.vscode/c_cpp_properties.json
+**/firmware/**/.vscode/launch.json
+
+# Proteus per-user workspace and autosave backups
+*.workspace
+Project Backups/
+
+# OS
+Thumbs.db
+desktop.ini
 .DS_Store
-*.swp

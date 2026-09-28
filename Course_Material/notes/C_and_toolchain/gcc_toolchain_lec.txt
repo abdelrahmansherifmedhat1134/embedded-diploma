@@ -1,0 +1,10 @@
+lec quiz 2 
+
+we have static changes the lifetime of a variable and doesn't mess with the scope like if i have a variable in a function and i declare it as static it cant be used outside the function but when the function terminates if it gets called again it can use the value that was in that variable because it didn't store the variable in the stack like a normal variable in a function but rather it stored it in the data segment in memory
+
+static keyword before functions or variables
+variables: up
+functions:it makes the scope of the function from global to local
+explanation: functions are global by nature and can be used in multiple files but if i add a static keyword before it it becomes local to that file and cant be used outside it 
+
+visit indiabix and solve c questions 

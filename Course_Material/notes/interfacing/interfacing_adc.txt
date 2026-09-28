@@ -1,0 +1,20 @@
+interfacing adc
+
+
+resolution is how many steps for quantization 
+
+step size is = max voltage/resolution
+
+player how we make ladder as 8 bits then define the array from audacity to lowest frequency 8000 hz 
+then 
+
+assignment 
+adc types and a brief on each one 
+
+
+
+8 multiplexed single ended  as considered ground as ground 
+ page 215 in atmega
+
+polling on a flag is a while loop on a flag checking it 
+ 

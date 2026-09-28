@@ -1,0 +1,51 @@
+all macro types
+file inclusions 
+header guard
+macros and functions like macros 
+conditional preprocessor directives
+errors and warnings
+built in macros 
+
+in any .h file i write a file header guard which is for example if im writing the math.h lib
+#ifndef _MATH_H_
+#def _MATH_H_ 
+#endif
+underscore then file name then underscore then h then underscore is a must 
+
+
+
+
+functions like macros doesn't take memory or stack but can take program memory 
+
+
+
+#define SET_BIT(reg,bit)  (reg|=(1<<bit))  doesn't need to assign acts as void function 
+#define SET_BIT(reg,bit)  (reg|(1<<bit))   needs in main to say reg=SET_BIT() as if it is a func that returns a value
+
+
+if i want to add a conditional preprocessor directive like in a code for car headlights and the left lights is different than the right lights and i want the user just to state whether it is the right headlight or not i make a conditional preprocessor directive  
+
+i first make a config.h file see it in vs code 
+ and include it in the main see the main gcc_toolchain.c
+
+we want to manipulate some files in gcc toolchain
+first to access help instructions of gcc in terminal write:
+gcc --help
+to save the preprocessor file in a new created intermediate file type: 
+gcc -E .\gcc_toolchain.c  > gcc_toolchain.i
+to save the assembly file in a new created intermediate file type:
+gcc -S .\gcc_toolchain.c  > gcc_toolchain.i
+
+what is file.o that is outputed here 
+memory is divided to segments 
+1.text    saves my program 
+2.data    global uninitialized variables 
+3.stack 
+4.leap
+5.bss
+6.vdata 
+ 
+the coorperations that create standard libraries give us the .h files that has the functions definitions and give us the .object files which is the .c files that contain the implementation of the .h library functions but after those .c files are compiled so you dont steal the functions implementations 
+
+ 
+  

@@ -1,0 +1,39 @@
+microcontroller and embedded systems constraints
+1.cost
+2.performance
+3.size
+4.power consumption
+instruction cycle 
+1.fetch
+processor gets instruction from instruction memory based on the pc(program counter) register and saves the obtained instruction in the IR(instruction register)
+2.decode
+go to instruction set to know what instructions i can do and their format
+3.execute 
+
+memory types 
+1.Ram
+using transistor(sram) or capacitor(dram) 
+capacitor  
+needs 1 transistor
+cheap 
+volatile bec discharges 
+slow 
+bigger size 
+and takes more power because you need to recharge it every time 
+
+
+transistor sram 
+needs 6 transistors 
+expensive
+small 
+not volatile
+fast
+less power
+
+flipflops 
+needs 20 transistors 
+the fastest
+
+
+the ram in the laptop is d means it is composed from capacitors  
+random access memory because it is composed of a decoder that gets you to the address so all adresses need same time to access them 

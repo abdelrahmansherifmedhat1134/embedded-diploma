@@ -1,0 +1,13 @@
+shortcuts:
+
+build ctrl B
+
+save current file ctrl s
+
+save all files ctrl shift s
+*********************************************************************
+the order of the include files is important 
+
+its recommended to build after each couple of lines
+
+multiple lines highlight  alt shift A 

@@ -1,0 +1,51 @@
+why i use volatile while defining registers so the compiler doesn't optimize it and put it as a constant  
+
+abstraction means encapsulation or hiding details 
+hardware MCU<---- MCAL<-----Hardware AL<--- middleware (OS)<-- APP(application)
+
+why we need them?
+because if we are changing the microcontroller 
+
+service layer(canm be used by any layer) 
+bitwise libraries 
+data types 
+MCAL microcontroller abstraction layer 
+anything related to mcu 
+I/O
+ADC
+.
+.
+.
+
+Hardware AL 
+drivers as 
+keypad and lcd and so on 
+
+
+we must have a naming convention to ease :
+1. debugging 
+2. maintenance 
+3. adding features
+
+by:
+
+Macros are all upper case 
+
+descriptive names ? 
+1.like using camel case
+2.like making its name point to its type ex u8
+3.its scope like local or global or copy 
+copy is used for when im passing parameter to function by value so its taking a copy of the variable int a --->converted to ----> u16 copy_u16num1
+for functions ?
+i write their filescope in their name and verb like DIO_voidSetPinValue( ) or
+DIO_u8SetPinValue( )
+
+as location
+C:\Program Files (x86)\Atmel\Studio\
+C:\Program Files\Microchip\xc8\v2.36
+your  host id is 0a002700000b
+
+
+
+port has the direction 
+pin has the value 
