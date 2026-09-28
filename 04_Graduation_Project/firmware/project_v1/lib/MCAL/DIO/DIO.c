@@ -117,4 +117,14 @@ void DIO_voidEnablePullUp(u8 Copy_u8PortID, u8 Copy_u8PinID){
 
 }
 
+void DIO_voidTogPin   (u8 Copy_u8PortID, u8 Copy_u8PinID) {
 
+
+			switch(Copy_u8PortID){
+			case DIO_PORTA: TOG_BIT(PORTA,Copy_u8PinID);break ;
+			case DIO_PORTB: TOG_BIT(PORTB,Copy_u8PinID);break ;
+			case DIO_PORTC: TOG_BIT(PORTC,Copy_u8PinID);break ;
+			case DIO_PORTD: TOG_BIT(PORTD,Copy_u8PinID);break ;
+			default: break;
+			}
+}

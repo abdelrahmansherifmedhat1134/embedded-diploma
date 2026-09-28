@@ -9,7 +9,21 @@
 #define HAL_CLCD_CLCD_CFG_H_
 #define CLCD_4_BIT_MODE    0
 #define CLCD_8_BIT_MODE    1
-#define CLCD_MODE 			CLCD_4_BIT_MODE
+#define CLCD_I2C_MODE      2
+#define CLCD_MODE 			CLCD_I2C_MODE
+
+/* The Configuration is Valid In Case I2C Mode only (LCD behind a PCF8574) */
+/* 0x27 = PCF8574 with A2 A1 A0 = 1 1 1 */
+#define CLCD_I2C_ADDRESS    0x27
+/* PCF8574 pin (P0..P7) connected to each LCD pin */
+#define CLCD_I2C_RS_BIT     0
+#define CLCD_I2C_RW_BIT     1
+#define CLCD_I2C_E_BIT      2
+#define CLCD_I2C_BL_BIT     3
+#define CLCD_I2C_D4_BIT     4
+#define CLCD_I2C_D5_BIT     5
+#define CLCD_I2C_D6_BIT     6
+#define CLCD_I2C_D7_BIT     7
 
 
 #define CLCD_DATA_PORT      DIO_PORTA

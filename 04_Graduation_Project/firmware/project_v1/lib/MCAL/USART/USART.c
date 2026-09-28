@@ -43,8 +43,10 @@ u8   USART_u8Recieve(){
 	/*return UDR */
 	return UDR ;
 }
-void USART_voidSendString(const u8*str){
+void USART_voidSendString(const c8*str){
 	while(*str != '\0'){
 		USART_voidSend(*str++);
 	}
+	USART_voidSend('\r');
+	USART_voidSend('\n');
 }
