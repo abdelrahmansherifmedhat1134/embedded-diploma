@@ -27,18 +27,20 @@ Target: simulation in **Proteus**. Build system: **PlatformIO** (bare-metal avr-
 - Output for Proteus: `.pio/build/<env>/firmware.hex`.
 - `F_CPU`: read it from `platformio.ini` (`board_build.f_cpu`). Never assume a clock. All timer, UART baud and tick calculations must be derived from `F_CPU` and must be written as compile-time calculations or clearly commented constants.
 - Proteus clock: remind the user that the ATmega32 clock in Proteus must equal `F_CPU`.
-- Do **not** change `platformio.ini` (board, framework, clock, flags) without asking. If the framework is `arduino`, stop and ask — this project is meant to be bare-metal.
+- Do **not** change `platformio.ini` (board, framework, clock, flags) without asking. The only exception is adding `[env:test_*]` environments (see Section 3).
+- Build a specific target with `pio run -e <env>` (`app` = real firmware, `test_<layer>` = layer test). If the framework is `arduino`, stop and ask — this project is meant to be bare-metal.
 - There is no hardware-in-the-loop here. "Verified" means: it compiles cleanly, the logic has been traced by hand against the spec, and a Proteus test step exists for it in `docs/test_plan.md`.
 
 ---
 
 ## 3. How to work in this repo (mandatory workflow)
 
-### Phase 0 — Learn the existing code (no code changes)
+### Phase 0 — Learn the existing code + set up tests (no driver changes)
 1. Read every existing file (drivers, headers, `main.c`, `platformio.ini`, folder layout).
 2. Fill in **Section 4 (Detected conventions)** of this file with concrete examples taken from the code.
 3. List every existing driver, what it supports, and what is missing for this project (e.g. "DIO: ok", "LCD: 8-bit only, needs 4-bit or I²C", "Timer: no CTC mode").
-4. Report back and wait.
+4. Set up the test infrastructure described in "Test program per layer" below: add `[env:app]` and `[env:test_base]` to `platformio.ini`, create `test_mains/`, and write `test_mains/test_base.c`, a smoke test of the **existing** drivers only. You may edit `platformio.ini` for this.
+5. Build `pio run -e test_base` and `pio run -e app`, then report back and wait.
 
 ### Phase 1 — Design (no code changes except `docs/`)
 Produce these files and wait for the user's approval before writing firmware:
@@ -64,6 +66,20 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 - Every requirement you implement must be traceable: put the requirement ID from Section 6 in a comment where it is implemented (e.g. `/* REQ-HTR-07 */`).
 - If a spec point is ambiguous, use the default in Section 12, mark it in the code with `/* ASSUMPTION: ... */`, and mention it in your summary. Do not silently invent behavior.
 - Git: ask before the first commit. After the user agrees, commit once per finished module with a clear message.
+
+### Test program per layer (mandatory)
+- `src/main.c` is the real application. It is only rewritten in Phase 3; until then it stays as it is.
+- Phase 0 ends with `test_mains/test_base.c` (existing drivers). Every Phase 2 layer (MCAL, HAL, SERVICE, APP) ends with its own test program:
+  `test_mains/test_<layer>.c` plus a matching `[env:test_<layer>]` in `platformio.ini`.
+- Each test environment uses `build_src_filter` to exclude `src/main.c` and include only its own test file (plus all driver sources). Adding a test environment does not need permission; any other `platformio.ini` change still does.
+- A test program exercises **every module of its layer** and reports:
+  - over UART: one line per check, `[PASS] <module>: <what>` or `[FAIL] <module>: <what>`, then a final summary line;
+  - on a status LED: blinking = test running, solid ON = all passed, fast blink = at least one failure.
+  - If UART is not yet tested/available, use LEDs only.
+- Checks that need the user (keypad, buttons, sensors, servo angle, PWM duty) print what to do in Proteus and what the user should see, and use the scheduler/tick rather than long delays once it exists.
+- Each test file starts with a header comment: Proteus parts needed, their wiring (matching `docs/pin_map.md`), and the expected result.
+- A layer is only **done** when `pio run -e test_<layer>` and `pio run -e app` both build with zero warnings.
+- End each layer with exactly 3 lines for the user: the build command, the `.hex` path to load in Proteus (`.pio/build/test_<layer>/firmware.hex`), and what to watch for.
 
 ---
 
@@ -272,6 +288,7 @@ Document the final byte addresses in `docs/eeprom_map.md`.
 - [ ] Requirement IDs commented where implemented.
 - [ ] Assumptions marked with `/* ASSUMPTION: */`.
 - [ ] `docs/test_plan.md` updated with the Proteus test steps for this module.
+- [ ] The module is covered by its layer's test program in `test_mains/`, and `pio run -e test_<layer>` builds cleanly.
 
 ---
 

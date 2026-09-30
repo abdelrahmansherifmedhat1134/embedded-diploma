@@ -19,6 +19,7 @@ void SPI_voidSlaveInit(){
 }
 
 u8 SPI_u8SlaveRecive(){
-
+	/* stub : not implemented yet */
+	return 0 ;
 	}
 
