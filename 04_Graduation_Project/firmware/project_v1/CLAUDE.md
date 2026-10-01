@@ -36,6 +36,7 @@ Target: simulation in **Proteus**. Build system: **PlatformIO** (bare-metal avr-
 ## 3. How to work in this repo (mandatory workflow)
 
 ### Phase 0 — Learn the existing code + set up tests (no driver changes)
+**Status: DONE (2026-10-01).** Merged in PR #1 and PR #2. Next: Phase 1.
 1. Read every existing file (drivers, headers, `main.c`, `platformio.ini`, folder layout).
 2. Fill in **Section 4 (Detected conventions)** of this file with concrete examples taken from the code.
 3. List every existing driver, what it supports, and what is missing for this project (e.g. "DIO: ok", "LCD: 8-bit only, needs 4-bit or I²C", "Timer: no CTC mode").
@@ -93,7 +94,7 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 - Folder / file layout: `lib/MCAL/<MOD>/`, `lib/HAL/<MOD>/`, `lib/Service/` (shared `std_types.h`, `Bit_math.h`), `lib/MCAL/reg_def.h` (all register addresses), app in `src/APP/main.c`. One folder per module.
 - File naming: `DIO.c` / `DIO.h` / `CLCD_cfg.h` (module name in caps, `_cfg.h` for config). Older SSG uses `SSG_prog.c` / `SSG_int.h` / `SSG_CFG.h` — new modules follow the `MOD.c / MOD.h / MOD_cfg.h` form.
 - Function naming: `MODULE_<rettype><Name>` — `DIO_voidSetPinValue`, `DIO_u8GetPinValue`, `ADC_u16StartConversion`, `CLCD_voidSendString`. Params `Copy_u8PortID`, locals `Local_u8data`. Some setters drop the type (`TIMER0_SetCallBack_OV`, `ADC_SetCallBack`); prefer the typed form. Constants `MODULE_NAME` macros (`DIO_PORTA`, `TIMER0_DIV_64`, `EXTI_FALLING_EDGE`).
-- Types: `u8/u16/u32/s8/.../c8/f32` from `lib/Service/std_types.h` (note: `u32` is `unsigned int` = 16-bit on AVR, `NULL` defined there). No `<stdint.h>` in author code.
+- Types: `u8/u16/u32/s8/.../c8/f32` from `lib/Service/std_types.h` (`u32`/`s32` = `unsigned/signed long` = 32 bit, fixed in Phase 0; `NULL` defined there). No `<stdint.h>` in author code.
 - Register access: `SET_BIT/CLR_BIT/GET_BIT/TOG_BIT` from `Bit_math.h` on registers defined as `*(volatile u8 *)(addr)` in `reg_def.h` with bit-name macros (`ADCSRA_ADEN`, `UCSRB_RXEN`). No `<avr/io.h>`. Masks written as binary literals (`ADMUX &= 0b11100000`). New registers (Timer1, Timer2, TWI) get added to `reg_def.h` the same way.
 - Return values / error handling: `void` functions; argument range checked with `if(...) {...} else { //error }`; getters return the value. No enums. Where a bus can fail (TWI, and HAL drivers on top of it) the function returns a `u8` status using `#define`d codes (`TWI_OK`, `TWI_ERR_SLA_NACK`, …).
 - Config style: pre-build `#define`s in `MOD_cfg.h` (pins as `DIO_PORTx`/`DIO_PIN_n`, mode selection via `#if CLCD_MODE == ...`). SSG uses a config struct `SSG_t` passed by pointer.
@@ -102,11 +103,11 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
   **Required for new ISRs:** declare them `__attribute__ ((signal, used, externally_visible))`. With only `signal`, PlatformIO's LTO discards the ISR at link time (found in Phase 0: ADC/TIMER0/EXTI handlers were dropped, so `test_base` builds with `build_unflags = -flto` until they are fixed).
 - Delay usage: `<util/delay.h>`. CLCD in I²C mode (the selected mode): 40/5/1 ms one-time init delays, 2 ms after clear/home, no per-pulse delay (each I²C write already takes ~0.3 ms). The parallel CLCD modes (unused) still have a 10 ms enable pulse. ADC sync, USART send/receive, KPAD (waits for key release) and TWI (~90 µs per byte, no timeout) all busy-wait.
 - Indentation, brace style: tabs, K&R braces on the same line, `switch` with `case X: stmt; break ;` on one line, space before `;` in `break ;` / `return x ;`. Files are CRLF. No fixed line-width limit.
-- Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), as in `test_mains/test_base.c`. This replaces the `PROGMEM`/`PSTR()`/`_P` wording in Sections 5 and 11.
+- Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), as in `test_mains/test_base.c`.
 - Test programs: `test_mains/test_<layer>.c`, functions `TEST_voidName`, checks through `TEST_voidCheck(ok, FLASH_STR("MOD"), FLASH_STR("what"))`, status LED on PA3, Proteus wiring in the header comment.
 
 ### Known driver issues after Phase 0 (fix in Phase 2, bottom-up)
-Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed key table and column left LOW, SPI stub missing `return`.
+Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed key table and column left LOW, SPI stub missing `return`, `u32`/`s32` were 16 bit.
 - **ISRs (ADC, TIMER0, EXTI):** missing `used, externally_visible`, so LTO drops them (see Interrupt style). Fix, then remove `build_unflags = -flto` from `[env:test_base]`.
 - **TIMER0:** `TIMER0_GeneratePWM` has the COM bits swapped (NONINVERTED sets 11), and 100 % duty gives `OCR0 = 256` → 0. `test_base` reports both as `[FAIL]`.
 - **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
@@ -116,7 +117,6 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
 - **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function.
 - **SSG:** writes raw segments to a whole port; does not fit the 7447 + 2-digit mux design → new SEVEN_SEG driver.
-- **std_types.h:** `u32` is `unsigned int` = 16 bit on AVR; use `unsigned long` where 32 bits are needed (or fix the typedef, ask first).
 
 ### Proteus notes found in Phase 0
 - A single read of the shared UBRRH/UCSRC address seems to return UCSRC in Proteus (a real ATmega32 returns UBRRH), so UBRRH cannot be verified in simulation.
@@ -153,7 +153,7 @@ Rules:
 - Variables shared between an ISR and the main loop are `volatile`. Multi-byte shared variables are read with interrupts briefly disabled (or `ATOMIC_BLOCK`).
 
 ### Memory limits (ATmega32: 32 KB flash, 2 KB RAM, 1 KB internal EEPROM)
-- All UART and LCD text constants go in flash with `PROGMEM` / `PSTR()` and are sent with a `_P` function. Many prompt strings in RAM would overflow the 2 KB.
+- All UART and LCD text constants go in flash with `__flash` / `FLASH_STR("...")` (see Section 4, "Strings in flash") and are sent by functions that take a `const __flash c8 *`. Many prompt strings in RAM would overflow the 2 KB.
 - No dynamic memory. Keep buffers small and sized with named constants.
 
 ---
@@ -304,7 +304,7 @@ Document the final byte addresses in `docs/eeprom_map.md`.
 - [ ] No blocking delays beyond what Section 5 allows.
 - [ ] No register access or pin numbers in APP code.
 - [ ] Shared ISR variables are `volatile` and read atomically when multi-byte.
-- [ ] String constants in flash (`PROGMEM`).
+- [ ] String constants in flash (`__flash` / `FLASH_STR`).
 - [ ] Integer math only (no `float`) unless the user agrees — e.g. LM35 with 2.56 V internal reference: `temp_x4 = adc_value` (0.25 °C units), or with AVCC 5 V: `temp = (adc * 500UL) / 1024`.
 - [ ] Requirement IDs commented where implemented.
 - [ ] Assumptions marked with `/* ASSUMPTION: */`.
@@ -316,7 +316,7 @@ Document the final byte addresses in `docs/eeprom_map.md`.
 ## 12. Open decisions — defaults to use unless the user says otherwise
 
 1. **SEC-08 remote/local arbitration:** default = keypad user control is allowed while a remote *user* is logged in; blocked while the *admin* is logged in until the admin sends "allow local control".
-2. **SEC-05 "break down":** default = all actuators go to a safe state (heating element OFF, cooler OFF, fan OFF, lamps unchanged), buzzer sounds, LCD shows `SYSTEM LOCKED`, UART prints a lock message, all input ignored until MCU reset. Count = 3 consecutive failures per login source; the 4th attempt is never accepted (so "more than 3" = locked after the 3rd failure — confirm with the user).
+2. **SEC-05 "break down":** default = all actuators go to a safe state (heating element OFF, cooler OFF, fan OFF, lamps unchanged), buzzer sounds, LCD shows `SYSTEM LOCKED`, UART prints a lock message, all input ignored until MCU reset. Count = 3 consecutive failures per login source; the 4th attempt is never accepted. **Decided by the user (Phase 0): the system locks right after the 3rd failed login.**
 3. **Internal vs external EEPROM:** default = external 24C08 for everything.
 4. **Blink timing (HTR-11, HTR-13):** default = 1 s period (500 ms on, 500 ms off).
 5. **Heater in OFF state:** both elements forced OFF; sampling may continue but no display.
