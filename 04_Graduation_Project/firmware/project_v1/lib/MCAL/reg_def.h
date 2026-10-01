@@ -171,4 +171,27 @@ $0D ($2D) SPCR SPIE SPE DORD MSTR CPOL CPHA SPR1 SPR0 136*/
 #define SPCR_SPR0			0
 
 
+/************** TWI Register ****************/
+/*$00 ($20) TWBR Two-wire Serial Interface Bit Rate Register 178
+$01 ($21) TWSR TWS7 TWS6 TWS5 TWS4 TWS3 - TWPS1 TWPS0 180
+$02 ($22) TWAR TWA6 TWA5 TWA4 TWA3 TWA2 TWA1 TWA0 TWGCE 181
+$03 ($23) TWDR Two-wire Serial Interface Data Register 180
+$36 ($56) TWCR TWINT TWEA TWSTA TWSTO TWWC TWEN - TWIE 178*/
+
+#define TWBR  				*(volatile u8 *)(0x20)
+#define TWSR  				*(volatile u8 *)(0x21)
+#define TWSR_TWPS0			0
+#define TWSR_TWPS1			1
+#define TWAR  				*(volatile u8 *)(0x22)
+#define TWDR  				*(volatile u8 *)(0x23)
+#define TWCR  				*(volatile u8 *)(0x56)
+#define TWCR_TWIE			0
+#define TWCR_TWEN			2
+#define TWCR_TWWC			3
+#define TWCR_TWSTO			4
+#define TWCR_TWSTA			5
+#define TWCR_TWEA			6
+#define TWCR_TWINT			7
+
+
 #endif

@@ -13,19 +13,15 @@ void USART_voidInit(){
 	/* Set Baud rate select 9600*/
 	UBRRL = 103 ;
 	UBRRH = 0 ;
-//	/* Disable select parity  */
-	SET_BIT(UCSRC,UCSRC_URSEL);/* select to register */
-	CLR_BIT(UCSRC,UCSRC_UPM0);
-	CLR_BIT(UCSRC,UCSRC_UPM1);
 	/*enable Receiver and Transmitter */
 	SET_BIT(UCSRB,UCSRB_TXEN);
 	SET_BIT(UCSRB,UCSRB_RXEN);
 
-	/*set format 8bit ,, 1 stop bit */
-	SET_BIT(UCSRC,UCSRC_URSEL);/* select to register */
-	SET_BIT(UCSRC,UCSRC_UCSZ0);
-	SET_BIT(UCSRC,UCSRC_UCSZ1);
-	CLR_BIT(UCSRC,UCSRC_USBS);
+	/*set format : 8 bit , no parity , 1 stop bit
+	 * UCSRC shares its address with UBRRH : one read returns UBRRH ,
+	 * so SET_BIT/CLR_BIT (read-modify-write) would corrupt UBRRH.
+	 * Write the whole register at once with URSEL = 1 (select UCSRC) */
+	UCSRC = (1<<UCSRC_URSEL) | (1<<UCSRC_UCSZ1) | (1<<UCSRC_UCSZ0) ;
 }
 void USART_voidSend(u8 data){
 	/*wait on Empty transmit buffer */
@@ -43,8 +39,10 @@ u8   USART_u8Recieve(){
 	/*return UDR */
 	return UDR ;
 }
-void USART_voidSendString(const u8*str){
+void USART_voidSendString(const c8*str){
 	while(*str != '\0'){
 		USART_voidSend(*str++);
 	}
+	USART_voidSend('\r');
+	USART_voidSend('\n');
 }

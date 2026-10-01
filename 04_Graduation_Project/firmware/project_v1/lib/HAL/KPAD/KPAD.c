@@ -38,8 +38,10 @@ u8 KPAD_u8GetKeyPressed(){
 				while(DIO_u8GetPinValue(KPAD_ROW_PORT,KPAD_ROW_ARR[j]) == DIO_PIN_LOW){
 					// do nothing
 				}
-				/* retrun mat[i][j] */
-				return KPAD_MAT[i][j];
+				/* give the column back its HIGH value before leaving */
+				DIO_voidSetPinValue(KPAD_COL_PORT,KPAD_COL_ARR[i],DIO_PIN_HIGH);
+				/* KPAD_MAT is written row by row --> mat[row j][col i] */
+				return KPAD_MAT[j][i];
 			}
 		}
 		DIO_voidSetPinValue(KPAD_COL_PORT,KPAD_COL_ARR[i],DIO_PIN_HIGH);
