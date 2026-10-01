@@ -10,11 +10,11 @@
 typedef unsigned char      				u8  ;
 typedef char                            c8   ;
 typedef unsigned short      			u16 ;
-typedef unsigned int        			u32 ;
+typedef unsigned long       			u32 ;  /* int is 16 bit on AVR , long is 32 bit */
 typedef unsigned long long int         	u64 ;
 typedef signed char      				s8 ;
 typedef signed short      				s16 ;
-typedef signed int        				s32 ;
+typedef signed long        				s32 ;
 typedef signed long long int         	s64 ;
 typedef float                             f32;
 typedef double                            f64;
