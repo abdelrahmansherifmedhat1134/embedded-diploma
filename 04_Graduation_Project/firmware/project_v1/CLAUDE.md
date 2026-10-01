@@ -99,8 +99,29 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 - Config style: pre-build `#define`s in `MOD_cfg.h` (pins as `DIO_PORTx`/`DIO_PIN_n`, mode selection via `#if CLCD_MODE == ...`). SSG uses a config struct `SSG_t` passed by pointer.
 - Header guards / includes / comments: guards like `HAL_CLCD_CLCD_H_` or `DIO_H_`; Eclipse header block (`/* * FILE.h * Created on: ... * Author: eslam */`). `.c` include order: `../../Service/std_types.h`, `../../Service/Bit_math.h`, lower-layer headers, `../reg_def.h`, own `.h`, own `_cfg.h`. Headers do not include `std_types.h` themselves. Step comments like `/*1. Select ref */`.
 - Interrupt style: `void __vector_N () __attribute__ ((signal));` prototype in the `.h`, body in the `.c`; ISR calls a user callback through a global function pointer (`void (*TIMER0_ov_ptr)(void) = NULL;`, set via `..._SetCallBack...`), with a `!= NULL` check (EXTI lacks it). Global interrupt via `GIE_voidEnableGlobalInterrupt()` (`__asm("SEI")`).
-- Delay usage: `<util/delay.h>` `_delay_ms` in CLCD (40 ms init, **10 ms per enable pulse** — too long for Section 5, must become µs). ADC sync, USART send/receive, KPAD (waits for key release) and TWI all busy-wait.
+  **Required for new ISRs:** declare them `__attribute__ ((signal, used, externally_visible))`. With only `signal`, PlatformIO's LTO discards the ISR at link time (found in Phase 0: ADC/TIMER0/EXTI handlers were dropped, so `test_base` builds with `build_unflags = -flto` until they are fixed).
+- Delay usage: `<util/delay.h>`. CLCD in I²C mode (the selected mode): 40/5/1 ms one-time init delays, 2 ms after clear/home, no per-pulse delay (each I²C write already takes ~0.3 ms). The parallel CLCD modes (unused) still have a 10 ms enable pulse. ADC sync, USART send/receive, KPAD (waits for key release) and TWI (~90 µs per byte, no timeout) all busy-wait.
 - Indentation, brace style: tabs, K&R braces on the same line, `switch` with `case X: stmt; break ;` on one line, space before `;` in `break ;` / `return x ;`. Files are CRLF. No fixed line-width limit.
+- Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), as in `test_mains/test_base.c`. This replaces the `PROGMEM`/`PSTR()`/`_P` wording in Sections 5 and 11.
+- Test programs: `test_mains/test_<layer>.c`, functions `TEST_voidName`, checks through `TEST_voidCheck(ok, FLASH_STR("MOD"), FLASH_STR("what"))`, status LED on PA3, Proteus wiring in the header comment.
+
+### Known driver issues after Phase 0 (fix in Phase 2, bottom-up)
+Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed key table and column left LOW, SPI stub missing `return`.
+- **ISRs (ADC, TIMER0, EXTI):** missing `used, externally_visible`, so LTO drops them (see Interrupt style). Fix, then remove `build_unflags = -flto` from `[env:test_base]`.
+- **TIMER0:** `TIMER0_GeneratePWM` has the COM bits swapped (NONINVERTED sets 11), and 100 % duty gives `OCR0 = 256` → 0. `test_base` reports both as `[FAIL]`.
+- **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
+- **ADC:** no function to switch `ADIE` off; after one async conversion the sync `ADC_u16StartConversion` hangs (the ISR clears `ADIF`). The comment in `ADC_voidInit` says AVCC, but the code selects the internal 2.56 V reference (which is what we want for the LM35: 4 steps per °C).
+- **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
+- **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
+- **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
+- **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function.
+- **SSG:** writes raw segments to a whole port; does not fit the 7447 + 2-digit mux design → new SEVEN_SEG driver.
+- **std_types.h:** `u32` is `unsigned int` = 16 bit on AVR; use `unsigned long` where 32 bits are needed (or fix the typedef, ask first).
+
+### Proteus notes found in Phase 0
+- A single read of the shared UBRRH/UCSRC address seems to return UCSRC in Proteus (a real ATmega32 returns UBRRH), so UBRRH cannot be verified in simulation.
+- Parts powered from DC generators do not appear as VCC in the `.SDF` netlist; check the schematic before calling a pin "unconnected".
+- Keypad wiring: keypad rows A–D → PA4–PA7, columns 1–4 → PB0, PB1, PB2, PB4.
 
 ### Expertise level
 Write code at the same level as the existing drivers: plain C, readable, well commented, no clever tricks.
