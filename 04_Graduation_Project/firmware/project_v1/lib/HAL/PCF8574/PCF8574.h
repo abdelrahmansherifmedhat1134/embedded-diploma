@@ -16,5 +16,7 @@ void PCF8574_voidInit();
 /* return TWI_OK or a TWI error code */
 u8   PCF8574_u8WritePort(u8 Copy_u8Address, u8 Copy_u8Value);
 u8   PCF8574_u8ReadPort (u8 Copy_u8Address, u8 * Copy_pu8Value);
+/* several port values in ONE I2C transaction (START , address , bytes , STOP) */
+u8   PCF8574_u8WriteBytes(u8 Copy_u8Address, const u8 * Copy_pu8Data, u8 Copy_u8Length);
 
 #endif /* HAL_PCF8574_PCF8574_H_ */
