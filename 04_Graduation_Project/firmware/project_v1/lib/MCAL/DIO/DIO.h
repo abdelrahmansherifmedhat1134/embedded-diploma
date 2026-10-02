@@ -35,4 +35,5 @@ void DIO_voidSetPortValue    (u8 Copy_u8PortID, u8 Copy_u8Value) ;
 u8   DIO_u8GetPortValue      (u8 Copy_u8PortID);
 void DIO_voidEnablePullUp(u8 Copy_u8PortID, u8 Copy_u8PinID);
 void DIO_voidTogPin   (u8 Copy_u8PortID, u8 Copy_u8PinID) ;
+void DIO_voidDisableJTAG();
 #endif
