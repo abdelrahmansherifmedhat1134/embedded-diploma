@@ -55,7 +55,8 @@ Produce these files and wait for the user's approval before writing firmware:
 - A list of the open decisions from Section 12 with your recommended answer for each.
 
 ### Phase 2 — Implement bottom-up
-**Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added. Next: Phase 2, HAL.
+**Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added.
+**Phase 2 HAL: DONE (2026-10-02).** Branch `phase2-hal`, `test_hal` added. Next: Phase 2, SERVICE.
 Order: MCAL → HAL → SERVICE → APP → `main.c`. One module at a time:
 write → `pio run` → fix → short summary of what changed → next module.
 Stop for review after finishing each layer.
@@ -116,13 +117,13 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **ADC:** no function to switch `ADIE` off; after one async conversion the sync `ADC_u16StartConversion` hangs (the ISR clears `ADIF`). The comment in `ADC_voidInit` says AVCC, but the code selects the internal 2.56 V reference (which is what we want for the LM35: 4 steps per °C).
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
-- **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
+- **FIXED (Phase 2 HAL, 2026-10-02)** � **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
-- **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
-- **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
+- **FIXED (Phase 2 HAL, 2026-10-02)** � **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
+- **FIXED (Phase 2 HAL, 2026-10-02)** � **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
 - **main.c:** includes `../lib/service/Std_Types.h` with the wrong letter case (works on Windows only). Rewritten in Phase 3.
 - The exact fix for every item is in `docs/architecture.md` Section 2.
-- **SSG:** writes raw segments to a whole port; does not fit the 7447 + 2-digit mux design → new SEVEN_SEG driver.
+- **FIXED (Phase 2 HAL, 2026-10-02)** � **SSG:** writes raw segments to a whole port; does not fit the 7447 + 2-digit mux design → new SEVEN_SEG driver.
 
 ### Proteus notes found in Phase 0
 - A single read of the shared UBRRH/UCSRC address seems to return UCSRC in Proteus (a real ATmega32 returns UBRRH), so UBRRH cannot be verified in simulation.
