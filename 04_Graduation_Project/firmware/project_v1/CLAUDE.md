@@ -1,7 +1,8 @@
 # CLAUDE.md — ATmega32 Smart Home + Water Heater
 
 This file is the single source of truth for this project. Read it fully at the start of every session.
-The original course specs are in `Graduation Projects.pdf` (Project 1: Smart Home, Project 2: Electric Water Heater).
+The original course specs are in `04_Graduation_Project/docs/Graduation_Projects.pdf` (Project 1: Smart Home, Project 2: Electric Water Heater).
+The approved design is in `docs/` (architecture, pin map, EEPROM map, UART protocol, test plan). This file states the rules and requirements; the docs hold the details.
 If this file and the PDF disagree, follow this file and point out the difference.
 
 ---
@@ -44,6 +45,7 @@ Target: simulation in **Proteus**. Build system: **PlatformIO** (bare-metal avr-
 5. Build `pio run -e test_base` and `pio run -e app`, then report back and wait.
 
 ### Phase 1 — Design (no code changes except `docs/`)
+**Status: DONE (2026-10-02).** PR #3. All decisions are recorded in Section 12 and in `docs/architecture.md` Section 9. Next: Phase 2, MCAL.
 Produce these files and wait for the user's approval before writing firmware:
 - `docs/architecture.md` — layer diagram, module list, which module calls which, the scheduler design, and each APP state machine (states, events, transitions).
 - `docs/pin_map.md` — final pin table (start from Section 7 and adapt it to the existing drivers).
@@ -66,13 +68,13 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 - Never delete or rename existing files without asking.
 - Every requirement you implement must be traceable: put the requirement ID from Section 6 in a comment where it is implemented (e.g. `/* REQ-HTR-07 */`).
 - If a spec point is ambiguous, use the default in Section 12, mark it in the code with `/* ASSUMPTION: ... */`, and mention it in your summary. Do not silently invent behavior.
-- Git: ask before the first commit. After the user agrees, commit once per finished module with a clear message.
+- Git: one branch per phase or layer. Commit once per finished module with a clear message. Open a PR when the layer is done and stop for review.
 
 ### Test program per layer (mandatory)
-- `src/main.c` is the real application. It is only rewritten in Phase 3; until then it stays as it is.
+- `src/APP/main.c` is the real application. It is only rewritten in Phase 3; until then it stays as it is.
 - Phase 0 ends with `test_mains/test_base.c` (existing drivers). Every Phase 2 layer (MCAL, HAL, SERVICE, APP) ends with its own test program:
   `test_mains/test_<layer>.c` plus a matching `[env:test_<layer>]` in `platformio.ini`.
-- Each test environment uses `build_src_filter` to exclude `src/main.c` and include only its own test file (plus all driver sources). Adding a test environment does not need permission; any other `platformio.ini` change still does.
+- Each test environment uses `build_src_filter` to exclude `src/APP/main.c` and include only its own test file (plus all driver sources). Adding a test environment does not need permission; any other `platformio.ini` change still does. Already approved: adding `Service` to `lib_deps` when the SERVICE layer gets its first `.c` file (and the same line for `[env:app]` in Phase 3).
 - A test program exercises **every module of its layer** and reports:
   - over UART: one line per check, `[PASS] <module>: <what>` or `[FAIL] <module>: <what>`, then a final summary line;
   - on a status LED: blinking = test running, solid ON = all passed, fast blink = at least one failure.
@@ -91,7 +93,7 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 > Reference style = the course author's drivers (DIO, ADC, EXTI, GIE, TIMER0, USART, CLCD, KPAD, SSG).
 > TWI was restyled to this standard (`TWI.c/.h/_cfg.h`, `u8`, `reg_def.h`, `TWI_u8SendStartCondition`). One unified style across all layers — no `<avr/io.h>`/`stdint.h` in project code.
 
-- Folder / file layout: `lib/MCAL/<MOD>/`, `lib/HAL/<MOD>/`, `lib/Service/` (shared `std_types.h`, `Bit_math.h`), `lib/MCAL/reg_def.h` (all register addresses), app in `src/APP/main.c`. One folder per module.
+- Folder / file layout: `lib/MCAL/<MOD>/`, `lib/HAL/<MOD>/`, `lib/Service/` (shared `std_types.h`, `Bit_math.h`), `lib/MCAL/reg_def.h` (all register addresses), app in `src/APP/main.c`. One folder per module. New SERVICE modules go in `lib/Service/<MOD>/`, new APP modules in `src/APP/<MOD>/`.
 - File naming: `DIO.c` / `DIO.h` / `CLCD_cfg.h` (module name in caps, `_cfg.h` for config). Older SSG uses `SSG_prog.c` / `SSG_int.h` / `SSG_CFG.h` — new modules follow the `MOD.c / MOD.h / MOD_cfg.h` form.
 - Function naming: `MODULE_<rettype><Name>` — `DIO_voidSetPinValue`, `DIO_u8GetPinValue`, `ADC_u16StartConversion`, `CLCD_voidSendString`. Params `Copy_u8PortID`, locals `Local_u8data`. Some setters drop the type (`TIMER0_SetCallBack_OV`, `ADC_SetCallBack`); prefer the typed form. Constants `MODULE_NAME` macros (`DIO_PORTA`, `TIMER0_DIV_64`, `EXTI_FALLING_EDGE`).
 - Types: `u8/u16/u32/s8/.../c8/f32` from `lib/Service/std_types.h` (`u32`/`s32` = `unsigned/signed long` = 32 bit, fixed in Phase 0; `NULL` defined there). No `<stdint.h>` in author code.
@@ -103,7 +105,7 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
   **Required for new ISRs:** declare them `__attribute__ ((signal, used, externally_visible))`. With only `signal`, PlatformIO's LTO discards the ISR at link time (found in Phase 0: ADC/TIMER0/EXTI handlers were dropped, so `test_base` builds with `build_unflags = -flto` until they are fixed).
 - Delay usage: `<util/delay.h>`. CLCD in I²C mode (the selected mode): 40/5/1 ms one-time init delays, 2 ms after clear/home, no per-pulse delay (each I²C write already takes ~0.3 ms). The parallel CLCD modes (unused) still have a 10 ms enable pulse. ADC sync, USART send/receive, KPAD (waits for key release) and TWI (~90 µs per byte, no timeout) all busy-wait.
 - Indentation, brace style: tabs, K&R braces on the same line, `switch` with `case X: stmt; break ;` on one line, space before `;` in `break ;` / `return x ;`. Files are CRLF. No fixed line-width limit.
-- Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), as in `test_mains/test_base.c`.
+- Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), as in `test_mains/test_base.c`. In Phase 2 the macro moves to `lib/Service/flash_str.h` so all layers share it.
 - Test programs: `test_mains/test_<layer>.c`, functions `TEST_voidName`, checks through `TEST_voidCheck(ok, FLASH_STR("MOD"), FLASH_STR("what"))`, status LED on PA3, Proteus wiring in the header comment.
 
 ### Known driver issues after Phase 0 (fix in Phase 2, bottom-up)
@@ -115,13 +117,18 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
 - **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
 - **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
-- **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function.
+- **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
+- **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
+- **main.c:** includes `../lib/service/Std_Types.h` with the wrong letter case (works on Windows only). Rewritten in Phase 3.
+- The exact fix for every item is in `docs/architecture.md` Section 2.
 - **SSG:** writes raw segments to a whole port; does not fit the 7447 + 2-digit mux design → new SEVEN_SEG driver.
 
 ### Proteus notes found in Phase 0
 - A single read of the shared UBRRH/UCSRC address seems to return UCSRC in Proteus (a real ATmega32 returns UBRRH), so UBRRH cannot be verified in simulation.
 - Parts powered from DC generators do not appear as VCC in the `.SDF` netlist; check the schematic before calling a pin "unconnected".
 - Keypad wiring: keypad rows A–D → PA4–PA7, columns 1–4 → PB0, PB1, PB2, PB4.
+- The `.SDF` netlist does not export simulation-only parts (keypad, 7-segment display, push buttons, motors, servo, instruments). A pin that goes only to such a part looks open in the netlist; that does not mean it is unconnected.
+- The NM24C08 model has a 10 ms write cycle (`TD_WRITE`), longer than the 5 ms of the data sheet.
 
 ### Expertise level
 Write code at the same level as the existing drivers: plain C, readable, well commented, no clever tricks.
@@ -132,14 +139,19 @@ Do not introduce things the existing code does not use (RTOS, function-pointer d
 ## 5. Architecture
 
 ```
-APP       : app_security, app_lighting, app_door, app_climate, app_heater, app_ui_local (LCD+keypad), app_ui_remote (UART terminal), app_alarm
-SERVICE   : scheduler (time base + task flags), user_db (EEPROM user records), ring_buffer
-HAL       : LCD, KEYPAD, LM35, SEVEN_SEG, BUTTON (debounced), LAMP/RELAY, DIMMER, SERVO, FAN, BUZZER, EXT_EEPROM (24C08), PCF8574 (if used)
-MCAL      : DIO, ADC, TIMER0, TIMER1, TIMER2, UART, TWI (I²C), EXTI, GIE, (internal EEPROM if used)
+APP       : SEC (security), ALARM, LIGHT, DOOR, CLIMATE, HEATER, UILOC (LCD + keypad), UIREM (UART terminal)
+SERVICE   : system    = SCHED (time base + task flags), TERM (UART rings + line editor), ESTORE (EEPROM image + write-behind), USERDB (accounts), EVQ (event queue)
+            utilities = RINGBUF, MAVG (moving average), FMT (number <-> text), flash_str.h, std_types.h, Bit_math.h
+HAL       : CLCD, LCD_BUF, KPAD, BUTTON, LM35, SEVEN_SEG, LAMP, RELAY, LED, DIMMER, SERVO, FAN, BUZZER, EXT_EEPROM (24C08), PCF8574
+MCAL      : DIO, GIE, ADC, TIMER0, TIMER1, TIMER2, USART, TWI (I²C), EXTI
 ```
+The full module list with the API of every module is in `docs/architecture.md`.
 
 Rules:
 - A layer only calls the layer directly below it (APP may also use SERVICE). MCAL never includes HAL or APP headers.
+- Two approved exceptions: `SCHED` and `TERM` (SERVICE) call MCAL directly (`TIMER2`, `USART`), because no chip sits in between. SERVICE utilities (`RINGBUF`, `MAVG`, `FMT`, the type headers) touch no hardware and may be included from any layer.
+- A HAL module may use a lower HAL module when one chip sits behind another (`CLCD → PCF8574`, `LCD_BUF → CLCD`, `LAMP → PCF8574`).
+- Inside APP: UI modules call SEC and the feature modules; feature modules never call a UI, they post events to `EVQ`.
 - HAL modules hide pins and chips. APP code never touches a register or a port/pin number.
 - All pin assignments live in HAL/MCAL config headers, never in APP code.
 - `main.c` only does: init all modules, enable global interrupts, run the super-loop that dispatches scheduler tasks.
@@ -165,15 +177,15 @@ Rules:
 - **SEC-02** Keypad users and remote users are **separate lists** with separate usernames. Keypad usernames are numeric (the keypad has digits only).
 - **SEC-03** Admin can add and remove users (both lists) from the remote terminal.
 - **SEC-04** Usernames and passwords survive power-off (EEPROM).
-- **SEC-05** More than 3 wrong attempts (username or password, admin or user) → the system **locks down and sounds the alarm until reset**. See Section 12 for exactly what "locks down" means.
+- **SEC-05** The **3rd wrong login in a row** (username or password, admin or user, counted per login source) → the system **locks down and sounds the alarm until reset**. See Section 12 for exactly what "locks down" means. (The course text says "more than 3"; the user decided on the 3rd.)
 - **SEC-06** Admin and users can control everything, **except users cannot open/close the door**.
-- **SEC-07** EEPROM access: admin = read/write, user = read-only (users can view status/settings but cannot change stored data like accounts).
+- **SEC-07** EEPROM access: admin = read/write, user = read-only. This applies to the **accounts**: only the admin can add, remove or change them (a write gate in `USERDB`, open only while the admin is logged in). The heater set temperature is not covered by this rule (HTR-14).
 - **SEC-08** Keypad users can control the system while a remote user is logged in. While the **admin** is logged in remotely, keypad control is blocked until the admin allows it (see Section 12).
 - **SEC-09** Default admin credentials are written on first boot when the EEPROM has no valid data (detected by a magic byte). Show them in `docs/uart_protocol.md`.
 
 ### Local UI (LCD + keypad) — REQ-LUI
 - **LUI-01** Used for emergency / non-mobile control, **user mode only**.
-- **LUI-02** Menu-driven: login → main menu → lamps / dimmer / AC status / heater status → logout. Clear, short LCD screens.
+- **LUI-02** Menu-driven: login → main menu → lamps / dimmer / AC status / heater (status and set temperature) → logout. Clear, short LCD screens.
 - **LUI-03** When the keypad/LCD is not in use (not logged in, or after an idle timeout), the LCD shows a **status screen of running devices** (lamps on, dimmer %, AC on/off + room temp, heater state + water temp).
 - **LUI-04** Password digits are shown as `*`.
 
@@ -181,7 +193,7 @@ Rules:
 - **RUI-01** Two-way communication with a PC/mobile via HC-05 Bluetooth or a USB-TTL adapter (Proteus: Virtual Terminal).
 - **RUI-02** Every action and state change prints a message on the remote screen, e.g. `Hey, please enter your username:`.
 - **RUI-03** Menu/command interface for all features; admin sees admin-only options (user management, door, allow-local-control).
-- **RUI-04** Invalid commands get a clear error message and the menu is shown again.
+- **RUI-04** Invalid commands get a clear error message and the menu is shown again. (After a successful command only the prompt is printed; `?` shows the menu.)
 
 ### Lighting — REQ-LGT
 - **LGT-01** 5 on/off lamps through isolating transistor + relay (LEDs acceptable in simulation).
@@ -210,7 +222,7 @@ Rules:
 - **HTR-11** In setting mode, the 7-seg shows the **set temperature and blinks with a 1 s period**; every change is shown immediately.
 - **HTR-12** Setting mode exits after **5 s** without Up/Down presses.
 - **HTR-13** Heater LED: heating element ON → LED blinks with a 1 s period. Cooling element ON → LED steady ON. Neither → LED off.
-- **HTR-14** Integration: remote terminal can show heater state, water temp, set temp, and (for admin and users) change the set temperature with the same rules (35–75, steps of 5, saved to EEPROM). The heater's physical ON/OFF button always works.
+- **HTR-14** Integration: remote terminal and keypad can show heater state, water temp, set temp, and (for admin, remote users and keypad users) change the set temperature with the same rules (35–75, steps of 5, saved to EEPROM). The heater's physical ON/OFF button always works.
 
 ### Alarm — REQ-ALM
 - **ALM-01** Buzzer sounds on lockdown (SEC-05) until MCU reset.
@@ -223,9 +235,9 @@ Rules:
 
 ---
 
-## 7. Recommended pin map (starting point — finalize in Phase 1)
+## 7. Pin map (final — full detail in `docs/pin_map.md`)
 
-The full feature list does **not** fit the 32 I/O pins if everything is wired directly (~41 pins needed). **Decided (Phase 0):** LCD on I²C via PCF8574 (`CLCD_MODE = CLCD_I2C_MODE`), keypad moved to the freed PORTA/PORTB pins, 7-seg/heater buttons moved to PORTC/PORTD. The plan below fits by putting the LCD and the 5 lamps on the I²C bus (PCF8574 expanders) and driving the 7-segments through a 7447 BCD decoder. If the existing LCD driver is parallel-only and the user prefers to keep it, propose another trade-off (e.g. 7-seg via 74HC595 on SPI) and ask.
+The full feature list does **not** fit the 32 I/O pins if everything is wired directly (~41 pins needed). **Decided:** LCD and the 5 lamps on the I²C bus (PCF8574 expanders), 7-segments through a 7447 BCD decoder, and (Phase 1) the dimmer on Timer0 and the AC fan on Timer1.
 
 | Pin | Function | Notes |
 |---|---|---|
@@ -237,7 +249,7 @@ The full feature list does **not** fit the 32 I/O pins if everything is wired di
 | PB0 | Keypad column 1 | freed by LCD → I²C |
 | PB1 | Keypad column 2 | freed by LCD → I²C |
 | PB2 | Keypad column 3 | freed by LCD → I²C |
-| PB3 | OC0 — AC fan PWM | Timer0 |
+| PB3 | OC0 — dimmer PWM | Timer0, 7.8 kHz, RC-filtered |
 | PB4 | Keypad column 4 | |
 | PB5 | Down button | |
 | PB6 | Heating element (SSR) | |
@@ -245,53 +257,53 @@ The full feature list does **not** fit the 32 I/O pins if everything is wired di
 | PC0 | SCL | I²C bus |
 | PC1 | SDA | I²C bus |
 | PC2–PC5 | 7447 BCD inputs A–D | shared by both digits. JTAG pins: on real hardware disable JTAG (JTD bit / fuse) |
-| PC6 | 7-seg digit 1 enable | multiplexed |
-| PC7 | 7-seg digit 2 enable | multiplexed |
+| PC6 | 7-seg digit 1 (tens) enable | multiplexed, active-low (PNP driver) |
+| PC7 | 7-seg digit 2 (units) enable | multiplexed, active-low (PNP driver) |
 | PD0 | UART RXD | |
 | PD1 | UART TXD | |
 | PD2 | PIR (INT0) | optional |
 | PD3 | Buzzer | |
-| PD4 | OC1B — dimmer PWM | Timer1 |
+| PD4 | OC1B — AC fan PWM | Timer1, 50 Hz |
 | PD5 | OC1A — door servo | Timer1 |
 | PD6 | Heater ON/OFF button | polling + debounce |
 | PD7 | Heater Up button | |
 
-I²C bus devices: 24C08 EEPROM (0x50–0x53), PCF8574 for the LCD (e.g. 0x27), PCF8574 for lamps 1–5 on P0–P4 (e.g. 0x20). Confirm addresses match the Proteus parts.
+I²C bus devices: 24C08 EEPROM (0x50), PCF8574 for the LCD (0x27), PCF8574 for lamps 1–5 on P0–P4 (0x20, **active-low**: lamp ON = bit 0).
 
 ---
 
-## 8. Timer allocation (recommended)
+## 8. Timer allocation (final)
 
 | Timer | Mode | Use |
 |---|---|---|
-| Timer0 | Fast PWM, OC0 (PB3) | AC fan speed |
-| Timer1 | Fast PWM mode 14, TOP = ICR1 → 20 ms period | OC1A = servo (1–2 ms pulse), OC1B = dimmer duty |
+| Timer0 | Fast PWM, OC0 (PB3), prescaler 8 → 7.8 kHz | dimmer duty |
+| Timer1 | Fast PWM mode 14, TOP = ICR1 → 20 ms period | OC1A = servo (1–2 ms pulse), OC1B = AC fan speed |
 | Timer2 | CTC, compare-match interrupt | **1 ms system tick** (prescaler/OCR2 computed from `F_CPU`) |
 
 If the existing timer drivers do not support a needed mode, extend them in their own style.
 
 ---
 
-## 9. EEPROM layout (24C08, 1 KB — recommended)
+## 9. EEPROM layout (24C08 — final, byte addresses in `docs/eeprom_map.md`)
 
-Document the final byte addresses in `docs/eeprom_map.md`.
-- Header: magic byte + layout version. If missing/wrong on boot → write defaults (admin account, heater set temp 60 °C, empty user lists).
-- Heater set temperature (1 byte).
-- Admin record: username (fixed length, e.g. 8 chars) + password (e.g. 4–8 chars).
-- Remote users table: N slots (e.g. 5), each = valid flag + username + password.
-- Keypad users table: N slots (e.g. 5), each = valid flag + numeric ID + numeric password.
-- Use fixed-size records and `#define` sizes/offsets so the layout is obvious.
-- Respect 24C08 page boundaries (16-byte pages) for page writes.
+- 16-byte pages; every record is exactly one page. Only pages 0–12 (0x00–0xCF) are used.
+- Page 0: magic byte + layout version (written on first boot only). If missing/wrong on boot → write defaults (admin `admin` / `1234`, heater set temp 60 °C, empty user lists).
+- Page 1: heater set temperature (1 byte). Its own page, so saving it can never damage the magic byte.
+- Page 2: admin record. Pages 3–7: 5 remote users. Pages 8–12: 5 keypad users.
+- Record = name (8 bytes) + password (8 bytes), padded with 0x00. No separate valid flag: a first name byte of 0x00 or 0xFF means "empty slot".
+- The whole area is mirrored in RAM (`ESTORE`); reads never touch the chip, writes go out one page per 10 ms slot with ACK polling.
+- Sizes and offsets are `#define`s in `ESTORE_cfg.h`.
 - Lockout state is **not** stored — lockdown lasts until reset.
 
 ---
 
-## 10. UART protocol (starting point)
+## 10. UART protocol (final — full text in `docs/uart_protocol.md`)
 
 - 9600 baud, 8N1 (confirm the baud error for the chosen `F_CPU`; enable U2X if it helps).
 - Menu-driven, numbered options, human-readable prompts, terminated with `\r\n`. Works with the Proteus Virtual Terminal and a Bluetooth terminal app.
-- Flow: welcome → `Hey, please enter your username:` → `Please enter your password:` → role-specific main menu → action → confirmation message (e.g. `Lamp 3 is now ON`) → menu again.
-- Admin menu adds: add/remove remote user, add/remove keypad user, list users, open/close door, allow/block local control.
+- Flow: welcome → `Hey, please enter your username:` → `Please enter your password:` → role-specific main menu → action → confirmation message (e.g. `[OK] Lamp 3 is now ON`) → prompt. The full menu is printed after login, after every error and on `?`.
+- Admin menu adds: add/remove remote user, add/remove keypad user, list users, open/close door, allow/block local control, change admin password, factory reset.
+- Commands with one argument also accept it on the same line (`1 3`, `5 65`).
 - Every state change triggered from anywhere (keypad, buttons, auto AC, heater) is also printed to the remote terminal while someone is logged in remotely.
 - Write the full command list and example session in `docs/uart_protocol.md`.
 
@@ -313,15 +325,20 @@ Document the final byte addresses in `docs/eeprom_map.md`.
 
 ---
 
-## 12. Open decisions — defaults to use unless the user says otherwise
+## 12. Decisions (all decided — Phase 1, 2026-10-02)
 
-1. **SEC-08 remote/local arbitration:** default = keypad user control is allowed while a remote *user* is logged in; blocked while the *admin* is logged in until the admin sends "allow local control".
-2. **SEC-05 "break down":** default = all actuators go to a safe state (heating element OFF, cooler OFF, fan OFF, lamps unchanged), buzzer sounds, LCD shows `SYSTEM LOCKED`, UART prints a lock message, all input ignored until MCU reset. Count = 3 consecutive failures per login source; the 4th attempt is never accepted. **Decided by the user (Phase 0): the system locks right after the 3rd failed login.**
-3. **Internal vs external EEPROM:** default = external 24C08 for everything.
-4. **Blink timing (HTR-11, HTR-13):** default = 1 s period (500 ms on, 500 ms off).
-5. **Heater in OFF state:** both elements forced OFF; sampling may continue but no display.
-6. **Save moment for set temperature:** default = save when leaving setting mode (after the 5 s timeout) and on every remote change, to limit EEPROM wear.
-7. **Keypad user login format:** numeric ID then numeric PIN, `#` = enter, `*` = backspace/cancel.
-8. **Idle timeout for LCD session:** default = 30 s without keys → logout and return to status screen.
-9. **Water temperature in Proteus:** the LM35 value is adjusted by hand; optionally add a simple simulated water model later (not required).
+1. **SEC-08 remote/local arbitration:** keypad user control is allowed while a remote *user* is logged in; blocked while the *admin* is logged in until the admin sends "allow keypad". An admin login ends an active keypad session, and the allow flag resets at every admin login.
+2. **SEC-05 lockdown:** the system locks right after the **3rd** failed login in a row. Counters are per login source (UART / keypad) and reset on a successful login. Safe state: heating element OFF, cooler OFF, fan OFF, lamps / dimmer / door unchanged, buzzer beeps 0.5 s on / 0.5 s off, LCD shows `SYSTEM LOCKED`, UART prints a lock message, all input ignored until MCU reset.
+3. **EEPROM:** external 24C08 for everything.
+4. **Blink timing (HTR-11, HTR-13):** 1 s period (500 ms on, 500 ms off).
+5. **Heater in OFF state:** both elements forced OFF, displays off; sampling continues; the 10-sample average is reset at turn-on. Up/Down are ignored while OFF.
+6. **Save moment for set temperature:** when leaving setting mode (5 s timeout), on turn-off if it changed, and at once on a remote or keypad change.
+7. **Keypad:** the fitted keypad is a calculator pad (`7 8 9 /`, `4 5 6 *`, `1 2 3 -`, `C 0 = +`). Numeric ID then numeric PIN; `=` = Enter, `*` or `C` = back (delete last digit, or leave the screen when nothing is typed), `+` / `-` = step a value.
+8. **Idle timeouts:** LCD session 30 s without keys → logout. Remote session 120 s without input → logout.
+9. **Water temperature in Proteus:** the LM35 value is adjusted by hand.
 10. **Spec typo:** "Cooling Element is OB" in the PDF means "is ON".
+11. **Dimmer and fan pins:** dimmer on PB3 / OC0 (Timer0), fan on PD4 / OC1B (Timer1).
+12. **Lamp polarity:** active-low on the PCF8574.
+13. **Accounts:** default admin `admin` / `1234`; user lists start empty; passwords are plain text; lamp, dimmer and door states are not stored.
+14. **Extras kept:** one-line commands, admin "change password" and "factory reset", keypad users may change the heater set temperature.
+15. **Not built in v1:** AC-03 fan speed ramp, ALM-02 PIR, LDR. Pins stay reserved.
