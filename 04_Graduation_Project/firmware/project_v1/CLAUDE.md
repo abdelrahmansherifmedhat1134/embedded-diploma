@@ -83,7 +83,8 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
   - If UART is not yet tested/available, use LEDs only.
 - Checks that need the user (keypad, buttons, sensors, servo angle, PWM duty) print what to do in Proteus and what the user should see, and use the scheduler/tick rather than long delays once it exists.
 - Each test file starts with a header comment: Proteus parts needed, their wiring (matching `docs/pin_map.md`), and the expected result.
-- A layer is only **done** when `pio run -e test_<layer>` and `pio run -e app` both build with zero warnings.
+- A layer is only **done** when `pio run -e test_<layer>` builds with zero warnings, and `test_base` and the earlier `test_<layer>` environments still do.
+- Until Phase 3, `pio run -e app` is **not** a compile check for new modules: `src/APP/main.c` includes no drivers, so nothing from `lib/` is built there. The per-module compile check is `pio run -e test_base` (it builds all of MCAL and HAL with `-Wall`), and `pio run -e test_<layer>` once that layer's test exists. `app` becomes the real check when `main.c` is rewritten in Phase 3.
 - End each layer with exactly 3 lines for the user: the build command, the `.hex` path to load in Proteus (`.pio/build/test_<layer>/firmware.hex`), and what to watch for.
 
 ---
@@ -313,7 +314,7 @@ If the existing timer drivers do not support a needed mode, extend them in their
 
 ## 11. Coding checklist (check before calling any module done)
 
-- [ ] Compiles with zero warnings (`pio run`).
+- [ ] Compiles with zero warnings (`pio run -e test_base`, or `-e test_<layer>` once it exists; `-e app` only from Phase 3, see "Test program per layer").
 - [ ] Matches Section 4 conventions exactly.
 - [ ] No blocking delays beyond what Section 5 allows.
 - [ ] No register access or pin numbers in APP code.
