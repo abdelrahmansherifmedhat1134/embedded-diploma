@@ -45,7 +45,7 @@ void TIMER0_GenerateWave_CTC(u8 Copy_u8mode);
 void TIMER0_SetCallBack_OV(void (*ptr)(void));
 void TIMER0_SetCallBack_OC(void (*ptr)(void));
 void TIMER0_GeneratePWM(u8 Copy_u8mode , u8 DutyCycle);
-void __vector_11 () __attribute__ ((signal)) ;
-void __vector_10 () __attribute__ ((signal)) ;
+void __vector_11 () __attribute__ ((signal, used, externally_visible)) ;
+void __vector_10 () __attribute__ ((signal, used, externally_visible)) ;
 
 #endif /* MCAL_TIMER0_TIMER0_H_ */
