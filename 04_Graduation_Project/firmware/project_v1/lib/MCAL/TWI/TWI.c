@@ -9,13 +9,27 @@
 #include "TWI.h"
 #include "TWI_cfg.h"
 
-/* Write TWCR (TWINT + TWEN + extra flags) then wait until TWINT is set again */
-static void TWI_voidSendCommand(u8 Copy_u8Flags){
+/* Write TWCR (TWINT + TWEN + extra flags) then wait until TWINT is set again.
+ * Waits at most TWI_TIMEOUT_LOOPS : a stuck bus (SDA or SCL held low) returns
+ * TWI_ERR_TIMEOUT and the bus is released instead of hanging the loop. */
+static u8 TWI_u8SendCommand(u8 Copy_u8Flags){
+	u8 Local_u8Error = TWI_OK ;
+	u16 Local_u16Timeout = TWI_TIMEOUT_LOOPS ;
 	TWCR = (1<<TWCR_TWINT) | (1<<TWCR_TWEN) | Copy_u8Flags ;
 	/* wait on TWINT (about 90 us per byte at 100 kHz) */
 	while(GET_BIT(TWCR,TWCR_TWINT) == 0){
-		/*wait ....*/
+		if(Local_u16Timeout == 0){
+			/*1. release the bus */
+			TWCR = (1<<TWCR_TWINT) | (1<<TWCR_TWEN) | (1<<TWCR_TWSTO);
+			/*2. switch the unit off and on : clears any half-finished transfer */
+			TWCR = 0 ;
+			TWCR = (1<<TWCR_TWEN);
+			Local_u8Error = TWI_ERR_TIMEOUT ;
+			break ;
+		}
+		Local_u16Timeout-- ;
 	}
+	return Local_u8Error ;
 }
 
 void TWI_voidMasterInit(){
@@ -38,21 +52,21 @@ u8 TWI_u8GetStatus(){
 }
 
 u8 TWI_u8SendStartCondition(){
-	u8 Local_u8Error = TWI_OK ;
-	TWI_voidSendCommand(1<<TWCR_TWSTA);
-	if(TWI_u8GetStatus() != TWI_STATUS_START){
+	u8 Local_u8Error = TWI_u8SendCommand(1<<TWCR_TWSTA);
+	if((Local_u8Error == TWI_OK) && (TWI_u8GetStatus() != TWI_STATUS_START)){
 		Local_u8Error = TWI_ERR_START ;
 	}
 	return Local_u8Error ;
 }
 
 u8 TWI_u8SendRepeatedStart(){
-	u8 Local_u8Error = TWI_OK ;
+	u8 Local_u8Error = TWI_u8SendCommand(1<<TWCR_TWSTA);
 	u8 Local_u8Status ;
-	TWI_voidSendCommand(1<<TWCR_TWSTA);
-	Local_u8Status = TWI_u8GetStatus();
-	if((Local_u8Status != TWI_STATUS_REPEATED_START) && (Local_u8Status != TWI_STATUS_START)){
-		Local_u8Error = TWI_ERR_START ;
+	if(Local_u8Error == TWI_OK){
+		Local_u8Status = TWI_u8GetStatus();
+		if((Local_u8Status != TWI_STATUS_REPEATED_START) && (Local_u8Status != TWI_STATUS_START)){
+			Local_u8Error = TWI_ERR_START ;
+		}
 	}
 	return Local_u8Error ;
 }
@@ -63,10 +77,13 @@ void TWI_voidSendStopCondition(){
 }
 
 u8 TWI_u8SendSlaveAddressWrite(u8 Copy_u8SlaveAddress){
-	u8 Local_u8Error = TWI_OK ;
+	u8 Local_u8Error ;
 	/* SLA+W : 7-bit address shifted left , R/W bit = 0 */
 	TWDR = (u8)(Copy_u8SlaveAddress<<1);
-	TWI_voidSendCommand(0);
+	Local_u8Error = TWI_u8SendCommand(0);
+	if(Local_u8Error != TWI_OK){
+		return Local_u8Error ;
+	}
 	switch(TWI_u8GetStatus()){
 	case TWI_STATUS_MT_SLA_ACK : Local_u8Error = TWI_OK ; break ;
 	case TWI_STATUS_MT_SLA_NACK: Local_u8Error = TWI_ERR_SLA_NACK ; break ;
@@ -77,10 +94,13 @@ u8 TWI_u8SendSlaveAddressWrite(u8 Copy_u8SlaveAddress){
 }
 
 u8 TWI_u8SendSlaveAddressRead(u8 Copy_u8SlaveAddress){
-	u8 Local_u8Error = TWI_OK ;
+	u8 Local_u8Error ;
 	/* SLA+R : 7-bit address shifted left , R/W bit = 1 */
 	TWDR = (u8)((Copy_u8SlaveAddress<<1) | 1);
-	TWI_voidSendCommand(0);
+	Local_u8Error = TWI_u8SendCommand(0);
+	if(Local_u8Error != TWI_OK){
+		return Local_u8Error ;
+	}
 	switch(TWI_u8GetStatus()){
 	case TWI_STATUS_MR_SLA_ACK : Local_u8Error = TWI_OK ; break ;
 	case TWI_STATUS_MR_SLA_NACK: Local_u8Error = TWI_ERR_SLA_NACK ; break ;
@@ -91,9 +111,12 @@ u8 TWI_u8SendSlaveAddressRead(u8 Copy_u8SlaveAddress){
 }
 
 u8 TWI_u8MasterWriteDataByte(u8 Copy_u8Data){
-	u8 Local_u8Error = TWI_OK ;
+	u8 Local_u8Error ;
 	TWDR = Copy_u8Data ;
-	TWI_voidSendCommand(0);
+	Local_u8Error = TWI_u8SendCommand(0);
+	if(Local_u8Error != TWI_OK){
+		return Local_u8Error ;
+	}
 	switch(TWI_u8GetStatus()){
 	case TWI_STATUS_MT_DATA_ACK : Local_u8Error = TWI_OK ; break ;
 	case TWI_STATUS_MT_DATA_NACK: Local_u8Error = TWI_ERR_DATA_NACK ; break ;
@@ -106,7 +129,10 @@ u8 TWI_u8MasterWriteDataByte(u8 Copy_u8Data){
 u8 TWI_u8MasterReadDataByteAck(u8 * Copy_pu8Data){
 	u8 Local_u8Error = TWI_OK ;
 	/* TWEA = 1 --> send ACK , slave continues sending */
-	TWI_voidSendCommand(1<<TWCR_TWEA);
+	Local_u8Error = TWI_u8SendCommand(1<<TWCR_TWEA);
+	if(Local_u8Error != TWI_OK){
+		return Local_u8Error ;
+	}
 	if(TWI_u8GetStatus() == TWI_STATUS_MR_DATA_ACK){
 		*Copy_pu8Data = TWDR ;
 	}else{
@@ -118,12 +144,24 @@ u8 TWI_u8MasterReadDataByteAck(u8 * Copy_pu8Data){
 u8 TWI_u8MasterReadDataByteNack(u8 * Copy_pu8Data){
 	u8 Local_u8Error = TWI_OK ;
 	/* TWEA = 0 --> send NACK , this is the last byte */
-	TWI_voidSendCommand(0);
+	Local_u8Error = TWI_u8SendCommand(0);
+	if(Local_u8Error != TWI_OK){
+		return Local_u8Error ;
+	}
 	if(TWI_u8GetStatus() == TWI_STATUS_MR_DATA_NACK){
 		*Copy_pu8Data = TWDR ;
 	}else{
 		Local_u8Error = TWI_ERR_BUS ;
 	}
+	return Local_u8Error ;
+}
+
+u8 TWI_u8ProbeAddress(u8 Copy_u8SlaveAddress){
+	u8 Local_u8Error = TWI_u8SendStartCondition();
+	if(Local_u8Error == TWI_OK){
+		Local_u8Error = TWI_u8SendSlaveAddressWrite(Copy_u8SlaveAddress);
+	}
+	TWI_voidSendStopCondition();
 	return Local_u8Error ;
 }
 

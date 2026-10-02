@@ -14,6 +14,7 @@
 #define TWI_ERR_DATA_NACK    3
 #define TWI_ERR_ARB_LOST     4
 #define TWI_ERR_BUS          5
+#define TWI_ERR_TIMEOUT      6
 
 /* TWI Status Codes (TWSR masked with 0xF8) */
 #define TWI_STATUS_MASK              0xF8
@@ -36,6 +37,8 @@ u8   TWI_u8GetStatus();
 u8   TWI_u8SendStartCondition();
 u8   TWI_u8SendRepeatedStart();
 void TWI_voidSendStopCondition();
+/* START + SLA+W + STOP : TWI_OK = device ACKs , TWI_ERR_SLA_NACK = absent or busy (24C08 write cycle) */
+u8   TWI_u8ProbeAddress(u8 Copy_u8SlaveAddress);
 
 u8   TWI_u8SendSlaveAddressWrite(u8 Copy_u8SlaveAddress);
 u8   TWI_u8SendSlaveAddressRead (u8 Copy_u8SlaveAddress);
