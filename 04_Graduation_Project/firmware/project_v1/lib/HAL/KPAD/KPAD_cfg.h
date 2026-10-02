@@ -22,4 +22,7 @@
 #define KPAD_ROW_PIN2    DIO_PIN_6
 #define KPAD_ROW_PIN3    DIO_PIN_7
 
+/* a key is accepted after this many equal scans in a row (2 x 10 ms = 20 ms) */
+#define KPAD_DEBOUNCE_SCANS    2
+
 #endif /* HAL_KPAD_KPAD_CFG_H_ */
