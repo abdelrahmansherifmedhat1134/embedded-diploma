@@ -85,16 +85,22 @@ void EXTI_voidDisableINT(u8 Copy_u8INT_Id){
 }
 
 void __vector_1 (){
-INT0_p();
+if(INT0_p != NULL){
+	INT0_p();
+}
 
 }
 
 void __vector_2 (){
-INT1_p();
+if(INT1_p != NULL){
+	INT1_p();
+}
 
 }
 
 void __vector_3 (){
-INT2_p();
+if(INT2_p != NULL){
+	INT2_p();
+}
 
 }

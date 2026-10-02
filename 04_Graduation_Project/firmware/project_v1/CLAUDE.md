@@ -55,6 +55,7 @@ Produce these files and wait for the user's approval before writing firmware:
 - A list of the open decisions from Section 12 with your recommended answer for each.
 
 ### Phase 2 — Implement bottom-up
+**Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added. Next: Phase 2, HAL.
 Order: MCAL → HAL → SERVICE → APP → `main.c`. One module at a time:
 write → `pio run` → fix → short summary of what changed → next module.
 Stop for review after finishing each layer.
@@ -110,13 +111,13 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 
 ### Known driver issues after Phase 0 (fix in Phase 2, bottom-up)
 Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed key table and column left LOW, SPI stub missing `return`, `u32`/`s32` were 16 bit.
-- **ISRs (ADC, TIMER0, EXTI):** missing `used, externally_visible`, so LTO drops them (see Interrupt style). Fix, then remove `build_unflags = -flto` from `[env:test_base]`.
-- **TIMER0:** `TIMER0_GeneratePWM` has the COM bits swapped (NONINVERTED sets 11), and 100 % duty gives `OCR0 = 256` → 0. `test_base` reports both as `[FAIL]`.
-- **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
-- **ADC:** no function to switch `ADIE` off; after one async conversion the sync `ADC_u16StartConversion` hangs (the ISR clears `ADIF`). The comment in `ADC_voidInit` says AVCC, but the code selects the internal 2.56 V reference (which is what we want for the LM35: 4 steps per °C).
-- **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
+- **FIXED (Phase 2 MCAL, 2026-10-02)** · **ISRs (ADC, TIMER0, EXTI):** missing `used, externally_visible`, so LTO drops them (see Interrupt style). Fix, then remove `build_unflags = -flto` from `[env:test_base]`.
+- **FIXED (Phase 2 MCAL, 2026-10-02)** · **TIMER0:** `TIMER0_GeneratePWM` has the COM bits swapped (NONINVERTED sets 11), and 100 % duty gives `OCR0 = 256` → 0. `test_base` reports both as `[FAIL]`.
+- **FIXED (Phase 2 MCAL, 2026-10-02)** · **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
+- **FIXED (Phase 2 MCAL, 2026-10-02)** · **ADC:** no function to switch `ADIE` off; after one async conversion the sync `ADC_u16StartConversion` hangs (the ISR clears `ADIF`). The comment in `ADC_voidInit` says AVCC, but the code selects the internal 2.56 V reference (which is what we want for the LM35: 4 steps per °C).
+- **FIXED (Phase 2 MCAL, 2026-10-02)** · **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
 - **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
-- **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
+- **FIXED (Phase 2 MCAL, 2026-10-02)** · **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
 - **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
 - **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
 - **main.c:** includes `../lib/service/Std_Types.h` with the wrong letter case (works on Windows only). Rewritten in Phase 3.

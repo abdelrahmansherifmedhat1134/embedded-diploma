@@ -128,3 +128,11 @@ void DIO_voidTogPin   (u8 Copy_u8PortID, u8 Copy_u8PinID) {
 			default: break;
 			}
 }
+
+void DIO_voidDisableJTAG(){
+	/* PC2..PC5 are JTAG pins. JTD must be written twice within 4 clock cycles.
+	 * MCUCSR also holds the reset flags (write 0 = no effect) and ISC2 (keep it). */
+	u8 Local_u8Value = (MCUCSR & (1<<MCUCSR_ISC2)) | (1<<MCUCSR_JTD) ;
+	MCUCSR = Local_u8Value ;
+	MCUCSR = Local_u8Value ;
+}

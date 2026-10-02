@@ -12,7 +12,7 @@ void TIMER0_voidInit(u8 Copy_u8PreScalare,u8 Copy_u8Mode){
 	TCCR0 |= Copy_u8PreScalare ; // set with mask
 
 	switch(Copy_u8Mode){
-	case TIMER0_CTC_DISCONNECTED:
+	case TIMER0_NORMAL:
 		CLR_BIT(TCCR0,TCCR0_WGM00);
 		CLR_BIT(TCCR0,TCCR0_WGM01);
 		break;
@@ -95,14 +95,16 @@ void TIMER0_GeneratePWM(u8 Copy_u8mode , u8 DutyCycle){
 		CLR_BIT(TCCR0,TCCR0_COM01);
 		break;
 	case TIMER0_PWM_INVERTED:
-		CLR_BIT(TCCR0,TCCR0_COM00);
-		SET_BIT(TCCR0,TCCR0_COM01);
-		OCR0 =256*DutyCycle/100;
-		break;
-	case TIMER0_PWM_NONINVERTED:
+		/* COM01:COM00 = 11 , inverting mode */
 		SET_BIT(TCCR0,TCCR0_COM00);
 		SET_BIT(TCCR0,TCCR0_COM01);
-		OCR0 =256*DutyCycle/100;
+		OCR0 =((u16)DutyCycle*255)/100;	/* 100 % -> 255 (256 would wrap to 0) */
+		break;
+	case TIMER0_PWM_NONINVERTED:
+		/* COM01:COM00 = 10 , non-inverting mode */
+		CLR_BIT(TCCR0,TCCR0_COM00);
+		SET_BIT(TCCR0,TCCR0_COM01);
+		OCR0 =((u16)DutyCycle*255)/100;	/* 100 % -> 255 (256 would wrap to 0) */
 		break;
 	default :
 		break;

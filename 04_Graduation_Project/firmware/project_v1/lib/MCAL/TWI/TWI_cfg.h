@@ -22,4 +22,9 @@
  * 16 MHz , 100 kHz , TWPS = 0 --> TWBR = (160 - 16) / 2 = 72 */
 #define TWI_TWBR_VALUE      ((u8)(((F_CPU / TWI_SCL_FREQ) - 16) / 2))
 
+/* Longest wait for TWINT before the bus is declared stuck (TWI_ERR_TIMEOUT).
+ * The wait loop takes about 6 clock cycles per pass : 16 MHz --> 2666 passes = about 1 ms.
+ * A normal byte takes 90 us (about 215 passes). */
+#define TWI_TIMEOUT_LOOPS   ((u16)((F_CPU / 1000UL) / 6UL))
+
 #endif /* MCAL_TWI_TWI_CFG_H_ */
