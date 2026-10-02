@@ -12,6 +12,9 @@
 #define CLCD_I2C_MODE      2
 #define CLCD_MODE 			CLCD_I2C_MODE
 
+/* Display control command : 0b00001DCB (D = display on , C = cursor , B = blink) */
+#define CLCD_DISPLAY_CTRL   0b00001100   /* display on , cursor off , blink off */
+
 /* The Configuration is Valid In Case I2C Mode only (LCD behind a PCF8574) */
 /* 0x27 = PCF8574 with A2 A1 A0 = 1 1 1 */
 #define CLCD_I2C_ADDRESS    0x27

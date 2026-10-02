@@ -13,12 +13,12 @@
 #if CLCD_MODE == CLCD_I2C_MODE
 #include "../PCF8574/PCF8574.h"
 
-/* Send one nibble through the PCF8574 : E high then E low.
- * Each I2C write takes ~0.3 ms at 100 kHz , longer than the LCD needs
- * for E pulse (450 ns) and for a normal command (37 us). */
-static void I2C_voidSendNibble(u8 Copy_u8Nibble, u8 Copy_u8RS){
+/* Result of the last I2C write (TWI_OK = 0) , read by LCD_BUF through CLCD_u8GetStatus */
+static u8 Global_u8LastStatus = 0 ;
+
+/* Build the PCF8574 port value for one nibble : back light ON , RW LOW (write only) */
+static u8 I2C_u8BuildPort(u8 Copy_u8Nibble, u8 Copy_u8RS){
 	u8 Local_u8Data = 0 ;
-	/* back light always ON , RW always LOW (write only) */
 	SET_BIT(Local_u8Data,CLCD_I2C_BL_BIT);
 	if(Copy_u8RS == DIO_PIN_HIGH){
 		SET_BIT(Local_u8Data,CLCD_I2C_RS_BIT);
@@ -27,13 +27,28 @@ static void I2C_voidSendNibble(u8 Copy_u8Nibble, u8 Copy_u8RS){
 	if(GET_BIT(Copy_u8Nibble,1)){ SET_BIT(Local_u8Data,CLCD_I2C_D5_BIT); }
 	if(GET_BIT(Copy_u8Nibble,2)){ SET_BIT(Local_u8Data,CLCD_I2C_D6_BIT); }
 	if(GET_BIT(Copy_u8Nibble,3)){ SET_BIT(Local_u8Data,CLCD_I2C_D7_BIT); }
-
-	PCF8574_u8WritePort(CLCD_I2C_ADDRESS,Local_u8Data | (1<<CLCD_I2C_E_BIT));
-	PCF8574_u8WritePort(CLCD_I2C_ADDRESS,Local_u8Data);
+	return Local_u8Data ;
 }
+/* Send one nibble : E high then E low , in one I2C transaction (init only).
+ * One I2C byte takes ~90 us at 100 kHz , far longer than the E pulse the LCD needs (450 ns). */
+static void I2C_voidSendNibble(u8 Copy_u8Nibble, u8 Copy_u8RS){
+	u8 Local_u8Port = I2C_u8BuildPort(Copy_u8Nibble,Copy_u8RS);
+	u8 Local_au8Data[2] ;
+	Local_au8Data[0] = Local_u8Port | (1<<CLCD_I2C_E_BIT) ;
+	Local_au8Data[1] = Local_u8Port ;
+	Global_u8LastStatus = PCF8574_u8WriteBytes(CLCD_I2C_ADDRESS,Local_au8Data,2);
+}
+/* Send one byte as ONE transaction of 4 port values : hi nibble (E=1 , E=0) , lo nibble (E=1 , E=0).
+ * About 0.5 ms instead of 1.2 ms with four separate transactions. */
 static void I2C_voidSendByte(u8 Copy_u8Byte, u8 Copy_u8RS){
-	I2C_voidSendNibble(Copy_u8Byte>>4,Copy_u8RS);
-	I2C_voidSendNibble(Copy_u8Byte,Copy_u8RS);
+	u8 Local_u8High = I2C_u8BuildPort(Copy_u8Byte>>4,Copy_u8RS);
+	u8 Local_u8Low  = I2C_u8BuildPort(Copy_u8Byte,Copy_u8RS);
+	u8 Local_au8Data[4] ;
+	Local_au8Data[0] = Local_u8High | (1<<CLCD_I2C_E_BIT) ;
+	Local_au8Data[1] = Local_u8High ;
+	Local_au8Data[2] = Local_u8Low  | (1<<CLCD_I2C_E_BIT) ;
+	Local_au8Data[3] = Local_u8Low ;
+	Global_u8LastStatus = PCF8574_u8WriteBytes(CLCD_I2C_ADDRESS,Local_au8Data,4);
 }
 #else
 static void SetHalfPort(u8 Copy_u8Data){
@@ -91,7 +106,7 @@ void CLCD_voidInit(){
 #endif
 #endif
 	/*Send Command on / off control  */
-	CLCD_voidSendCommand(0b00001111);
+	CLCD_voidSendCommand(CLCD_DISPLAY_CTRL);
 	/*Send Command Clear  */
 	CLCD_voidSendCommand(1);
 }
@@ -170,6 +185,20 @@ void CLCD_voidSetCursorPosition(u8 Copy_u8x, u8 Copy_u8y){
 }
 
 
+void CLCD_voidSendFlashString(const __flash c8 * Copy_pc8Str){
+	while(*Copy_pc8Str != '\0'){
+		CLCD_voidSendData(*Copy_pc8Str++);
+	}
+}
+
+u8 CLCD_u8GetStatus(){
+#if CLCD_MODE == CLCD_I2C_MODE
+	return Global_u8LastStatus ;
+#else
+	return 0 ;
+#endif
+}
+
 void CLCD_voidSendString(char * str){
 	while(*str != '\0'){
 		CLCD_voidSendData(*str++);
@@ -186,25 +215,3 @@ void CLCD_voidCreatSpecialChar(u8 Copy_u8Index,u8 * Copypu8Array){
 		CLCD_voidSendData(Copypu8Array[i]);
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
