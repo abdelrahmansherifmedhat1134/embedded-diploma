@@ -19,6 +19,7 @@
 void ADC_voidInit();
 u16 ADC_u16StartConversion(u8 Copy_u8ChannelID);
 void ADC_voidStartConvertionAsyn(u8 Copy_u8ChannelID );
+void ADC_voidDisableInterrupt();
 void ADC_SetCallBack(void (*ptr)(void), u16* Copy_u16data);
 void __vector_16 () __attribute__ ((signal, used, externally_visible)) ;
 #endif /* MCAL_ADC_ADC_H_ */
