@@ -1,6 +1,6 @@
 # Architecture — ATmega32 Smart Home + Water Heater
 
-Phase 1 design. **Status: waiting for approval. No firmware exists for this design yet.**
+Phase 1 design. **Status: design decisions approved by the user on 2026-10-02 (Section 9). No firmware exists for this design yet.**
 Clock: `F_CPU = 16 000 000` (from `platformio.ini`, `board_build.f_cpu`). Every timing value below is derived from `F_CPU`.
 
 Related documents: [pin_map.md](pin_map.md), [eeprom_map.md](eeprom_map.md), [uart_protocol.md](uart_protocol.md), [test_plan.md](test_plan.md).
@@ -60,7 +60,7 @@ LIGHT  -> LAMP, DIMMER, EVQ                  DOOR    -> SERVO
 CLIMATE-> LM35, MAVG, FAN, EVQ               HEATER  -> LM35, MAVG, BUTTON, SEVEN_SEG, RELAY, LED, ESTORE, EVQ
 USERDB -> ESTORE -> EXT_EEPROM -> TWI        TERM    -> USART, RINGBUF          EVQ -> RINGBUF      ESTORE -> EVQ (fault)
 SCHED  -> TIMER2                             LCD_BUF -> CLCD -> PCF8574 -> TWI  LAMP -> PCF8574 -> TWI
-KPAD, BUTTON, SEVEN_SEG, RELAY, LED, BUZZER -> DIO      LM35 -> ADC      FAN -> TIMER0, DIO      SERVO, DIMMER -> TIMER1, DIO
+KPAD, BUTTON, SEVEN_SEG, RELAY, LED, BUZZER -> DIO      LM35 -> ADC      DIMMER -> TIMER0, DIO      SERVO, FAN -> TIMER1, DIO
 ```
 
 ---
@@ -93,7 +93,7 @@ Style: `MODULE_<type><Name>`, `Copy_` parameters, `u8` status codes as `#define`
 
 ### 3.1 MCAL
 
-#### TIMER1 — 16-bit PWM (servo + dimmer)
+#### TIMER1 — 16-bit PWM (servo + fan)
 ```c
 /* TIMER1.h */
 #define TIMER1_PWM_DISCONNECTED   0
@@ -111,7 +111,7 @@ void TIMER1_voidGeneratePWM_B(u8 Copy_u8mode);        /* OC1B = PD4 */
 #define TIMER1_TOP_VALUE          ((u16)((F_CPU / (TIMER1_PRESCALER * TIMER1_PWM_FREQ_HZ)) - 1))   /* 39999 */
 #define TIMER1_TICKS_PER_MS       ((u16)(F_CPU / (TIMER1_PRESCALER * 1000UL)))                      /* 2000 */
 ```
-`TIMER1_voidInit` may be called twice (SERVO and DIMMER both call it), like `PCF8574_voidInit` today. No interrupt is used.
+`TIMER1_voidInit` may be called twice (SERVO and FAN both call it), like `PCF8574_voidInit` today. No interrupt is used.
 
 #### TIMER2 — 8-bit CTC tick
 ```c
@@ -230,7 +230,7 @@ u8   LAMP_u8GetState(u8 Copy_u8LampNumber);
 #define LAMP_COUNT          5
 #define LAMP_I2C_ADDRESS    0x20                       /* PCF8574 , A2 A1 A0 = 0 0 0 */
 #define LAMP_FIRST_BIT      0                          /* lamp 1 = P0 ... lamp 5 = P4 */
-#define LAMP_ON_LEVEL       1                          /* see pin_map.md C-2 */
+#define LAMP_ON_LEVEL       0                          /* active low : +5 V -> 220 R -> LED -> pin (pin_map.md C-2) */
 ```
 
 #### RELAY, LED, BUZZER — plain outputs
@@ -257,11 +257,12 @@ void BUZZER_voidOff();                                 #define BUZZER_ON_LEVEL  
 #### DIMMER, SERVO, FAN — PWM outputs
 ```c
 /* DIMMER.h */
-void DIMMER_voidInit();                                /* TIMER1_voidInit , level 0 */
+void DIMMER_voidInit();                                /* Timer0 fast PWM , level 0 */
 void DIMMER_voidSetLevel(u8 Copy_u8Percent);           /* 0..100 */
 /* DIMMER_cfg.h */
-#define DIMMER_PORT     DIO_PORTD
-#define DIMMER_PIN      DIO_PIN_4                      /* OC1B */
+#define DIMMER_PORT              DIO_PORTB
+#define DIMMER_PIN               DIO_PIN_3             /* OC0 */
+#define DIMMER_TIMER_PRESCALER   TIMER0_DIV_8          /* F_CPU / 8 / 256 = 7812 Hz : easy to filter to 0-5 V */
 
 /* SERVO.h */
 void SERVO_voidInit();                                 /* TIMER1_voidInit , closed position */
@@ -273,15 +274,14 @@ void SERVO_voidSetAngle(u8 Copy_u8Angle);              /* 0..180 degrees */
 #define SERVO_MAX_PULSE_US    2000UL                   /* 180 degrees */
 
 /* FAN.h */
-void FAN_voidInit();                                   /* Timer0 fast PWM , stopped */
+void FAN_voidInit();                                   /* TIMER1_voidInit , stopped */
 void FAN_voidSetSpeed(u8 Copy_u8Percent);              /* 0..100 */
 /* FAN_cfg.h */
-#define FAN_PORT              DIO_PORTB
-#define FAN_PIN               DIO_PIN_3                /* OC0 */
-#define FAN_TIMER_PRESCALER   TIMER0_DIV_64            /* F_CPU / 64 / 256 = 976 Hz */
+#define FAN_PORT              DIO_PORTD
+#define FAN_PIN               DIO_PIN_4                /* OC1B , 50 Hz (shares Timer1 with the servo) */
 ```
 PWM corner cases, the same in all three: 0 % = compare output **disconnected** and the pin driven low (compare value 0 would leave a one-tick spike); 100 % = compare value equal to TOP (constant high).
-Servo counts: `OCR1A = pulse_us * TIMER1_TICKS_PER_MS / 1000` -> 1.0 ms = 2000, 1.5 ms (90°) = 3000, 2.0 ms = 4000. Dimmer: `OCR1B = percent * (TIMER1_TOP_VALUE + 1) / 100` -> 10 % = 4000.
+Servo counts: `OCR1A = pulse_us * TIMER1_TICKS_PER_MS / 1000` -> 1.0 ms = 2000, 1.5 ms (90°) = 3000, 2.0 ms = 4000. Fan: `OCR1B = percent * (TIMER1_TOP_VALUE + 1) / 100` -> 10 % = 4000. Dimmer: `OCR0 = percent * 255 / 100`.
 
 #### EXT_EEPROM — 24C08
 ```c
@@ -652,8 +652,8 @@ Critical sections are used only in main-loop context, where interrupts are alway
 
 | Timer | Mode | Numbers | Use |
 |---|---|---|---|
-| Timer0 | fast PWM, OC0 | /64 -> 976 Hz; `OCR0 = duty * 255 / 100` | AC fan |
-| Timer1 | mode 14, TOP = `ICR1` = 39999 | /8 -> 0.5 µs per count, 20 ms period | OC1A servo, OC1B dimmer |
+| Timer0 | fast PWM, OC0 | /8 -> 7812 Hz; `OCR0 = percent * 255 / 100` | dimmer |
+| Timer1 | mode 14, TOP = `ICR1` = 39999 | /8 -> 0.5 µs per count, 20 ms period | OC1A servo, OC1B AC fan |
 | Timer2 | CTC, `OCR2` = 249 | /64 -> 1 ms | system tick |
 
 ### 4.6 Boot order (`main`)
@@ -896,11 +896,11 @@ Rule: one owner per piece of state, kept `static` in the owner's `.c`; everyone 
 ```
  keypad --KPAD--> UILOC --+                                   +--> LAMP --> PCF8574 (I2C)
                           +--> SEC --> USERDB --> ESTORE --> EXT_EEPROM (I2C)
- UART --USART--> TERM --> UIREM --+        |                  +--> DIMMER / SERVO (Timer1)
+ UART --USART--> TERM --> UIREM --+        |                  +--> DIMMER (Timer0) / SERVO (Timer1)
                           |       |        v                  |
                           |       +--> ALARM --> BUZZER       |
                           +----------> LIGHT / DOOR ----------+
- LM35 ambient --> CLIMATE --> FAN (Timer0)      LIGHT, CLIMATE, HEATER, SEC, ALARM, ESTORE
+ LM35 ambient --> CLIMATE --> FAN (Timer1)      LIGHT, CLIMATE, HEATER, SEC, ALARM, ESTORE
  LM35 water + buttons --> HEATER --> RELAY, LED, SEVEN_SEG          |  EVQ_voidPost
                                                                     v
  UILOC --> LCD_BUF --> CLCD --> PCF8574 (I2C)          EVQ --> UIREM --> TERM --> UART "[INFO] ..."
@@ -964,13 +964,13 @@ One module at a time: write -> `pio run` -> fix -> short summary. Each layer end
 
 What each test program checks is listed in [test_plan.md](test_plan.md) Section 2.
 
-`platformio.ini`: each `[env:test_<layer>]` is added like `[env:test_base]` (allowed without asking). One change **needs your OK** when the SERVICE layer starts: `lib/Service` gets `.c` files for the first time, so `Service` must be added to `lib_deps`, and `[env:app]` will need the same `lib_deps` line in Phase 3.
+`platformio.ini`: each `[env:test_<layer>]` is added like `[env:test_base]` (allowed without asking). One further change is **approved** (2026-10-02) for when the SERVICE layer starts: `lib/Service` gets `.c` files for the first time, so `Service` must be added to `lib_deps`, and `[env:app]` will need the same `lib_deps` line in Phase 3.
 
 ---
 
 ## 9. Design decisions and assumptions
 
-Marked in code as `/* ASSUMPTION: ... */` where they are implemented. "CLAUDE" = CLAUDE.md.
+**All approved by the user on 2026-10-02.** Marked in code as `/* ASSUMPTION: ... */` where they are implemented. "CLAUDE" = CLAUDE.md.
 
 | ID | Decision | Reason |
 |---|---|---|
@@ -990,3 +990,6 @@ Marked in code as `/* ASSUMPTION: ... */` where they are implemented. "CLAUDE" =
 | D-14 | Lamp, dimmer and door states are not stored in EEPROM (boot = off, closed) | not required |
 | D-15 | Lockdown buzzer beeps 0.5 s / 0.5 s | recognisable as an alarm; one macro makes it continuous |
 | D-16 | Not built in the first version: AC-03 fan speed ramp, ALM-02 PIR, LDR. Pins stay reserved | CLAUDE: optional, after the spec is done |
+| D-17 | Dimmer and fan swapped against the first pin plan: dimmer on PB3 / OC0 (Timer0, 7.8 kHz), fan on PD4 / OC1B (Timer1, 50 Hz) | the dimmer needs a 0–5 V level; 7.8 kHz filters with a small RC and reacts fast, 50 Hz does not. 50 Hz is fine for an on/off fan (pin_map C-1) |
+| D-18 | Lamps on the PCF8574 are active-low (`LAMP_ON_LEVEL 0`) | a PCF8574 can sink but not source LED current, and its power-up state (all high) then means all lamps off (pin_map C-2) |
+| D-19 | `Service` is added to `lib_deps` when the SERVICE layer gets its first `.c` file, and `[env:app]` gets the same line in Phase 3 | without it the layer does not link |

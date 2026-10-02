@@ -1,6 +1,6 @@
 # Test plan — Proteus
 
-Phase 1 design. **Status: waiting for approval.** 78 numbered steps; every requirement ID of CLAUDE.md Section 6 appears at least once (coverage table in Section 4).
+Phase 1 design. **Status: approved by the user on 2026-10-02.** 78 numbered steps; every requirement ID of CLAUDE.md Section 6 appears at least once (coverage table in Section 4).
 Command numbers and message texts: [uart_protocol.md](uart_protocol.md). Pins and parts: [pin_map.md](pin_map.md). EEPROM addresses: [eeprom_map.md](eeprom_map.md).
 
 "Verified" in this project means: it builds with zero warnings, the logic was traced by hand against the requirement, and the step below was run in Proteus. Phase 2 and 3 keep this file in line with the real code.
@@ -13,8 +13,8 @@ Command numbers and message texts: [uart_protocol.md](uart_protocol.md). Pins an
 |---|---|
 | S1 | `pio run -e app`, load `.pio/build/app/firmware.hex` into the ATmega32 |
 | S2 | ATmega32 *Clock Frequency* = **16 MHz** (must equal `F_CPU` in `platformio.ini`) |
-| S3 | Wire all parts as in `pin_map.md` Sections 1, 2 and 5, including the RESET push button; fix C-6, C-7, C-8 |
-| S4 | Virtual Terminal on PD0/PD1: 9600, 8, NONE, 1, echo off. I²C debugger on SCL/SDA. Oscilloscope: A = PB3, B = PD4, C = PD5, D = PC6 |
+| S3 | Wire all parts as in `pin_map.md` Sections 1, 2 and 5, including the RESET push button |
+| S4 | Virtual Terminal on PD0/PD1: 9600, 8, NONE, 1, echo off. I²C debugger on SCL/SDA. Oscilloscope: A = PB3 (dimmer), B = PD4 (fan), C = PD5 (servo), D = PC6 (digit 1) |
 | S5 | Start values: ambient LM35 = 25 °C, water LM35 = 40 °C |
 | S6 | "RESET" in a step means: press the RESET push button (the MCU restarts, the EEPROM keeps its content) |
 | S7 | "Blank EEPROM" means: start the simulation with the 24C08 content cleared (all 0xFF) |
@@ -31,7 +31,7 @@ Each layer ends with `test_mains/test_<layer>.c` and `[env:test_<layer>]`. Outpu
 | Program | Modules | Checks |
 |---|---|---|
 | `test_base` (exists) | Phase 0 drivers | must be all `[PASS]` after the MCAL fixes, built **with** LTO |
-| `test_mcal` | DIO, GIE, ADC, TIMER0, TIMER1, TIMER2, USART, TWI, EXTI | JTAG disable bit set · ADC sync read works **after** an async read · Timer0 PWM 0 / 50 / 100 % on PB3 (register check + scope) · Timer1: `ICR1` = 39999, 20 ms period, OC1A 1.0 / 1.5 / 2.0 ms, OC1B 0 / 50 / 100 % · Timer2: 1000 compare interrupts in 1.000 s (counted against Timer1) · USART: `UBRR` = 103, RX callback receives typed keys, a 300-byte burst leaves through the TX interrupt without a lost byte · TWI: ACK from 0x20, 0x27, 0x50, `TWI_ERR_SLA_NACK` from 0x60, `TWI_ERR_TIMEOUT` within 2 ms when SDA is held low (MANUAL) · EXTI: callback on a PD2 button, no crash with no callback set |
+| `test_mcal` | DIO, GIE, ADC, TIMER0, TIMER1, TIMER2, USART, TWI, EXTI | JTAG disable bit set · ADC sync read works **after** an async read · Timer0 PWM 0 / 50 / 100 % on PB3 at 7.8 kHz (register check + scope) · Timer1: `ICR1` = 39999, 20 ms period, OC1A 1.0 / 1.5 / 2.0 ms, OC1B 0 / 50 / 100 % · Timer2: 1000 compare interrupts in 1.000 s (counted against Timer1) · USART: `UBRR` = 103, RX callback receives typed keys, a 300-byte burst leaves through the TX interrupt without a lost byte · TWI: ACK from 0x20, 0x27, 0x50, `TWI_ERR_SLA_NACK` from 0x60, `TWI_ERR_TIMEOUT` within 2 ms when SDA is held low (MANUAL) · EXTI: callback on a PD2 button, no crash with no callback set |
 | `test_hal` | PCF8574, CLCD, LCD_BUF, KPAD, BUTTON, SEVEN_SEG, LM35, RELAY, LED, BUZZER, LAMP, FAN, SERVO, DIMMER, EXT_EEPROM | LCD text through LCD_BUF, cursor off, longest `LCD_BUF_voidUpdate` call measured < 1 ms · each keypad key reported exactly once per press · button press and release events, a held button gives one event · 7-seg counts 00–99, no ghosting, blank works · both LM35 printed in °C · lamps 1–5 chase, read-back equals written · relays, LED, buzzer on/off · fan 0–100 % ramp · servo 0 / 90 / 180° · dimmer 0–100 % in steps of 10 · EEPROM: page write, `EXT_EEPROM_u8IsReady` = 0 right after it and 1 within 50 ms, read back equal, value still there after RESET |
 | `test_service` | RINGBUF, MAVG, FMT, SCHED, TERM, EVQ, ESTORE, USERDB | RINGBUF empty / full / wrap · MAVG: average of 10 known samples, "full" only after 10, reset · FMT: 0, 9, 10, 255, 65535, text -> number rejects letters · SCHED: over 10 s the five flags are served 2000 / 1000 / 100 / 20 / 10 times, `SCHED_u16GetOverruns()` = 0 · TERM: echo, masked echo, backspace, too-long line, CR / LF / CRLF · EVQ: order kept, drop when full, mute · ESTORE: defaults on a blank chip, byte change -> exactly one page write, unchanged byte -> no write, magic page written last, fault when the chip is removed · USERDB: add, duplicate, full, bad name, bad password, digits-only rule, remove, write gate closed -> `USERDB_ERR_READ_ONLY` |
 | `test_app` | ALARM, SEC, LIGHT, DOOR, CLIMATE, HEATER, UILOC, UIREM | automatic part (PASS/FAIL): 3-strike counter per source and reset on success, permission table, dimmer rounding, set-temperature clamp · interactive part: the steps of Section 3 with a reduced super-loop |
@@ -101,8 +101,8 @@ A layer is done only when `pio run -e test_<layer>` and `pio run -e app` both bu
 | # | Requirements | Step | Expected |
 |---|---|---|---|
 | T-40 | LGT-01 | Start | all 5 lamps off |
-| T-41 | LGT-01 | Terminal: `1 1` … `1 5`, then again | each lamp turns on, then off; the others do not change; the I²C debugger shows one write to 0x40 per command |
-| T-42 | LGT-02 | `2 0`, `2 10`, `2 50`, `2 100`; scope channel B (PD4) | duty 0 % (flat low), 10 %, 50 %, 100 % (flat high) at 50 Hz; the filtered voltage is about 0 / 0.5 / 2.5 / 5 V and the lamp brightness follows |
+| T-41 | LGT-01 | Terminal: `1 1` … `1 5`, then again | each lamp turns on, then off; the others do not change; the I²C debugger shows one write to 0x40 per command (a lamp that is ON has its bit at 0) |
+| T-42 | LGT-02 | `2 0`, `2 10`, `2 50`, `2 100`; scope channel A (PB3) | duty 0 % (flat low), 10 %, 50 %, 100 % (flat high) at about 7.8 kHz; the lamp gets brighter with each step and is off at 0 % |
 | T-43 | LGT-02 | `2 55`, `2 110` | both rejected with the dimmer error |
 
 ### 3.5 Door
@@ -120,7 +120,7 @@ A layer is done only when `pio run -e test_<layer>` and `pio run -e app` both bu
 | T-47 | AC-02 | Raise ambient to 28 °C, wait 2 s; then 29 °C | at 28: still OFF (the rule is "higher than 28"); at 29: fan runs within about 1 s, `[INFO] AC is now ON` |
 | T-48 | AC-02 | Lower to 25 °C, then 21 °C, then 20 °C | ON at 25 and at 21 (hysteresis); OFF at 20, `[INFO] AC is now OFF` |
 | T-49 | AC-02 | From 20 °C raise to 25 °C | stays OFF between 21 and 28 |
-| T-50 | AC-03 | Scope channel A (PB3) with the AC on, then off | on: PWM at the configured speed (100 % = flat high), the motor turns; off: flat low, the motor stops |
+| T-50 | AC-03 | Scope channel B (PD4) with the AC on, then off | on: 50 Hz PWM at the configured speed (100 % = flat high), the motor turns; off: flat low, the motor stops |
 
 ### 3.7 Water heater
 

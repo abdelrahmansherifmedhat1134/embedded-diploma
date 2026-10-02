@@ -1,6 +1,6 @@
 # EEPROM map — external 24C08
 
-Phase 1 design. **Status: waiting for approval.** Implements REQ-EEP-01, 02, 03 and stores the data of REQ-SEC-02, 03, 04, 09 and REQ-HTR-03, 04.
+Phase 1 design. **Status: approved by the user on 2026-10-02.** Implements REQ-EEP-01, 02, 03 and stores the data of REQ-SEC-02, 03, 04, 09 and REQ-HTR-03, 04.
 
 Chip: 24C08, I²C address 0x50, 1024 bytes, 16-byte pages. The design uses the first 208 bytes (pages 0–12, all inside block 0); the rest stays free.
 
@@ -156,7 +156,7 @@ The lockdown state is **not** stored: a reset always clears it (REQ-SEC-05).
 
 ## 7. Proteus notes
 
-- NM24C08 part: A2 = GND (address 0x50), **WP = GND** (it is unconnected in the committed netlist, pin_map C-7), page size 16, `TD_WRITE = 10 ms`.
+- NM24C08 part: A2 = GND (address 0x50), **WP = GND** (the netlist export does not list this pin, so the HAL test confirms that writes are accepted; pin_map C-7), page size 16, `TD_WRITE = 10 ms`.
 - A real power cycle for the firmware = the **RESET push button** on the ATmega32: the MCU restarts and the EEPROM model keeps its content. This is how the persistence tests are run.
 - Whether the model keeps its content when the whole simulation is stopped and started again depends on the part's settings and is checked in the HAL test; the test plan does not depend on it.
 - The I²C debugger shows a write as `S A0 A <addr> A <16 data bytes> P`, then polls `S A0 N P` until `S A0 A P`.
