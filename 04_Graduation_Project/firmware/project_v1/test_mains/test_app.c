@@ -4,10 +4,9 @@
  *  Created on: Oct 3, 2026
  *
  * =====================================================================
- *  Phase 2 test of the APP layer , PART A
+ *  Phase 2 test of the APP layer (part A + part B = the whole layer)
  * =====================================================================
- *  Tested : LIGHT , DOOR , CLIMATE , HEATER , ALARM , SEC
- *           (UILOC and UIREM come in part B)
+ *  Tested : LIGHT , DOOR , CLIMATE , HEATER , ALARM , SEC , UILOC , UIREM
  *
  *  Build : pio run -e test_app
  *  Hex   : .pio/build/test_app/firmware.hex
@@ -17,13 +16,16 @@
  *  to HEATER. The result is the SUMMARY line on the terminal.
  *
  * ---------------------- Proteus parts and wiring ----------------------
- *  (docs/pin_map.md ; the LCD and the keypad may stay , they are not used)
+ *  (docs/pin_map.md)
  *  ATMEGA32          Clock Frequency = 16 MHz (must equal F_CPU)
- *  VIRTUAL TERMINAL  9600 baud , 8N1 : terminal RXD <- PD1 , terminal TXD -> PD0
+ *  VIRTUAL TERMINAL  9600 baud , 8N1 : terminal RXD <- PD1 , terminal TXD -> PD0 ,
+ *                    "Echo Typed Characters" off (the MCU echoes)
  *  I2C bus           PC0 = SCL , PC1 = SDA , 4.7k pull-up to VCC on both lines
  *  24C08 EEPROM      address 0x50 , WP = GND
+ *  PCF8574 0x27      LCD 16x2 (LM016L) behind the I2C backpack
  *  PCF8574 0x20      lamps 1..5 on P0..P4 : +5 V -> 220R -> LED -> pin (active low)
  *  PCF8574 0x21/0x22 7-segment tens / units digit , common anode , P0..P6 = a..g
+ *  Keypad            calculator pad : rows A..D -> PA4..PA7 , columns 1..4 -> PB0 , PB1 , PB2 , PB4
  *  LM35 ambient      PA0            LM35 water       PA1
  *  Heater LED        PA3 -> 330R -> LED -> GND
  *  Buttons to GND    ON/OFF = PD6 , Up = PD7 , Down = PB5
@@ -34,23 +36,18 @@
  *  Buzzer            PD3 (Operating Voltage 3 V , Load Resistance 150 ohm)
  *
  * --------------------------- Expected result ---------------------------
- *  1. Automatic part (about 2 s , do not hold a button) : one line per check
+ *  1. Automatic part (about 2 s , do not hold a button or type) : one line per check
  *     "[PASS] <module>: <what>" or "[FAIL] ..." , then "SUMMARY".
  *     The test presses the three heater buttons itself (it pulls their pins
  *     low for a moment) and feeds temperatures straight into CLIMATE and
  *     HEATER , so lamps , relays , servo , fan and buzzer move for a moment.
  *     Two test accounts are added and removed again ; the stored set
- *     temperature is put back.
- *  2. Live part : the super-loop of architecture.md 4.2 with the part A modules.
- *     Every event is printed as "[INFO] <event> <arg>" , and every 5 s a line
- *     "[STAT] room .. ac .. water .. set .. on .. el .." (el : 1 = heating ,
- *     2 = cooling). Follow docs/test_plan.md 3.6 and 3.7 :
- *       heater panel : ON/OFF , Up , Down buttons , 7-segment , heater LED , relays
- *       AC           : change the ambient LM35 , watch the fan and "[INFO] AC"
- *     Typed lines (Enter at the end) stand in for the UIs of part B :
- *       1..5 = toggle a lamp     + / - = dimmer 10 % up / down
- *       o / c = open / close the door      35..75 = heater set temperature
- *       a = lockdown (ALARM , test_plan 3.8) : only RESET ends it
+ *     temperature is put back. The LCD stays empty during this part.
+ *  2. Live part : the complete super-loop of architecture.md 4.2 with all 8 APP
+ *     modules = the system as it will run in Phase 3. The terminal shows the
+ *     banner and "Hey, please enter your username:" (admin / 1234 on a blank
+ *     EEPROM) , the LCD shows the status pages. Nothing more is printed by the
+ *     test itself : follow docs/test_plan.md Section 3.
  * =====================================================================
  */
 #include "../lib/Service/std_types.h"
@@ -66,38 +63,35 @@
 #include "../lib/HAL/SERVO/SERVO.h"
 #include "../lib/HAL/DIMMER/DIMMER.h"
 #include "../lib/HAL/LAMP/LAMP.h"
-#include "../lib/HAL/LAMP/LAMP_cfg.h"
 #include "../lib/HAL/SEVEN_SEG/SEVEN_SEG.h"
 #include "../lib/HAL/BUTTON/BUTTON.h"
 #include "../lib/HAL/BUTTON/BUTTON_cfg.h"
 #include "../lib/HAL/LM35/LM35.h"
+#include "../lib/HAL/KPAD/KPAD.h"
+#include "../lib/HAL/LCD_BUF/LCD_BUF.h"
 #include "../lib/Service/FMT/FMT.h"
 #include "../lib/Service/SCHED/SCHED.h"
 #include "../lib/Service/TERM/TERM.h"
-#include "../lib/Service/TERM/TERM_cfg.h"
 #include "../lib/Service/EVQ/EVQ.h"
 #include "../lib/Service/ESTORE/ESTORE.h"
 #include "../lib/Service/ESTORE/ESTORE_cfg.h"
 #include "../lib/Service/USERDB/USERDB.h"
 #include "../src/APP/LIGHT/LIGHT.h"
-#include "../src/APP/LIGHT/LIGHT_cfg.h"
 #include "../src/APP/DOOR/DOOR.h"
 #include "../src/APP/CLIMATE/CLIMATE.h"
 #include "../src/APP/HEATER/HEATER.h"
 #include "../src/APP/HEATER/HEATER_cfg.h"
 #include "../src/APP/ALARM/ALARM.h"
 #include "../src/APP/SEC/SEC.h"
+#include "../src/APP/UILOC/UILOC.h"
+#include "../src/APP/UIREM/UIREM.h"
 
 /******************************* settings *******************************/
 #define TEST_DEBOUNCE_CALLS       (BUTTON_DEBOUNCE_SAMPLES + 2)    /* BUTTON_voidUpdate calls per simulated edge */
 #define TEST_WINDOW               10             /* samples that fill the average (MAVG_WINDOW) */
-#define TEST_STATUS_PERIOD_S      5
-#define TEST_EVENT_ROOM           32             /* free TX bytes needed for one event line */
-#define TEST_STATUS_ROOM          64             /* free TX bytes needed for the status line */
 
 static u8 Global_u8PassCount = 0 ;
 static u8 Global_u8FailCount = 0 ;
-static u8 Global_u8StatusCount = 0 ;
 /* RAM strings for SEC / USERDB : the real admin record is read from ESTORE */
 static c8 Global_c8AdminName[USERDB_NAME_SIZE + 1] ;
 static c8 Global_c8AdminPass[USERDB_PASS_SIZE + 1] ;
@@ -153,6 +147,9 @@ static void TEST_voidAppInit(){
 	DOOR_voidInit();
 	CLIMATE_voidInit();
 	HEATER_voidInit();
+	/* the two UIs only prepare RAM here (LCD text , print queue) : nothing is sent before the super-loop */
+	UILOC_voidInit();
+	UIREM_voidInit();
 	TEST_voidDropEvents();
 }
 /* 1 = the oldest event in the queue is exactly this one (it is taken out) */
@@ -471,76 +468,6 @@ static void TEST_voidSec(){
 	TEST_voidAppInit();
 }
 
-/***************************** live part *****************************/
-/* " name value" : only called when there is room in the TX ring */
-static void TEST_voidField(const __flash c8 * Copy_pc8Name, u8 Copy_u8Value){
-	TERM_voidPutFlash(Copy_pc8Name);
-	TERM_voidPutNumber(Copy_u8Value);
-}
-/* one event per call , as "[INFO] <event> <arg>" */
-static void TEST_voidLiveEvents(){
-	u8 Local_u8Event ;
-	u8 Local_u8Arg ;
-	if((TERM_u8TxFree() >= TEST_EVENT_ROOM) && (EVQ_u8Get(&Local_u8Event,&Local_u8Arg) == 1)){
-		TERM_voidPutFlash(FLASH_STR("[INFO] "));
-		switch(Local_u8Event){
-		case EVQ_LAMP:           TERM_voidPutFlash(FLASH_STR("LAMP"));           break ;
-		case EVQ_DIMMER:         TERM_voidPutFlash(FLASH_STR("DIMMER"));         break ;
-		case EVQ_AC:             TERM_voidPutFlash(FLASH_STR("AC"));             break ;
-		case EVQ_HEATER_POWER:   TERM_voidPutFlash(FLASH_STR("HEATER_POWER"));   break ;
-		case EVQ_HEATER_ELEMENT: TERM_voidPutFlash(FLASH_STR("HEATER_ELEMENT")); break ;
-		case EVQ_HEATER_SET:     TERM_voidPutFlash(FLASH_STR("HEATER_SET"));     break ;
-		case EVQ_STORAGE_FAULT:  TERM_voidPutFlash(FLASH_STR("STORAGE_FAULT"));  break ;
-		case EVQ_LOCKDOWN:       TERM_voidPutFlash(FLASH_STR("LOCKDOWN"));       break ;
-		default:                 TERM_voidPutFlash(FLASH_STR("EVENT"));          break ;
-		}
-		TEST_voidField(FLASH_STR(" "),Local_u8Arg);
-		TERM_voidNewLine();
-	}
-}
-/* typed lines stand in for the UIs of part B (see the header) */
-static void TEST_voidLiveInput(){
-	c8 Local_c8Line[TERM_LINE_MAX + 1] ;
-	u16 Local_u16Number = 0 ;
-	if(TERM_u8GetLine(Local_c8Line) != TERM_LINE_READY){
-		return ;
-	}
-	if(ALARM_u8IsActive() == 1){
-		return ;                                       /* lockdown : input ignored until reset */
-	}
-	if(FMT_u8TextToNumber(Local_c8Line,&Local_u16Number) == 1){
-		if(Local_u16Number <= LAMP_COUNT){
-			LIGHT_u8ToggleLamp((u8)Local_u16Number);
-		}else if((Local_u16Number > 255) || (HEATER_u8SetSetTemp((u8)Local_u16Number) == 0)){
-			TERM_voidPutFlash(FLASH_STR("[INFO] rejected\r\n"));
-		}else{
-		}
-		return ;
-	}
-	switch(Local_c8Line[0]){
-	case '+': LIGHT_voidSetDimmer(LIGHT_u8GetDimmer() + LIGHT_DIMMER_STEP); break ;
-	case '-': if(LIGHT_u8GetDimmer() >= LIGHT_DIMMER_STEP){ LIGHT_voidSetDimmer(LIGHT_u8GetDimmer() - LIGHT_DIMMER_STEP); } break ;
-	case 'o': TEST_voidField(FLASH_STR("[INFO] DOOR moved "),DOOR_u8SetState(DOOR_OPEN));   TERM_voidNewLine(); break ;
-	case 'c': TEST_voidField(FLASH_STR("[INFO] DOOR moved "),DOOR_u8SetState(DOOR_CLOSED)); TERM_voidNewLine(); break ;
-	case 'a': ALARM_voidTrigger(); break ;
-	default:  break ;
-	}
-}
-/* every TEST_STATUS_PERIOD_S seconds : what the UIs will show in part B */
-static void TEST_voidLiveStatus(){
-	Global_u8StatusCount++;
-	if((Global_u8StatusCount >= TEST_STATUS_PERIOD_S) && (TERM_u8TxFree() >= TEST_STATUS_ROOM)){
-		Global_u8StatusCount = 0 ;
-		TEST_voidField(FLASH_STR("[STAT] room "),CLIMATE_u8GetRoomTemp());
-		TEST_voidField(FLASH_STR(" ac "),CLIMATE_u8IsAcOn());
-		TEST_voidField(FLASH_STR(" water "),HEATER_u8GetWaterTemp());
-		TEST_voidField(FLASH_STR(" set "),HEATER_u8GetSetTemp());
-		TEST_voidField(FLASH_STR(" on "),HEATER_u8IsOn());
-		TEST_voidField(FLASH_STR(" el "),HEATER_u8GetElement());
-		TERM_voidNewLine();
-	}
-}
-
 int main(void){
 	/*1. boot order of architecture.md 4.6 : outputs to their safe state first */
 	RELAY_voidInit();
@@ -549,17 +476,19 @@ int main(void){
 	FAN_voidInit();
 	SERVO_voidInit();
 	DIMMER_voidInit();
-	/*2. terminal , I2C parts , inputs (no LCD and no keypad in part A) */
+	/*2. terminal , I2C parts , inputs */
 	TERM_voidInit();
+	LCD_BUF_voidInit();
 	LAMP_voidInit();
 	SEVEN_SEG_voidInit();
+	KPAD_voidInit();
 	BUTTON_voidInit();
 	LM35_voidInit();
 	/*3. storage */
 	ESTORE_voidInit();
 	USERDB_voidInit();
 	EVQ_voidInit();
-	/*4. APP (ALARM , SEC , LIGHT , DOOR , CLIMATE , HEATER) : no SCHED call in any of them */
+	/*4. APP (ALARM , SEC , LIGHT , DOOR , CLIMATE , HEATER , UILOC , UIREM) : no SCHED call in any of them */
 	TEST_voidAppInit();
 	/*5. tick */
 	SCHED_voidInit();
@@ -567,7 +496,7 @@ int main(void){
 	SCHED_voidStart();
 
 	/*6. automatic part */
-	TEST_voidPrintLine(FLASH_STR("\r\n===== test_app : APP layer , part A ====="));
+	TEST_voidPrintLine(FLASH_STR("\r\n===== test_app : APP layer ====="));
 	/* ESTORE_FIRST_BOOT is not an error : the defaults were loaded */
 	TEST_voidCheck(ESTORE_u8GetStatus() != ESTORE_FAULT,FLASH_STR("ESTORE"),FLASH_STR("EEPROM answers"));
 	TEST_voidLight();
@@ -581,17 +510,20 @@ int main(void){
 	TEST_voidPrint(FLASH_STR(" passed , "));
 	TEST_voidPrintNum(Global_u8FailCount);
 	TEST_voidPrintLine(FLASH_STR(" failed"));
-	TEST_voidPrintLine(FLASH_STR("LIVE: heater panel + AC (test_plan 3.6 , 3.7). Lines: 1..5 + - o c a 35..75"));
+	TEST_voidPrintLine(FLASH_STR("LIVE: the full system runs now (test_plan.md Section 3)"));
+	/* the automatic part ends with fresh APP inits (TEST_voidSec) : UIREM starts with its banner */
 
-	/*7. live part : the super-loop of architecture.md 4.2 with the part A modules */
+	/*7. live part : the super-loop of architecture.md 4.2 , all 8 APP modules */
 	while(1){
 		if(SCHED_u8IsTaskDue(SCHED_TASK_5MS)){
-			TEST_voidLiveInput();
-			TEST_voidLiveEvents();
+			LCD_BUF_voidUpdate();
+			UIREM_voidTask5ms();
 		}
 		if(SCHED_u8IsTaskDue(SCHED_TASK_10MS)){
+			KPAD_voidUpdate();
 			BUTTON_voidUpdate();
 			HEATER_voidTask10ms();
+			UILOC_voidTask10ms();
 			ESTORE_voidUpdate();
 		}
 		if(SCHED_u8IsTaskDue(SCHED_TASK_100MS)){
@@ -603,7 +535,8 @@ int main(void){
 			ALARM_voidTask500ms();
 		}
 		if(SCHED_u8IsTaskDue(SCHED_TASK_1S)){
-			TEST_voidLiveStatus();
+			UILOC_voidTask1s();
+			UIREM_voidTask1s();
 		}
 	}
 	return 0 ;
