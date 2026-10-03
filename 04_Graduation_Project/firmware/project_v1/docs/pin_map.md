@@ -59,7 +59,7 @@ Pin numbers are for the DIP-40 package. "Owner" is the only file that may name t
 | PD0 | 14 | in, RXD | UART receive | — | USART hardware | Virtual Terminal TXD (HC-05 TXD on real hardware) |
 | PD1 | 15 | out, TXD | UART transmit | — | USART hardware | Virtual Terminal RXD (HC-05 RXD through a 5 V -> 3.3 V divider) |
 | PD2 | 16 | in, INT0 | PIR — **reserved, not used in v1** | high | — | test_base / test_mcal put a push button here for the EXTI check |
-| PD3 | 17 | out | Buzzer | high | `BUZZER_cfg.h` | BUZ1 (active buzzer) to GND |
+| PD3 | 17 | out | Buzzer driver | high | `BUZZER_cfg.h` | PD3 -> 1 kΩ -> base of an NPN (2N2222); emitter to GND; collector to BUZ1 pin 2; BUZ1 pin 1 to +5 V (optional 1N4148 across the buzzer, cathode to +5 V). **Changed 2026-10-03**: the Proteus buzzer model has a 12 Ω load (0.4 A at 5 V), so a direct connection from the pin was silent |
 | PD4 | 18 | out, OC1B | **AC fan PWM** (Timer1, 50 Hz) | high | `FAN_cfg.h` | R3 1 kΩ -> Q1 2N2222 base; DC MOTOR between its supply and the collector, 1N4007 across the motor (motor not visible in the netlist) |
 | PD5 | 19 | out, OC1A | Door servo (Timer1, 50 Hz) | 1–2 ms pulse | `SERVO_cfg.h` | MOTOR-PWMSERVO control pin (not visible in the netlist) |
 | PD6 | 20 | in, pull-up | Heater ON/OFF button | low | `BUTTON_cfg.h` | push button to GND (not visible in the netlist) |
@@ -152,7 +152,8 @@ Not conflicts, noted so they are not mistaken for one:
 | Heating / cooling indicator | LED-RED, LED-BLUE + 220 Ω | 2 | yes (PB6, PB7) |
 | Fan | MOTOR (DC) + 2N2222 + 1 kΩ + 1N4007 | 1 | transistor yes, motor not exported |
 | Door | MOTOR-PWMSERVO | 1 | not exported (PD5) |
-| Buzzer | BUZZER (active) | 1 | yes (PD3) |
+| Buzzer | BUZZER (active, "DC Buzzer with Sound", 5 V, 12 Ω, 500 Hz) | 1 | yes (PD3, **now through the NPN driver**) |
+| Buzzer driver | 2N2222 + 1 kΩ | 1 | to add (see PD3 row) |
 | LDR | TORCH_LDR + 10 kΩ | 1 | yes (PA2, unused by the firmware) |
 | I²C pull-ups | RES 4.7 kΩ | 2 | yes |
 | Instruments | VIRTUAL TERMINAL (9600, 8N1), I2C DEBUGGER, OSCILLOSCOPE | — | not exported |

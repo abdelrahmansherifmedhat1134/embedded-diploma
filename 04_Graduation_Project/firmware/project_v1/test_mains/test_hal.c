@@ -44,7 +44,8 @@
  *                    each segment pin -> 220R -> segment (a segment lights when its pin is LOW)
  *  NEW  Heating relay/LED   PB6 -> 330R -> LED -> GND   (heating element)
  *  NEW  Cooling relay/LED   PB7 -> 330R -> LED -> GND   (cooling element)
- *  NEW  Buzzer       PD3 -> BUZZER (or a transistor driving it) -> GND
+ *  NEW  Buzzer       the Proteus BUZZER model draws 5 V / 12 R = 0.4 A , so it needs a driver :
+ *                    PD3 -> 1k -> base of an NPN (2N2222) , emitter GND , collector -> buzzer pin 2 , buzzer pin 1 -> +5 V
  *  NEW  Servo        SERVO motor : signal -> PD5 (OC1A)
  *  NEW  DC motor fan MOTOR with NPN driver : base through 1k from PD4 (OC1B)
  *  NEW  Dimmer       PB3 (OC0) -> RC filter (1k + 10uF) -> voltmeter or LED , or just the oscilloscope
@@ -397,12 +398,22 @@ static void TEST_voidOutputs(){
 
 	BUZZER_voidInit();
 	TEST_voidCheck(DIO_u8GetPinValue(BUZZER_PORT,BUZZER_PIN) != BUZZER_ON_LEVEL, FLASH_STR("BUZZER"), FLASH_STR("init : buzzer OFF"));
-	TEST_voidManual(FLASH_STR("buzzer sounds for 1 s"));
+	TEST_voidManual(FLASH_STR("buzzer step 1: steady level, sound for 3 s"));
 	BUZZER_voidOn();
 	TEST_voidCheck(DIO_u8GetPinValue(BUZZER_PORT,BUZZER_PIN) == BUZZER_ON_LEVEL, FLASH_STR("BUZZER"), FLASH_STR("buzzer ON"));
-	TEST_voidWaitMs(1000);
+	TEST_voidWaitMs(3000);
 	BUZZER_voidOff();
 	TEST_voidCheck(DIO_u8GetPinValue(BUZZER_PORT,BUZZER_PIN) != BUZZER_ON_LEVEL, FLASH_STR("BUZZER"), FLASH_STR("buzzer OFF"));
+	/* debug help : if step 1 is silent but this one sounds, the Proteus model needs a toggling input */
+	TEST_voidWaitMs(1000);
+	TEST_voidManual(FLASH_STR("buzzer step 2: 500 Hz square wave, sound for 3 s"));
+	for(u16 i = 0 ; i < 1500 ; i++){
+		BUZZER_voidOn();
+		_delay_us(1000);
+		BUZZER_voidOff();
+		_delay_us(1000);
+	}
+	TEST_voidWaitMs(500);
 }
 
 static void TEST_voidLamps(){
