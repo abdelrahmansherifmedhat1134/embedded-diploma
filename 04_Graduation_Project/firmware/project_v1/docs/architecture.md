@@ -538,6 +538,7 @@ u8   DOOR_u8GetState();
 /* CLIMATE.h */
 void CLIMATE_voidInit();
 void CLIMATE_voidTask100ms();
+void CLIMATE_voidFeedSample(u16 Copy_u16TempX4);       /* as built : one reading , called by the 100 ms task (and by test_app) */
 u8   CLIMATE_u8IsAcOn();
 u8   CLIMATE_u8IsTempValid();                          /* 0 during the first second */
 u8   CLIMATE_u8GetRoomTemp();                          /* whole degrees */
@@ -555,6 +556,7 @@ void HEATER_voidInit();
 void HEATER_voidTask10ms();                            /* buttons */
 void HEATER_voidTask100ms();                           /* sampling , control , display , setting timeout */
 void HEATER_voidTask500ms();                           /* blink phase */
+void HEATER_voidFeedSample(u16 Copy_u16TempX4);        /* as built : one reading , called by the 100 ms task (and by test_app) */
 u8   HEATER_u8IsOn();
 u8   HEATER_u8GetElement();
 u8   HEATER_u8GetWaterTemp();
@@ -939,6 +941,8 @@ All text is in flash. Today `KPAD` keeps 24 bytes of tables in RAM; the fix in S
 
 **Measured, SERVICE layer (2026-10-03, `pio run -e test_service`):** static RAM = `.data` 36 + `.bss` 528 = **564 bytes (27.5 %)**, flash = **22 536 bytes (68.8 %)**. Of the RAM, the SERVICE modules use 466 bytes (ESTORE 215, TERM 194, EVQ 39, SCHED 17, USERDB 1), the test itself 58 (two 24-byte text buffers + counters), MCAL callback pointers 6, and 34 bytes are two compiler-made switch tables (`CSWTCH`) in `.data`. The rows above match these numbers; the limit to watch is 1300 bytes of static RAM. Most of the flash is test text (about 150 check lines), not SERVICE code.
 
+**Measured, APP part A (2026-10-03, `pio run -e test_app`):** static RAM = **628 bytes (30.7 %)**, flash = **13 000 bytes (39.7 %)** with LIGHT, DOOR, CLIMATE, HEATER, ALARM, SEC and their test (no LCD, no keypad, no UI text yet).
+
 ### 7.2 Flash (32 768 bytes)
 
 Reference point: `test_base` (existing drivers + about 2 KB of test text, no LTO) is 7.4 KB today.
@@ -966,7 +970,7 @@ One module at a time: write -> `pio run` -> fix -> short summary. Each layer end
 | **MCAL** | `reg_def.h` additions -> ISR attributes (ADC, TIMER0, EXTI) + remove `-flto` unflag -> TIMER0 PWM fix -> ADC fix -> EXTI fix -> DIO JTAG -> USART (baud + interrupts) -> TWI (timeout + probe) -> TIMER2 -> TIMER1 | `test_mains/test_mcal.c`, `[env:test_mcal]`. `test_base` must now be all `[PASS]` |
 | **HAL** | PCF8574 multi-byte -> CLCD -> LCD_BUF -> KPAD -> BUTTON -> SEVEN_SEG -> LM35 -> RELAY, LED, BUZZER -> LAMP -> FAN -> SERVO -> DIMMER -> EXT_EEPROM | `test_mains/test_hal.c`, `[env:test_hal]` (uses TIMER2 directly for a 1 ms tick, because SCHED does not exist yet) |
 | **SERVICE** | flash_str.h -> RINGBUF -> MAVG -> FMT -> SCHED -> TERM -> EVQ -> ESTORE -> USERDB | `test_mains/test_service.c`, `[env:test_service]` |
-| **APP** | ALARM -> SEC -> LIGHT -> DOOR -> CLIMATE -> HEATER -> UILOC -> UIREM | `test_mains/test_app.c`, `[env:test_app]` (its own small super-loop) |
+| **APP** | part A: LIGHT -> DOOR -> CLIMATE -> HEATER -> ALARM -> SEC (bottom-up: ALARM calls HEATER and CLIMATE, SEC calls ALARM, so each module links on its own) · part B: UILOC -> UIREM | `test_mains/test_app.c`, `[env:test_app]` (its own small super-loop; source filter `+<APP/> -<APP/main.c>`) |
 | **Phase 3** | `src/APP/main.c`, full build, docs updated to the real code | `pio run -e app` + the full `test_plan.md` |
 
 What each test program checks is listed in [test_plan.md](test_plan.md) Section 2.
