@@ -61,8 +61,9 @@
  *   1. LCD     : two lines of text , NO cursor , NO blinking block
  *   2. LEDs / buzzer : heating LED 1 s , cooling LED 1 s , status LED 1 s , buzzer 1 s
  *   3. LAMPS   : lamps 1..5 light one after the other , then all five , then all off
- *   4. 7-SEG   : 00 11 .. 99 (each digit tested on its own chip) , 37 , counts 00..99
- *                (100 ms per step) , 88 (every segment) , 99 (150 is clipped) , then blank
+ *   4. 7-SEG   : MANUAL (compare each "look: NN" line with the display) : blank (3 s) ,
+ *                00 11 .. 99 (1 s each) , 37 73 10 99 (1 s each) , 150 shows 99 ,
+ *                counting 00..99 (500 ms up to 55 , then 300 ms) , 88 (3 s) , blank (3 s) , 88 back
  *   5. LM35    : move the two sliders while the temperatures are printed (5 s)
  *   6. KEYPAD  : hold one key 2 s , press 3 keys , press 7 / C / + in order
  *   7. BUTTONS : hold each button 2 s : ON/OFF , UP , DOWN
@@ -471,30 +472,30 @@ static void TEST_voidSevenSeg(){
 	TEST_voidManual(FLASH_STR("7-seg: blank now (3 s)"));
 	TEST_voidWaitMs(3000);
 	SEVEN_SEG_voidEnable();
-	TEST_voidManual(FLASH_STR("same digit twice, 3 s each"));
+	TEST_voidManual(FLASH_STR("same digit twice, 1 s each"));
 	for(u8 i = 0 ; i < 10 ; i++){
-		TEST_voidShowStep(i * 11,3000);
+		TEST_voidShowStep(i * 11,1000);
 	}
-	TEST_voidManual(FLASH_STR("different digits, 4 s each"));
-	TEST_voidShowStep(37,4000);
-	TEST_voidShowStep(73,4000);
-	TEST_voidShowStep(10,4000);
-	TEST_voidShowStep(99,4000);
-	TEST_voidManual(FLASH_STR("150 must show 99 (4 s)"));
+	TEST_voidManual(FLASH_STR("different digits, 1 s each"));
+	TEST_voidShowStep(37,1000);
+	TEST_voidShowStep(73,1000);
+	TEST_voidShowStep(10,1000);
+	TEST_voidShowStep(99,1000);
+	TEST_voidManual(FLASH_STR("150 must show 99 (1 s)"));
 	SEVEN_SEG_voidSetNumber(150);
-	TEST_voidWaitMs(4000);
-	TEST_voidManual(FLASH_STR("counting 00-99, 1 s per step"));
+	TEST_voidWaitMs(1000);
+	TEST_voidManual(FLASH_STR("counting 00-99, 500 ms per step up to 55, then 300 ms"));
 	for(u8 i = 0 ; i < 100 ; i++){
-		TEST_voidShowStep(i,1000);
+		TEST_voidShowStep(i,(i < 55) ? 500 : 300);
 	}
-	TEST_voidManual(FLASH_STR("88: every segment (4 s)"));
-	TEST_voidShowStep(88,4000);
+	TEST_voidManual(FLASH_STR("88: every segment (3 s)"));
+	TEST_voidShowStep(88,3000);
 	TEST_voidManual(FLASH_STR("Disable: blank (3 s)"));
 	SEVEN_SEG_voidDisable();
 	TEST_voidWaitMs(3000);
-	TEST_voidManual(FLASH_STR("Enable: 88 comes back (3 s)"));
+	TEST_voidManual(FLASH_STR("Enable: 88 comes back (1 s)"));
 	SEVEN_SEG_voidEnable();
-	TEST_voidWaitMs(3000);
+	TEST_voidWaitMs(1000);
 	SEVEN_SEG_voidDisable();
 }
 

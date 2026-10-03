@@ -56,7 +56,7 @@ Produce these files and wait for the user's approval before writing firmware:
 
 ### Phase 2 — Implement bottom-up
 **Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added.
-**Phase 2 HAL: DONE (2026-10-02).** Branch `phase2-hal`, `test_hal` added. Next: Phase 2, SERVICE.
+**Phase 2 HAL: DONE (2026-10-03).** Branch `phase2-hal`, `test_hal` added; as-built notes, Proteus findings and the 7-segment story are in `docs/hal_summary.md`. Next: Phase 2, SERVICE.
 Order: MCAL → HAL → SERVICE → APP → `main.c`. One module at a time:
 write → `pio run` → fix → short summary of what changed → next module.
 Stop for review after finishing each layer.

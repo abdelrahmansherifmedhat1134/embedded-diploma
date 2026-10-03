@@ -3,7 +3,7 @@
 Phase 1 design. **Status: design decisions approved by the user on 2026-10-02 (Section 9). No firmware exists for this design yet.**
 Clock: `F_CPU = 16 000 000` (from `platformio.ini`, `board_build.f_cpu`). Every timing value below is derived from `F_CPU`.
 
-Related documents: [pin_map.md](pin_map.md), [eeprom_map.md](eeprom_map.md), [uart_protocol.md](uart_protocol.md), [test_plan.md](test_plan.md).
+Related documents: [pin_map.md](pin_map.md), [eeprom_map.md](eeprom_map.md), [uart_protocol.md](uart_protocol.md), [test_plan.md](test_plan.md), [hal_summary.md](hal_summary.md) (HAL as built).
 
 Contents: 1 Layers · 2 FIX modules · 3 NEW modules (API + cfg) · 4 Scheduler · 5 State machines · 6 Data ownership · 7 RAM/flash budget · 8 Phase 2 order · 9 Design decisions
 
@@ -215,6 +215,7 @@ Integer only: the raw ADC value **is** the temperature in quarter degrees.
 /* LAMP.h */
 #define LAMP_OFF    0
 #define LAMP_ON     1
+#define LAMP_ERR_NUMBER 0xFF                           /* returned for a lamp number outside 1..5 (TWI codes are 1..6) */
 void LAMP_voidInit();                                  /* all lamps OFF */
 u8   LAMP_u8SetState(u8 Copy_u8LampNumber, u8 Copy_u8State);   /* lamp 1..5 ; returns TWI_OK or a TWI error */
 u8   LAMP_u8GetState(u8 Copy_u8LampNumber);
@@ -265,6 +266,7 @@ void SERVO_voidSetAngle(u8 Copy_u8Angle);              /* 0..180 degrees */
 #define SERVO_PIN             DIO_PIN_5                /* OC1A */
 #define SERVO_MIN_PULSE_US    1000UL                   /* 0 degrees   */
 #define SERVO_MAX_PULSE_US    2000UL                   /* 180 degrees */
+#define SERVO_MAX_ANGLE       180                      /* bigger angles are limited to this */
 
 /* FAN.h */
 void FAN_voidInit();                                   /* TIMER1_voidInit , stopped */
@@ -290,6 +292,7 @@ u8   EXT_EEPROM_u8IsReady();                           /* ONE ACK poll : 1 = wri
 #define EXT_EEPROM_I2C_ADDRESS   0x50                  /* 1010 A2 B1 B0 , A2 = GND ; B1 B0 = address bits 9:8 */
 #define EXT_EEPROM_PAGE_SIZE     16
 #define EXT_EEPROM_SIZE          1024
+#define EXT_EEPROM_BLOCK_SIZE    256                   /* one I2C address (B1 B0) covers 256 bytes : a read is split at the borders */
 ```
 
 ### 3.3 SERVICE
