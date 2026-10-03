@@ -131,6 +131,7 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - Parts powered from DC generators do not appear as VCC in the `.SDF` netlist; check the schematic before calling a pin "unconnected".
 - Keypad wiring: keypad rows A–D → PA4–PA7, columns 1–4 → PB0, PB1, PB2, PB4.
 - The `.SDF` netlist does not export simulation-only parts (keypad, 7-segment display, push buttons, motors, servo, instruments). A pin that goes only to such a part looks open in the netlist; that does not mean it is unconnected.
+- Reading back a PCF8574 whose pins drive 7-segment LEDs returns a different value than the one written, while the display shows the right digit (found with `hal_testing_v2`). Do not read-back-check the segment chips; the `test_hal` 7-segment steps are manual.
 - The Proteus 24C08 model has **no write-cycle delay**: it ACKs its address right after a write (`test_hal` reports "ready at once" as `[INFO]`, not a failure). The real chip needs about 5 ms, so ACK polling in `ESTORE` must still be written for it. (An earlier note here said the model had a 10 ms `TD_WRITE`; that was wrong.)
 - The Proteus servo model maps a 1-2 ms pulse to -90..+90 degrees by default. Set its Min/Max Angle properties to 0 / 180 so 1 ms = 0 degrees and 2 ms = 180 degrees.
 

@@ -442,20 +442,6 @@ static void TEST_voidLamps(){
 			FLASH_STR("LAMP"), FLASH_STR("lamp number 0 and 6 are rejected"));
 }
 
-/* Expected patterns of the digits 0..9 (common anode , bit = 0 lights the segment , dp off).
- * Written here from the segment layout , independent of the table in the driver. */
-static const __flash u8 TEST_SEG_EXPECTED[10] = {0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90};
-#define TEST_SEG_BLANK    0xFF
-
-/* both chips : 1 = tens and units port equal the two wanted patterns */
-static u8 TEST_u8SegPorts(u8 Copy_u8Tens, u8 Copy_u8Units){
-	u8 Local_u8Tens = 0 ;
-	u8 Local_u8Units = 0 ;
-	if((PCF8574_u8ReadPort(SEVEN_SEG_TENS_ADDRESS,&Local_u8Tens) != TWI_OK) || (PCF8574_u8ReadPort(SEVEN_SEG_UNITS_ADDRESS,&Local_u8Units) != TWI_OK)){
-		return 0 ;
-	}
-	return (Local_u8Tens == Copy_u8Tens) && (Local_u8Units == Copy_u8Units) ;
-}
 /* "NN" on the terminal */
 static void TEST_voidPrintTwoDigits(u8 Copy_u8Number){
 	USART_voidSend('0' + (Copy_u8Number / 10));
@@ -470,56 +456,46 @@ static void TEST_voidShowStep(u8 Copy_u8Number, u16 Copy_u16Ms){
 	TEST_voidWaitMs(Copy_u16Ms);
 }
 static void TEST_voidSevenSeg(){
-	u8 Local_u8Ok = 1 ;
+	/* The chip ports are NOT read back here : in Proteus a pin that drives a segment LED reads
+	 * a different value than the one written, while the display itself shows the right digit.
+	 * So the digits are checked by eye (see CLAUDE.md, Proteus notes). */
 	SEVEN_SEG_voidInit();
 	TEST_voidCheck(SEVEN_SEG_u8GetStatus() == TWI_OK, FLASH_STR("SEVEN_SEG"), FLASH_STR("init: chips 0x21 0x22 answer"));
-	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_BLANK,TEST_SEG_BLANK), FLASH_STR("SEVEN_SEG"), FLASH_STR("blank after init"));
-	/* chip patterns : fast, no looking needed */
 	SEVEN_SEG_voidEnable();
-	for(u8 i = 0 ; i < 10 ; i++){
-		SEVEN_SEG_voidSetNumber(i * 11);
-		if(TEST_u8SegPorts(TEST_SEG_EXPECTED[i],TEST_SEG_EXPECTED[i]) == 0){ Local_u8Ok = 0 ; }
-		if(SEVEN_SEG_u8GetStatus() != TWI_OK){ Local_u8Ok = 0 ; }
-	}
-	TEST_voidCheck(Local_u8Ok, FLASH_STR("SEVEN_SEG"), FLASH_STR("digits 0-9 read back OK"));
-	SEVEN_SEG_voidSetNumber(37);
-	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_EXPECTED[3],TEST_SEG_EXPECTED[7]), FLASH_STR("SEVEN_SEG"), FLASH_STR("37 = tens 3, units 7"));
-	SEVEN_SEG_voidDisable();
-	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_BLANK,TEST_SEG_BLANK), FLASH_STR("SEVEN_SEG"), FLASH_STR("Disable = blank"));
-	SEVEN_SEG_voidSetNumber(52);
-	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_BLANK,TEST_SEG_BLANK), FLASH_STR("SEVEN_SEG"), FLASH_STR("number set while off stays blank"));
-	SEVEN_SEG_voidEnable();
-	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_EXPECTED[5],TEST_SEG_EXPECTED[2]), FLASH_STR("SEVEN_SEG"), FLASH_STR("Enable shows 52 again"));
+	TEST_voidCheck(SEVEN_SEG_u8GetStatus() == TWI_OK, FLASH_STR("SEVEN_SEG"), FLASH_STR("Enable: no I2C error"));
 	SEVEN_SEG_voidSetNumber(150);
-	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_EXPECTED[9],TEST_SEG_EXPECTED[9]), FLASH_STR("SEVEN_SEG"), FLASH_STR("150 shows 99"));
+	TEST_voidCheck(SEVEN_SEG_u8GetStatus() == TWI_OK, FLASH_STR("SEVEN_SEG"), FLASH_STR("150: no I2C error"));
+	SEVEN_SEG_voidDisable();
 
-	/* looking steps : slow, one short line per step */
-	TEST_voidManual(FLASH_STR("watch the 7-seg, 2 s per step"));
+	/* MANUAL : slow, one short line per step. Compare the line with the display. */
+	TEST_voidManual(FLASH_STR("7-seg: blank now (3 s)"));
+	TEST_voidWaitMs(3000);
 	SEVEN_SEG_voidEnable();
-	TEST_voidManual(FLASH_STR("same digit twice"));
+	TEST_voidManual(FLASH_STR("same digit twice, 3 s each"));
 	for(u8 i = 0 ; i < 10 ; i++){
-		TEST_voidShowStep(i * 11,2000);
+		TEST_voidShowStep(i * 11,3000);
 	}
-	TEST_voidManual(FLASH_STR("different digits"));
+	TEST_voidManual(FLASH_STR("different digits, 4 s each"));
 	TEST_voidShowStep(37,4000);
 	TEST_voidShowStep(73,4000);
-	TEST_voidShowStep(10,3000);
-	TEST_voidShowStep(99,3000);
-	TEST_voidManual(FLASH_STR("counting 00-99, 500 ms"));
+	TEST_voidShowStep(10,4000);
+	TEST_voidShowStep(99,4000);
+	TEST_voidManual(FLASH_STR("150 must show 99 (4 s)"));
+	SEVEN_SEG_voidSetNumber(150);
+	TEST_voidWaitMs(4000);
+	TEST_voidManual(FLASH_STR("counting 00-99, 1 s per step"));
 	for(u8 i = 0 ; i < 100 ; i++){
-		SEVEN_SEG_voidSetNumber(i);
-		if((i % 10) == 0){
-			TEST_voidPrint(FLASH_STR("  count at "));
-			TEST_voidPrintTwoDigits(i);
-			TEST_voidNewLine();
-		}
-		TEST_voidWaitMs(500);
+		TEST_voidShowStep(i,1000);
 	}
-	TEST_voidManual(FLASH_STR("88, all segments, 4 s"));
+	TEST_voidManual(FLASH_STR("88: every segment (4 s)"));
 	TEST_voidShowStep(88,4000);
+	TEST_voidManual(FLASH_STR("Disable: blank (3 s)"));
 	SEVEN_SEG_voidDisable();
-	TEST_voidManual(FLASH_STR("blank, 3 s"));
 	TEST_voidWaitMs(3000);
+	TEST_voidManual(FLASH_STR("Enable: 88 comes back (3 s)"));
+	SEVEN_SEG_voidEnable();
+	TEST_voidWaitMs(3000);
+	SEVEN_SEG_voidDisable();
 }
 
 static void TEST_voidLm35(){
