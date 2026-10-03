@@ -444,14 +444,6 @@ static void TEST_voidLamps(){
 static u8 TEST_u8DigitOn(u8 Copy_u8Pin){
 	return (DIO_u8GetPinValue(SEVEN_SEG_DIGIT_PORT,Copy_u8Pin) == SEVEN_SEG_DIGIT_ON_LEVEL) ;
 }
-static u8 TEST_u8ReadBcd(){
-	u8 Local_u8Bcd = 0 ;
-	Local_u8Bcd |= (DIO_u8GetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_A) << 0) ;
-	Local_u8Bcd |= (DIO_u8GetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_B) << 1) ;
-	Local_u8Bcd |= (DIO_u8GetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_C) << 2) ;
-	Local_u8Bcd |= (DIO_u8GetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_D) << 3) ;
-	return Local_u8Bcd ;
-}
 static void TEST_voidSevenSeg(){
 	u8 Local_u8TensSeen = 0 ;
 	u8 Local_u8UnitsSeen = 0 ;
@@ -465,9 +457,14 @@ static void TEST_voidSevenSeg(){
 	SEVEN_SEG_voidEnable();
 	TEST_voidWaitMs(5);
 	for(u16 i = 0 ; i < 400 ; i++){
-		u8 Local_u8Tens = TEST_u8DigitOn(SEVEN_SEG_TENS_PIN) ;
-		u8 Local_u8Units = TEST_u8DigitOn(SEVEN_SEG_UNITS_PIN) ;
-		u8 Local_u8Bcd = TEST_u8ReadBcd() ;
+		/* one snapshot of the port : the tick ISR must not switch digits between the reads */
+		u8 Local_u8Port = DIO_u8GetPortValue(SEVEN_SEG_BCD_PORT) ;
+		u8 Local_u8Tens = (GET_BIT(Local_u8Port,SEVEN_SEG_TENS_PIN) == SEVEN_SEG_DIGIT_ON_LEVEL) ;
+		u8 Local_u8Units = (GET_BIT(Local_u8Port,SEVEN_SEG_UNITS_PIN) == SEVEN_SEG_DIGIT_ON_LEVEL) ;
+		u8 Local_u8Bcd = (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_A) << 0)
+				| (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_B) << 1)
+				| (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_C) << 2)
+				| (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_D) << 3) ;
 		if(Local_u8Tens && Local_u8Units){ Local_u8BothOn = 1 ; }
 		if(Local_u8Tens){
 			Local_u8TensSeen = 1 ;
