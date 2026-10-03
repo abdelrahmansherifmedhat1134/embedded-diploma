@@ -298,7 +298,7 @@ u8   EXT_EEPROM_u8IsReady();                           /* ONE ACK poll : 1 = wri
 ### 3.3 SERVICE
 
 #### flash_str.h
-The `FLASH_STR("...")` macro moves here from `test_base.c` unchanged, so every layer shares one definition.
+The `FLASH_STR("...")` macro moved here from the test files unchanged (`lib/Service/flash_str.h`), so every layer shares one definition. Include `std_types.h` first.
 
 #### RINGBUF — byte ring buffer
 ```c
@@ -307,18 +307,20 @@ The `FLASH_STR("...")` macro moves here from `test_base.c` unchanged, so every l
 #define RINGBUF_FULL     1
 #define RINGBUF_EMPTY    2
 typedef struct{
-	u8 * Buffer ;
-	u8   Size ;                 /* capacity = Size - 1 */
+	volatile u8 * Buffer ;      /* volatile : a byte written by an ISR is never read early (LTO) */
+	u8   Size ;                 /* storage bytes , capacity = Size - 1 */
 	volatile u8 Head ;          /* written only by the producer */
 	volatile u8 Tail ;          /* written only by the consumer */
 }RINGBUF_t;
-void RINGBUF_voidInit(RINGBUF_t * rb, u8 * Copy_pu8Storage, u8 Copy_u8Size);
+void RINGBUF_voidInit(RINGBUF_t * rb, volatile u8 * Copy_pu8Storage, u8 Copy_u8Size);
 u8   RINGBUF_u8Put(RINGBUF_t * rb, u8 Copy_u8Data);
 u8   RINGBUF_u8Get(RINGBUF_t * rb, u8 * Copy_pu8Data);
 u8   RINGBUF_u8GetCount(RINGBUF_t * rb);
 u8   RINGBUF_u8GetFree (RINGBUF_t * rb);
 ```
 One producer and one consumer, 8-bit indexes: safe between an ISR and the main loop **without** disabling interrupts. A struct passed by pointer follows the author's `SSG_t`. No `_cfg.h`.
+
+**As built:** one slot always stays empty, so a ring holds `Size - 1` bytes. Every user therefore gives its storage one byte more than the capacity it documents: `TERM` RX = `TERM_RX_BUFFER_SIZE + 1` (33), TX = `TERM_TX_BUFFER_SIZE + 1` (129), `EVQ` = `2 * EVQ_MAX_EVENTS + 1` (33). `Size` is a `u8`, so a ring holds at most 254 bytes.
 
 #### MAVG — moving average (REQ-HTR-08)
 ```c
@@ -332,7 +334,7 @@ typedef struct{
 void MAVG_voidReset(MAVG_t * avg);
 void MAVG_voidAddSample(MAVG_t * avg, u16 Copy_u16Sample);
 u8   MAVG_u8IsFull(MAVG_t * avg);                      /* 1 when MAVG_WINDOW samples are stored */
-u16  MAVG_u16GetAverage(MAVG_t * avg);                 /* rounded average of the samples stored so far */
+u16  MAVG_u16GetAverage(MAVG_t * avg);                 /* rounded average of the samples stored so far : (Sum + Count/2) / Count , 0 when empty */
 
 /* MAVG_cfg.h */
 #define MAVG_WINDOW    10
@@ -341,6 +343,7 @@ u16  MAVG_u16GetAverage(MAVG_t * avg);                 /* rounded average of the
 #### FMT — number to text (no `printf`)
 ```c
 /* FMT.h */
+#define FMT_NUMBER_TEXT_SIZE    6      /* "65535" + '\0' : buffer size for FMT_u8NumberToText */
 u8 FMT_u8NumberToText(u16 Copy_u16Number, c8 * Copy_pc8Text);                      /* writes digits + '\0' , returns the length */
 u8 FMT_u8TextToNumber(const c8 * Copy_pc8Text, u16 * Copy_pu16Number);             /* 1 = text was a valid number (digits only , <= 65535) */
 ```
@@ -353,6 +356,7 @@ u8 FMT_u8TextToNumber(const c8 * Copy_pc8Text, u16 * Copy_pu16Number);          
 #define SCHED_TASK_100MS    2
 #define SCHED_TASK_500MS    3
 #define SCHED_TASK_1S       4
+#define SCHED_TASK_COUNT    5
 void SCHED_voidInit();                                 /* Timer2 CTC , callback ; interrupt still off */
 void SCHED_voidStart();                                /* enable the tick interrupt */
 u8   SCHED_u8IsTaskDue(u8 Copy_u8TaskID);              /* 1 once per period , clears the flag atomically */
@@ -361,6 +365,7 @@ u16  SCHED_u16GetOverruns();                           /* flags that were set ag
 
 /* SCHED_cfg.h */
 #define SCHED_TIMER_PRESCALER     64UL                 /* TIMER2_DIV_64 */
+#define SCHED_TIMER_CLOCK         TIMER2_DIV_64        /* must be the code of SCHED_TIMER_PRESCALER */
 #define SCHED_TICK_HZ             1000UL
 #define SCHED_OCR_VALUE           ((u8)((F_CPU / (SCHED_TIMER_PRESCALER * SCHED_TICK_HZ)) - 1))    /* 249 */
 #if (F_CPU % (SCHED_TIMER_PRESCALER * SCHED_TICK_HZ)) != 0
@@ -373,6 +378,7 @@ u16  SCHED_u16GetOverruns();                           /* flags that were set ag
 #define SCHED_OFFSET_500MS        3
 #define SCHED_OFFSET_1S           4
 ```
+**As built:** each task's down-counter starts at `period + offset`, so the tasks are first due on ticks 5, 12, 101, 503 and 1004 and then every period. The five phases are all different modulo 5, so two flags are never set on the same tick. There is no tick hook (D-20). `SCHED_voidInit` may be called again later to restart the tick at 0 (with interrupts off).
 
 #### TERM — UART terminal I/O (ring buffers + line editor)
 ```c
@@ -396,12 +402,14 @@ u8   TERM_u8IsLineEmpty();                             /* 1 = nothing typed yet 
 u8   TERM_u8IsRxActive();                              /* 1 = a byte arrived since the last call (idle timer) */
 
 /* TERM_cfg.h */
-#define TERM_RX_BUFFER_SIZE    32
+#define TERM_RX_BUFFER_SIZE    32                      /* bytes the ring really holds : storage is + 1 */
 #define TERM_TX_BUFFER_SIZE    128
 #define TERM_LINE_MAX          16                      /* typed characters per line */
 #define TERM_ECHO_DEFAULT      TERM_ECHO_NORMAL        /* TERM_ECHO_OFF for phone apps that echo locally */
 ```
 RX: `USART` RX callback -> `RINGBUF_u8Put`. TX: `TERM_voidPut...` -> ring -> `USART_voidEnableTxInterrupt()`; the UDRE callback takes one byte or disables the interrupt when the ring is empty. Output that does not fit is dropped, so callers check `TERM_u8TxFree()` first (Section 5.8).
+
+**Line editor, as built:** backspace is 0x08 or 0x7F (echo `\b \b`); CR, LF and CR LF each end **one** line (the LF right after a CR is skipped, even when it arrives in a later call); printable characters 0x20–0x7E are stored, other control codes are ignored; `TERM_ECHO_MASKED` echoes `*`. A line longer than `TERM_LINE_MAX` keeps its first 16 characters on the screen, ignores the rest, and returns `TERM_LINE_TOO_LONG` **once, when its line end arrives** (nothing is copied). `TERM_u8GetLine` needs a buffer of `TERM_LINE_MAX + 1` bytes.
 
 #### EVQ — event queue (feature -> remote terminal)
 ```c
@@ -421,7 +429,7 @@ u8   EVQ_u8Get(u8 * Copy_pu8Event, u8 * Copy_pu8Arg);  /* 1 = one event returned
 void EVQ_voidSetMute(u8 Copy_u8State);                 /* 1 = posts are dropped */
 
 /* EVQ_cfg.h */
-#define EVQ_MAX_EVENTS    16
+#define EVQ_MAX_EVENTS    16                           /* events really held : storage = 2 * 16 + 1 = 33 bytes */
 ```
 Main-loop context only (never from an ISR). `UIREM` mutes the queue while it runs one of its own commands, because that change is already answered with `[OK]`; so the queue only ever holds changes made somewhere else (keypad, heater panel, automatic AC).
 
@@ -440,7 +448,9 @@ void ESTORE_voidWriteBlock(u8 Copy_u8Address, const u8 * Copy_pu8Data, u8 Copy_u
 void ESTORE_voidLoadDefaults();                        /* factory reset : defaults + all pages marked for writing */
 u8   ESTORE_u8IsBusy();                                /* 1 = something still waits to be written */
 u8   ESTORE_u8GetStatus();
+u16  ESTORE_u16GetPageWrites();                        /* diagnostic (test_service) : page writes started since init */
 ```
+**As built:** `ESTORE_u16GetPageWrites()` is a read-only diagnostic added for `test_service` (it proves "one byte = one page write" and "magic page last"); the application does not need it. `ESTORE_u8IsBusy()` returns 0 in the `FAULT` state, so nobody waits for a write that will never happen. `EVQ_voidInit` must run before `ESTORE_voidUpdate` (the fault event is posted to `EVQ`).
 `ESTORE_cfg.h` = the complete EEPROM map and defaults: see [eeprom_map.md](eeprom_map.md) Section 5.
 
 #### USERDB — accounts (REQ-SEC-02, 03, 04, 07, 09)
@@ -455,6 +465,7 @@ u8   ESTORE_u8GetStatus();
 #define USERDB_ERR_BAD_NAME     4      /* length , character set , digits-only rule for keypad users */
 #define USERDB_ERR_BAD_PASS     5
 #define USERDB_ERR_READ_ONLY    6      /* write access is closed (REQ-SEC-07) */
+#define USERDB_NAME_TEXT_SIZE   9      /* 8 characters + '\0' : buffer for USERDB_u8GetUserName */
 void USERDB_voidInit();                                                                 /* repairs an invalid admin record with the default */
 u8   USERDB_u8CheckAdmin(const c8 * Copy_pc8Name, const c8 * Copy_pc8Pass);             /* 1 = match */
 u8   USERDB_u8CheckUser (u8 Copy_u8List, const c8 * Copy_pc8Name, const c8 * Copy_pc8Pass);
@@ -470,6 +481,7 @@ void USERDB_voidSetWriteAccess(u8 Copy_u8State);       /* 1 only while the admin
 #define USERDB_PASS_MIN    4
 #define USERDB_PASS_MAX    8
 ```
+**As built:** names and passwords are passed as C strings; in the image they are 8-byte fields padded with 0x00 and **not** terminated at 8 characters, so every compare covers all 8 positions. Only used slots are searched (an empty name never matches an empty slot). A remote user may not take the admin's name (`USERDB_ERR_EXISTS`); an unknown list gives `USERDB_ERR_BAD_NAME`. The gate is closed after `USERDB_voidInit`; the admin repair at init does not go through it.
 
 ### 3.4 APP
 
@@ -851,7 +863,7 @@ While nobody is logged in remotely the events in `EVQ` are read and discarded (e
 
 | State | Guard | Action | Next |
 |---|---|---|---|
-| `IDLE` | a page is dirty (highest page number first) | clear its dirty bit; `EXT_EEPROM_u8WritePage(page * 16, &image[page * 16], 16)`; polls = 0 | `WRITING` (`FAULT` if the transfer failed) |
+| `IDLE` | a page is dirty (highest page number first) | clear its dirty bit; `EXT_EEPROM_u8WritePage(page * 16, &image[page * 16], 16)`; polls = 0 | `WRITING` (`FAULT` + `EVQ_STORAGE_FAULT` if the transfer failed) |
 | `WRITING` | `EXT_EEPROM_u8IsReady()` = 1 | — | `IDLE` |
 | `WRITING` | not ready and `++polls < 5` | — | `WRITING` |
 | `WRITING` | not ready and `polls == 5` (50 ms) | post `EVQ_STORAGE_FAULT` | `FAULT` |
@@ -907,12 +919,12 @@ Rule: one owner per piece of state, kept `static` in the owner's `.c`; everyone 
 
 | Item | Bytes |
 |---|---|
-| `ESTORE` image (0x00–0xCF) + dirty mask + state | 208 + 5 |
-| `TERM` RX ring 32 + TX ring 128 + line 17 + 2 ring structs + flags | 192 |
+| `ESTORE` image (0x00–0xCF) + dirty mask + state + page-write counter | 208 + 7 |
+| `TERM` RX storage 33 + TX storage 129 + line 17 + 2 ring structs 10 + flags 5 | 194 |
 | `LCD_BUF` wanted 32 + shown 32 + cursor/retry | 67 |
-| `EVQ` storage 32 + ring struct | 38 |
+| `EVQ` storage 33 + ring struct 5 + mute flag | 39 |
 | `MAVG_t` x 2 (water, ambient) | 48 |
-| `SCHED` tick, flags, counters, overruns | 16 |
+| `SCHED` tick 4, flags 1, counters 10, overruns 2 | 17 |
 | MCAL callback pointers (TIMER0 x2, TIMER2, ADC x2, EXTI x3, USART x2) | 20 |
 | `KPAD`, `BUTTON`, `SEVEN_SEG`, `LAMP` state | 22 |
 | `SEC` (counters, roles, flag, remote user name 9) | 15 |
@@ -924,6 +936,8 @@ Rule: one owner per piece of state, kept `static` in the owner's `.c`; everyone 
 | **Free** | **~1050** |
 
 All text is in flash. Today `KPAD` keeps 24 bytes of tables in RAM; the fix in Section 2 makes them `const`.
+
+**Measured, SERVICE layer (2026-10-03, `pio run -e test_service`):** static RAM = `.data` 36 + `.bss` 528 = **564 bytes (27.5 %)**, flash = **22 450 bytes (68.5 %)**. Of the RAM, the SERVICE modules use 466 bytes (ESTORE 215, TERM 194, EVQ 39, SCHED 17, USERDB 1), the test itself 58 (two 24-byte text buffers + counters), MCAL callback pointers 6, and 34 bytes are two compiler-made switch tables (`CSWTCH`) in `.data`. The rows above match these numbers; the limit to watch is 1300 bytes of static RAM. Most of the flash is test text (about 150 check lines), not SERVICE code.
 
 ### 7.2 Flash (32 768 bytes)
 
