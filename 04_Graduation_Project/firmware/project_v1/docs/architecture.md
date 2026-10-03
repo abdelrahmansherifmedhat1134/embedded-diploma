@@ -937,7 +937,7 @@ Rule: one owner per piece of state, kept `static` in the owner's `.c`; everyone 
 
 All text is in flash. Today `KPAD` keeps 24 bytes of tables in RAM; the fix in Section 2 makes them `const`.
 
-**Measured, SERVICE layer (2026-10-03, `pio run -e test_service`):** static RAM = `.data` 36 + `.bss` 528 = **564 bytes (27.5 %)**, flash = **22 450 bytes (68.5 %)**. Of the RAM, the SERVICE modules use 466 bytes (ESTORE 215, TERM 194, EVQ 39, SCHED 17, USERDB 1), the test itself 58 (two 24-byte text buffers + counters), MCAL callback pointers 6, and 34 bytes are two compiler-made switch tables (`CSWTCH`) in `.data`. The rows above match these numbers; the limit to watch is 1300 bytes of static RAM. Most of the flash is test text (about 150 check lines), not SERVICE code.
+**Measured, SERVICE layer (2026-10-03, `pio run -e test_service`):** static RAM = `.data` 36 + `.bss` 528 = **564 bytes (27.5 %)**, flash = **22 536 bytes (68.8 %)**. Of the RAM, the SERVICE modules use 466 bytes (ESTORE 215, TERM 194, EVQ 39, SCHED 17, USERDB 1), the test itself 58 (two 24-byte text buffers + counters), MCAL callback pointers 6, and 34 bytes are two compiler-made switch tables (`CSWTCH`) in `.data`. The rows above match these numbers; the limit to watch is 1300 bytes of static RAM. Most of the flash is test text (about 150 check lines), not SERVICE code.
 
 ### 7.2 Flash (32 768 bytes)
 
