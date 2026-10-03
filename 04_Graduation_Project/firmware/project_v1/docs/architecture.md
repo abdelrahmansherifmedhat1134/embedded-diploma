@@ -59,8 +59,8 @@ ALARM  -> HEATER(ForceOff), CLIMATE(ForceOff), BUZZER, EVQ
 LIGHT  -> LAMP, DIMMER, EVQ                  DOOR    -> SERVO
 CLIMATE-> LM35, MAVG, FAN, EVQ               HEATER  -> LM35, MAVG, BUTTON, SEVEN_SEG, RELAY, LED, ESTORE, EVQ
 USERDB -> ESTORE -> EXT_EEPROM -> TWI        TERM    -> USART, RINGBUF          EVQ -> RINGBUF      ESTORE -> EVQ (fault)
-SCHED  -> TIMER2                             LCD_BUF -> CLCD -> PCF8574 -> TWI  LAMP -> PCF8574 -> TWI
-KPAD, BUTTON, SEVEN_SEG, RELAY, LED, BUZZER -> DIO      LM35 -> ADC      DIMMER -> TIMER0, DIO      SERVO, FAN -> TIMER1, DIO
+SCHED  -> TIMER2                             LCD_BUF -> CLCD -> PCF8574 -> TWI  LAMP -> PCF8574 -> TWI  SEVEN_SEG -> PCF8574 -> TWI
+KPAD, BUTTON, RELAY, LED, BUZZER -> DIO      LM35 -> ADC      DIMMER -> TIMER0, DIO      SERVO, FAN -> TIMER1, DIO
 ```
 
 ---
@@ -72,7 +72,7 @@ Rule: change only what is listed, in the author's style, public API kept. Every 
 | Module | Change | Why |
 |---|---|---|
 | **reg_def.h** | Add, in the same style: `TCCR1A/B`, `TCNT1H/L`, `OCR1AH/L`, `OCR1BH/L`, `ICR1H/L` (0x4F..0x46) + bit names; `TCCR2` (0x45), `TCNT2` (0x44), `OCR2` (0x43) + bit names; `TIMSK_OCIE2/TOIE2/TICIE1/OCIE1A/OCIE1B/TOIE1`, matching `TIFR` bits; `MCUCSR_JTD` (bit 7) | Timer1, Timer2, JTAG disable |
-| **DIO** | Add `void DIO_voidDisableJTAG();` (writes `MCUCSR_JTD` twice, as the datasheet requires) | PC2–PC5 are JTAG pins (pin_map C-3) |
+| **DIO** | Add `void DIO_voidDisableJTAG();` (writes `MCUCSR_JTD` twice, as the datasheet requires) | PC2–PC5 are JTAG pins (pin_map C-3). Since D-20 nothing needs it at boot; the function stays in MCAL (tested by `test_mcal`) |
 | **ADC** | 1. ISR prototype -> `__attribute__ ((signal, used, externally_visible))`. 2. `ADC_u16StartConversion` clears `ADIE` first, so a previous async conversion can no longer steal `ADIF` and hang it. 3. Add `void ADC_voidDisableInterrupt();`. 4. Fix the wrong comment (`AVCC` -> internal 2.56 V). 5. Globals `ADC_Ptr` / `data` become `static` (`data` is too generic a global name) | LTO drops ISR; sync-after-async hang |
 | **TIMER0** | 1. Both ISR prototypes get `used, externally_visible`. 2. `TIMER0_GeneratePWM`: NONINVERTED = `COM01=1, COM00=0`, INVERTED = `COM01=1, COM00=1` (they are swapped today). 3. `OCR0 = ((u16)DutyCycle * 255) / 100` (today 100 % gives 256 -> 0). 4. `TIMER0_voidInit` case label `TIMER0_CTC_DISCONNECTED` -> `TIMER0_NORMAL` (same value 0, wrong name) | test_base `[FAIL]`s |
 | **EXTI** | 1. Three ISR prototypes get `used, externally_visible`. 2. Declare `EXTI_voidINT0/1/2_callBack` in `EXTI.h`. 3. `NULL` check before calling the callback | crash on unset callback |
@@ -154,28 +154,21 @@ void LCD_BUF_voidUpdate();                             /* call every 5 ms : send
 ```
 Two arrays of 32 bytes: *wanted* and *shown*. Writers only touch *wanted* (instant). `LCD_BUF_voidUpdate` finds the next differing cell; if the LCD cursor is not there it sends one set-cursor command, otherwise one data byte. Cost per call <= 0.5 ms; a full redraw takes ~35 calls = 175 ms. After every send it checks `CLCD_u8GetStatus()`: on an I²C error the byte stays "not shown", the cursor is marked unknown, and `LCD_BUF` waits `LCD_BUF_RETRY_UPDATES` calls before trying again. Without this a 16-character line would block the loop for 8 ms (and 20 ms with today's CLCD).
 
-#### SEVEN_SEG — 2 digits, 7447 BCD, multiplexed
+#### SEVEN_SEG — 2 digits, one PCF8574 per digit (D-20)
 ```c
 /* SEVEN_SEG.h */
-void SEVEN_SEG_voidInit();                             /* pins output , display blank */
-void SEVEN_SEG_voidSetNumber(u8 Copy_u8Number);        /* 0..99 , bigger values show 99 */
-void SEVEN_SEG_voidEnable();
-void SEVEN_SEG_voidDisable();                          /* blank : both digits off */
-void SEVEN_SEG_voidRefresh();                          /* called from the 1 ms tick ISR */
+void SEVEN_SEG_voidInit();                             /* display blank */
+void SEVEN_SEG_voidSetNumber(u8 Copy_u8Number);        /* 0..99 , bigger values show 99 (leading zero) */
+void SEVEN_SEG_voidEnable();                           /* show the number */
+void SEVEN_SEG_voidDisable();                          /* blank : 0xFF on both chips */
+u8   SEVEN_SEG_u8GetStatus();                          /* status of the last write : TWI_OK or a TWI error (like LAMP) */
 
 /* SEVEN_SEG_cfg.h */
-#define SEVEN_SEG_BCD_PORT          DIO_PORTC
-#define SEVEN_SEG_BCD_PIN_A         DIO_PIN_2
-#define SEVEN_SEG_BCD_PIN_B         DIO_PIN_3
-#define SEVEN_SEG_BCD_PIN_C         DIO_PIN_4
-#define SEVEN_SEG_BCD_PIN_D         DIO_PIN_5
-#define SEVEN_SEG_DIGIT_PORT        DIO_PORTC
-#define SEVEN_SEG_TENS_PIN          DIO_PIN_6          /* digit 1 */
-#define SEVEN_SEG_UNITS_PIN         DIO_PIN_7          /* digit 2 */
-#define SEVEN_SEG_DIGIT_ON_LEVEL    DIO_PIN_LOW        /* PNP (2N3906) high-side drivers in the schematic */
-#define SEVEN_SEG_TICKS_PER_DIGIT   5                  /* 5 ms per digit -> 100 Hz refresh */
+#define SEVEN_SEG_TENS_ADDRESS     0x21                /* PCF8574 , A2 A1 A0 = 0 0 1 */
+#define SEVEN_SEG_UNITS_ADDRESS    0x22                /* PCF8574 , A2 A1 A0 = 0 1 0 */
+#define SEVEN_SEG_ON_LEVEL         0                   /* common anode : a segment lights when its pin is LOW */
 ```
-`SEVEN_SEG_voidRefresh` counts ticks; every 5th tick it switches both digits off; one tick later (`SEVEN_SEG_BLANK_TICKS` = 1 ms dead time, found in Proteus: a PNP driver turns off too slowly, so both digits showed the same number) it puts the other digit's BCD on PC2–PC5 and switches that digit on (off-first avoids ghosting). After init **only the ISR writes PORTC**, so no read-modify-write of a port can be interrupted half-way. `SEVEN_SEG_voidInit` calls `DIO_voidDisableJTAG()` first, because it owns PC2–PC5 (JTAG pins).
+Each common-anode digit has its own PCF8574: P0..P6 = segments a..g, P7 = dp (always off), through 220 Ω. Pattern table `static const __flash u8 SEVEN_SEG_TABLE[10]` = `C0 F9 A4 B0 99 92 82 F8 80 90`; `0xFF` = blank. `SetNumber`, `Enable` and `Disable` write the chips **immediately**, one I²C write per digit and only when that digit's pattern differs from what the chip shows (about 0.2 ms each). A failed write marks the digit "unknown", so the next call writes it again. No interrupt, no multiplexing, no `Refresh`; call from the main loop only (the I²C bus is polled and shared).
 
 #### BUTTON — debounced push buttons
 ```c
@@ -361,7 +354,6 @@ void SCHED_voidInit();                                 /* Timer2 CTC , callback 
 void SCHED_voidStart();                                /* enable the tick interrupt */
 u8   SCHED_u8IsTaskDue(u8 Copy_u8TaskID);              /* 1 once per period , clears the flag atomically */
 u32  SCHED_u32GetTickMs();                             /* read with interrupts off */
-void SCHED_voidSetTickHook(void (*ptr)(void));         /* runs inside the tick ISR : 7-seg refresh only */
 u16  SCHED_u16GetOverruns();                           /* flags that were set again before being served */
 
 /* SCHED_cfg.h */
@@ -580,10 +572,9 @@ void UILOC_voidTask1s();                               void UIREM_voidTask1s();
 
 Timer2, CTC, prescaler 64: timer clock = 16 MHz / 64 = 250 kHz, `OCR2 = F_CPU / (64 * 1000) - 1 = 249` -> compare match every 250 counts = **1.000 ms exactly**. A compile-time `#error` fires if another `F_CPU` cannot give an exact millisecond.
 
-**Inside the ISR** (`__vector_4` -> TIMER2 callback -> `SCHED` tick function), about 20 µs = 2 % CPU:
+**Inside the ISR** (`__vector_4` -> TIMER2 callback -> `SCHED` tick function), under 10 µs = 1 % CPU:
 1. `tick++` (`volatile u32`).
 2. Five down-counters; when one reaches zero it is reloaded with its period and its bit is set in `volatile u8` flags (if the bit was still set, `overruns++`).
-3. The tick hook: `SEVEN_SEG_voidRefresh()` — the one exception Section 5 of CLAUDE.md allows.
 
 Nothing else ever runs in an interrupt except the two USART ISRs, which only move one byte to/from a ring buffer.
 
@@ -604,13 +595,13 @@ while(1){
 
 | Period | First due at | Task | Work | Worst time |
 |---|---|---|---|---|
-| 1 ms (ISR) | — | tick + 7-seg refresh | counters, 6 pin writes every 5th tick | 20 µs |
+| 1 ms (ISR) | — | tick | counters and flags only (nothing else runs in the tick ISR, D-20) | < 10 µs |
 | 5 ms | 0 | `LCD_BUF_voidUpdate` | one LCD byte over I²C | 0.5 ms |
 | | | `UIREM_voidTask5ms` | line editor, one command step, one output line | 0.3 ms |
 | 10 ms | 2 | `KPAD_voidUpdate`, `BUTTON_voidUpdate` | matrix scan, 3 pins | 0.1 ms |
 | | | `HEATER_voidTask10ms`, `UILOC_voidTask10ms` | button/key events, RAM only (a lamp toggle adds one 0.2 ms I²C write) | 0.3 ms |
 | | | `ESTORE_voidUpdate` | one ACK poll (0.12 ms) **or** one page write | **1.7 ms** |
-| 100 ms | 1 | `HEATER_voidTask100ms` | 1 ADC conversion, average, control law, display | 0.2 ms |
+| 100 ms | 1 | `HEATER_voidTask100ms` | 1 ADC conversion, average, control law, display (I²C only when a digit changes) | 0.6 ms |
 | | | `CLIMATE_voidTask100ms` | 1 ADC conversion, average, hysteresis | 0.2 ms |
 | 500 ms | 3 | `HEATER_voidTask500ms`, `ALARM_voidTask500ms` | toggle blink phase / buzzer | 10 µs |
 | 1 s | 4 | `UILOC_voidTask1s`, `UIREM_voidTask1s` | idle timers, status screen text (RAM) | 0.1 ms |
@@ -626,6 +617,7 @@ Rule from CLAUDE.md: nothing longer than ~2 ms after init.
 | ADC conversion (13 cycles at 125 kHz) | 104 µs | `LM35` |
 | I²C byte at 100 kHz | 90 µs | `TWI` |
 | Lamp write (address + 1 byte) | 0.2 ms | `LAMP` |
+| 7-segment update (up to 2 chips, address + 1 byte each; only changed digits) | 0.4 ms | `SEVEN_SEG` |
 | LCD byte (address + 4 bytes) | 0.5 ms | `CLCD` |
 | EEPROM page write (address + word address + 16 bytes) | 1.7 ms | `EXT_EEPROM` |
 | EEPROM ACK poll | 0.12 ms | `EXT_EEPROM` |
@@ -643,8 +635,6 @@ Timeouts are counted in calls of the task that owns them (5 s = 50 calls of the 
 | task flags (u8) | sets bits | tests and clears | test-and-clear with interrupts off |
 | RX ring | writes `Head` | writes `Tail` | none needed (one producer, one consumer, u8) |
 | TX ring | writes `Tail` | writes `Head` | none needed |
-| 7-seg digits / blank flag (u8 each) | reads | writes | none needed (single bytes) |
-| PORTC | writes (7-seg) | never after init | ownership rule |
 
 Critical sections are used only in main-loop context, where interrupts are always enabled, so a plain disable/enable pair is correct.
 
@@ -658,11 +648,11 @@ Critical sections are used only in main-loop context, where interrupts are alway
 
 ### 4.6 Boot order (`main`)
 
-1. `DIO_voidDisableJTAG()`; outputs to their safe state first: `RELAY`, `LED`, `BUZZER`, `FAN`, `SERVO`, `DIMMER`, `SEVEN_SEG`.
-2. `TERM_voidInit`, `LCD_BUF_voidInit` (blocking 46 ms), `LAMP_voidInit`, `KPAD_voidInit`, `BUTTON_voidInit`, `LM35_voidInit`.
+1. Outputs to their safe state first: `RELAY`, `LED`, `BUZZER`, `FAN`, `SERVO`, `DIMMER` (no JTAG handling needed: PC2–PC7 are spare, D-20).
+2. `TERM_voidInit`, `LCD_BUF_voidInit` (blocking 46 ms), `LAMP_voidInit`, `SEVEN_SEG_voidInit` (blank), `KPAD_voidInit`, `BUTTON_voidInit`, `LM35_voidInit`.
 3. `ESTORE_voidInit` (blocking 19 ms read, or defaults), `USERDB_voidInit`, `EVQ_voidInit`.
 4. APP inits: `ALARM`, `SEC`, `LIGHT`, `DOOR`, `CLIMATE`, `HEATER`, `UILOC`, `UIREM`.
-5. `SCHED_voidInit`, `SCHED_voidSetTickHook(SEVEN_SEG_voidRefresh)`, `GIE_voidEnableGlobalInterrupt`, `SCHED_voidStart`, super-loop.
+5. `SCHED_voidInit`, `GIE_voidEnableGlobalInterrupt`, `SCHED_voidStart`, super-loop.
 
 ---
 
@@ -919,7 +909,7 @@ Rule: one owner per piece of state, kept `static` in the owner's `.c`; everyone 
 | `LCD_BUF` wanted 32 + shown 32 + cursor/retry | 67 |
 | `EVQ` storage 32 + ring struct | 38 |
 | `MAVG_t` x 2 (water, ambient) | 48 |
-| `SCHED` tick, flags, counters, overruns, hook | 18 |
+| `SCHED` tick, flags, counters, overruns | 16 |
 | MCAL callback pointers (TIMER0 x2, TIMER2, ADC x2, EXTI x3, USART x2) | 20 |
 | `KPAD`, `BUTTON`, `SEVEN_SEG`, `LAMP` state | 22 |
 | `SEC` (counters, roles, flag, remote user name 9) | 15 |
@@ -993,3 +983,4 @@ What each test program checks is listed in [test_plan.md](test_plan.md) Section 
 | D-17 | Dimmer and fan swapped against the first pin plan: dimmer on PB3 / OC0 (Timer0, 7.8 kHz), fan on PD4 / OC1B (Timer1, 50 Hz) | the dimmer needs a 0–5 V level; 7.8 kHz filters with a small RC and reacts fast, 50 Hz does not. 50 Hz is fine for an on/off fan (pin_map C-1) |
 | D-18 | Lamps on the PCF8574 are active-low (`LAMP_ON_LEVEL 0`) | a PCF8574 can sink but not source LED current, and its power-up state (all high) then means all lamps off (pin_map C-2) |
 | D-19 | `Service` is added to `lib_deps` when the SERVICE layer gets its first `.c` file, and `[env:app]` gets the same line in Phase 3 | without it the layer does not link |
+| D-20 | The 7-segment display is two PCF8574 expanders, one per common-anode digit (tens 0x21, units 0x22), instead of a 7447 + multiplexed digits. No `SEVEN_SEG_voidRefresh`, no tick hook, no JTAG handling | the 7447 + PNP multiplexed version was unreliable in Proteus (both digits showed the same number); it also frees PC2–PC7 and removes all work from the tick ISR. Cost: two more I²C devices (0x21, 0x22) and 0.2 ms of bus time per changed digit |

@@ -124,7 +124,7 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - **FIXED (Phase 2 HAL, 2026-10-02)** · **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
 - **main.c:** includes `../lib/service/Std_Types.h` with the wrong letter case (works on Windows only). Rewritten in Phase 3.
 - The exact fix for every item is in `docs/architecture.md` Section 2.
-- **FIXED (Phase 2 HAL, 2026-10-02)** · **SSG:** writes raw segments to a whole port; does not fit the 7447 + 2-digit mux design → new SEVEN_SEG driver.
+- **FIXED (Phase 2 HAL, 2026-10-02)** · **SSG:** writes raw segments to a whole port; does not fit the 2-digit design → new SEVEN_SEG driver (two PCF8574 chips since D-20; the first 7447 + multiplexed version was dropped because it was unreliable in Proteus).
 
 ### Proteus notes found in Phase 0
 - A single read of the shared UBRRH/UCSRC address seems to return UCSRC in Proteus (a real ATmega32 returns UBRRH), so UBRRH cannot be verified in simulation.
@@ -161,8 +161,8 @@ Rules:
 - `main.c` only does: init all modules, enable global interrupts, run the super-loop that dispatches scheduler tasks.
 
 ### Timing model (no blocking delays)
-- One hardware timer produces a **1 ms system tick** (see Section 8). The ISR only increments a tick counter and sets task flags. It does no real work, with one allowed exception: advancing the 7-segment multiplexing, which is a few register writes.
-- The super-loop checks the flags and runs tasks: 5 ms (7-seg mux, if not in ISR), 10–20 ms (keypad scan, button debounce), 100 ms (temperature sampling), 500 ms / 1 s (blinking, timeouts).
+- One hardware timer produces a **1 ms system tick** (see Section 8). The ISR only increments a tick counter and sets task flags. It does no real work at all (the 7-segment display has its own PCF8574 chips and needs no refresh, decision D-20).
+- The super-loop checks the flags and runs tasks: 5 ms (LCD update), 10–20 ms (keypad scan, button debounce), 100 ms (temperature sampling), 500 ms / 1 s (blinking, timeouts).
 - Every APP module is a **non-blocking state machine**: it never waits in a loop; it keeps its state and returns.
 - Allowed delays: microsecond-level delays required by a chip's timing inside a HAL driver (e.g. LCD enable pulse), and one-time delays during init before the scheduler starts (e.g. LCD power-up). Nothing longer than ~2 ms after init.
 - UART RX uses the RX-complete interrupt into a ring buffer. UART TX should use a TX ring buffer with the UDRE interrupt so long messages never block the loop.
@@ -241,7 +241,7 @@ Rules:
 
 ## 7. Pin map (final — full detail in `docs/pin_map.md`)
 
-The full feature list does **not** fit the 32 I/O pins if everything is wired directly (~41 pins needed). **Decided:** LCD and the 5 lamps on the I²C bus (PCF8574 expanders), 7-segments through a 7447 BCD decoder, and (Phase 1) the dimmer on Timer0 and the AC fan on Timer1.
+The full feature list does **not** fit the 32 I/O pins if everything is wired directly (~41 pins needed). **Decided:** LCD and the 5 lamps on the I²C bus (PCF8574 expanders), 7-segments on two more PCF8574 expanders (one per digit, no multiplexing), and (Phase 1) the dimmer on Timer0 and the AC fan on Timer1.
 
 | Pin | Function | Notes |
 |---|---|---|
@@ -260,9 +260,7 @@ The full feature list does **not** fit the 32 I/O pins if everything is wired di
 | PB7 | Cooling element (SSR) | |
 | PC0 | SCL | I²C bus |
 | PC1 | SDA | I²C bus |
-| PC2–PC5 | 7447 BCD inputs A–D | shared by both digits. JTAG pins: on real hardware disable JTAG (JTD bit / fuse) |
-| PC6 | 7-seg digit 1 (tens) enable | multiplexed, active-low (PNP driver) |
-| PC7 | 7-seg digit 2 (units) enable | multiplexed, active-low (PNP driver) |
+| PC2–PC7 | spare | free since D-20 (the 7447 and the multiplexing were removed). PC2–PC5 are JTAG pins on a real chip |
 | PD0 | UART RXD | |
 | PD1 | UART TXD | |
 | PD2 | PIR (INT0) | optional |
@@ -272,7 +270,7 @@ The full feature list does **not** fit the 32 I/O pins if everything is wired di
 | PD6 | Heater ON/OFF button | polling + debounce |
 | PD7 | Heater Up button | |
 
-I²C bus devices: 24C08 EEPROM (0x50), PCF8574 for the LCD (0x27), PCF8574 for lamps 1–5 on P0–P4 (0x20, **active-low**: lamp ON = bit 0).
+I²C bus devices: 24C08 EEPROM (0x50), PCF8574 for the LCD (0x27), PCF8574 for lamps 1–5 on P0–P4 (0x20, **active-low**: lamp ON = bit 0), PCF8574 for the tens digit of the 7-segment display (0x21) and one for the units digit (0x22): P0..P6 = segments a..g, P7 = dp, common anode, **active-low**, 0xFF = blank.
 
 ---
 

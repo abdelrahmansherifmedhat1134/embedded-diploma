@@ -14,9 +14,9 @@
  *  Hex   : .pio/build/test_hal/firmware.hex
  *
  *  SCHED does not exist yet , so this test makes its own 1 ms tick with
- *  TIMER2 (the ISR refreshes the 7-segment display and sets a 5 ms and a
- *  10 ms flag ; the main loop serves LCD_BUF every 5 ms and KPAD + BUTTON
- *  every 10 ms). Timer1 (servo / fan PWM) also serves as a stop watch.
+ *  TIMER2 (the ISR counts milliseconds and sets a 5 ms and a 10 ms flag ;
+ *  the main loop serves LCD_BUF every 5 ms and KPAD + BUTTON every 10 ms).
+ *  Timer1 (servo / fan PWM) also serves as a stop watch.
  *
  * ---------------------- Proteus parts and wiring ----------------------
  *  (everything of the test_mcal schematic stays ; new parts are marked NEW)
@@ -37,11 +37,11 @@
  *  NEW  KEYPAD       KEYPAD-SMALLCALC : rows A..D -> PA4..PA7 , columns 1..4 -> PB0 , PB1 , PB2 , PB4
  *  NEW  3 buttons    PD6 (ON/OFF) , PD7 (UP) , PB5 (DOWN) : each button between the pin and GND
  *                    (internal pull-ups are used)
- *  NEW  7-segment    2 x 7SEG-BCD or 2 x 7SEG-COM-CATHODE behind a 7447 :
- *                    PC2..PC5 -> 7447 A B C D (shared by both digits)
- *                    PC6 -> digit 1 (tens) enable , PC7 -> digit 2 (units) enable ,
- *                    active LOW : PNP transistor (2N3906) , emitter +5 V , base through 1k to the pin ,
- *                    collector to the common pin of the digit
+ *  NEW  7-segment    two COMMON-ANODE digits (7SEG-COM-ANODE) , common pin of both on +5 V ,
+ *                    each digit behind its own PCF8574 (no multiplexing , no transistors) :
+ *                    PCF8574 0x21 (A2 A1 A0 = 0 0 1) = tens  digit , P0..P6 -> segments a..g , P7 -> dp
+ *                    PCF8574 0x22 (A2 A1 A0 = 0 1 0) = units digit , same wiring
+ *                    each segment pin -> 220R -> segment (a segment lights when its pin is LOW)
  *  NEW  Heating relay/LED   PB6 -> 330R -> LED -> GND   (heating element)
  *  NEW  Cooling relay/LED   PB7 -> 330R -> LED -> GND   (cooling element)
  *  NEW  Buzzer       PD3 -> BUZZER (or a transistor driving it) -> GND
@@ -61,7 +61,8 @@
  *   1. LCD     : two lines of text , NO cursor , NO blinking block
  *   2. LEDs / buzzer : heating LED 1 s , cooling LED 1 s , status LED 1 s , buzzer 1 s
  *   3. LAMPS   : lamps 1..5 light one after the other , then all five , then all off
- *   4. 7-SEG   : counts 00..99 (100 ms per step) , then 99 (150 is clipped) , then blank
+ *   4. 7-SEG   : 00 11 .. 99 (each digit tested on its own chip) , 37 , counts 00..99
+ *                (100 ms per step) , 88 (every segment) , 99 (150 is clipped) , then blank
  *   5. LM35    : move the two sliders while the temperatures are printed (5 s)
  *   6. KEYPAD  : hold one key 2 s , press 3 keys , press 7 / C / + in order
  *   7. BUTTONS : hold each button 2 s : ON/OFF , UP , DOWN
@@ -213,7 +214,6 @@ static void TEST_voidManual(const __flash c8 * Copy_pc8Text){
 /* Timer2 ISR callback , every 1 ms */
 static void TEST_voidTickCallback(void){
 	Global_u16Ms++;
-	SEVEN_SEG_voidRefresh();
 	if((Global_u16Ms % 5) == 0){
 		Global_u8Flag5 = 1 ;
 	}
@@ -309,6 +309,8 @@ static void TEST_voidPcf8574(){
 	TEST_voidCheck(PCF8574_u8WriteBytes(LAMP_I2C_ADDRESS,Local_au8Two,2) == TWI_OK, FLASH_STR("PCF8574"), FLASH_STR("WriteBytes sends 2 values in one transaction"));
 	TEST_voidCheck((PCF8574_u8ReadPort(LAMP_I2C_ADDRESS,&Local_u8Value) == TWI_OK) && (Local_u8Value == 0xFF),
 			FLASH_STR("PCF8574"), FLASH_STR("last of the 2 values (0xFF) is on the port"));
+	TEST_voidCheck((PCF8574_u8WritePort(SEVEN_SEG_TENS_ADDRESS,0xFF) == TWI_OK) && (PCF8574_u8WritePort(SEVEN_SEG_UNITS_ADDRESS,0xFF) == TWI_OK),
+			FLASH_STR("PCF8574"), FLASH_STR("7-segment chips 0x21 and 0x22 are acknowledged"));
 	TEST_voidCheck(PCF8574_u8WritePort(0x60,0xFF) == TWI_ERR_SLA_NACK, FLASH_STR("PCF8574"), FLASH_STR("absent address 0x60 gives SLA NACK"));
 }
 
@@ -440,57 +442,57 @@ static void TEST_voidLamps(){
 			FLASH_STR("LAMP"), FLASH_STR("lamp number 0 and 6 are rejected"));
 }
 
-/* the digit pin is "on" when it has the on level */
-static u8 TEST_u8DigitOn(u8 Copy_u8Pin){
-	return (DIO_u8GetPinValue(SEVEN_SEG_DIGIT_PORT,Copy_u8Pin) == SEVEN_SEG_DIGIT_ON_LEVEL) ;
+/* Expected patterns of the digits 0..9 (common anode , bit = 0 lights the segment , dp off).
+ * Written here from the segment layout , independent of the table in the driver. */
+static const __flash u8 TEST_SEG_EXPECTED[10] = {0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90};
+#define TEST_SEG_BLANK    0xFF
+
+/* both chips : 1 = tens and units port equal the two wanted patterns */
+static u8 TEST_u8SegPorts(u8 Copy_u8Tens, u8 Copy_u8Units){
+	u8 Local_u8Tens = 0 ;
+	u8 Local_u8Units = 0 ;
+	if((PCF8574_u8ReadPort(SEVEN_SEG_TENS_ADDRESS,&Local_u8Tens) != TWI_OK) || (PCF8574_u8ReadPort(SEVEN_SEG_UNITS_ADDRESS,&Local_u8Units) != TWI_OK)){
+		return 0 ;
+	}
+	return (Local_u8Tens == Copy_u8Tens) && (Local_u8Units == Copy_u8Units) ;
 }
 static void TEST_voidSevenSeg(){
-	u8 Local_u8TensSeen = 0 ;
-	u8 Local_u8UnitsSeen = 0 ;
-	u8 Local_u8BothOn = 0 ;
-	u8 Local_u8Wrong = 0 ;
-	/* SEVEN_SEG_voidInit was called in main : display is blank */
-	TEST_voidWaitMs(20);
-	TEST_voidCheck((TEST_u8DigitOn(SEVEN_SEG_TENS_PIN) == 0) && (TEST_u8DigitOn(SEVEN_SEG_UNITS_PIN) == 0), FLASH_STR("SEVEN_SEG"), FLASH_STR("blank after init : both digits off"));
-	/* multiplex check : sample the pins for 20 ms (two full 10 ms refresh periods) */
-	SEVEN_SEG_voidSetNumber(37);
+	u8 Local_u8Ok = 1 ;
+	SEVEN_SEG_voidInit();
+	TEST_voidCheck(SEVEN_SEG_u8GetStatus() == TWI_OK, FLASH_STR("SEVEN_SEG"), FLASH_STR("init : both chips (0x21 , 0x22) answer"));
+	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_BLANK,TEST_SEG_BLANK), FLASH_STR("SEVEN_SEG"), FLASH_STR("blank after init (0xFF on both chips)"));
+	/* number 11*d shows the same digit on both chips : every pattern is checked on both */
+	TEST_voidManual(FLASH_STR("7-segment shows 00 11 22 .. 99 (300 ms each)"));
 	SEVEN_SEG_voidEnable();
-	TEST_voidWaitMs(5);
-	for(u16 i = 0 ; i < 400 ; i++){
-		/* one snapshot of the port : the tick ISR must not switch digits between the reads */
-		u8 Local_u8Port = DIO_u8GetPortValue(SEVEN_SEG_BCD_PORT) ;
-		u8 Local_u8Tens = (GET_BIT(Local_u8Port,SEVEN_SEG_TENS_PIN) == SEVEN_SEG_DIGIT_ON_LEVEL) ;
-		u8 Local_u8Units = (GET_BIT(Local_u8Port,SEVEN_SEG_UNITS_PIN) == SEVEN_SEG_DIGIT_ON_LEVEL) ;
-		u8 Local_u8Bcd = (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_A) << 0)
-				| (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_B) << 1)
-				| (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_C) << 2)
-				| (GET_BIT(Local_u8Port,SEVEN_SEG_BCD_PIN_D) << 3) ;
-		if(Local_u8Tens && Local_u8Units){ Local_u8BothOn = 1 ; }
-		if(Local_u8Tens){
-			Local_u8TensSeen = 1 ;
-			if(Local_u8Bcd != 3){ Local_u8Wrong = 1 ; }
-		}
-		if(Local_u8Units){
-			Local_u8UnitsSeen = 1 ;
-			if(Local_u8Bcd != 7){ Local_u8Wrong = 1 ; }
-		}
-		_delay_us(50);
+	for(u8 i = 0 ; i < 10 ; i++){
+		SEVEN_SEG_voidSetNumber(i * 11);
+		if(TEST_u8SegPorts(TEST_SEG_EXPECTED[i],TEST_SEG_EXPECTED[i]) == 0){ Local_u8Ok = 0 ; }
+		if(SEVEN_SEG_u8GetStatus() != TWI_OK){ Local_u8Ok = 0 ; }
+		TEST_voidWaitMs(300);
 	}
-	TEST_voidCheck(Local_u8TensSeen && Local_u8UnitsSeen, FLASH_STR("SEVEN_SEG"), FLASH_STR("both digits are switched on in turn"));
-	TEST_voidCheck(Local_u8BothOn == 0, FLASH_STR("SEVEN_SEG"), FLASH_STR("never both digits on together (no ghosting)"));
-	TEST_voidCheck(Local_u8Wrong == 0, FLASH_STR("SEVEN_SEG"), FLASH_STR("37 : tens digit has BCD 3 , units digit has BCD 7"));
-	/* count 00 .. 99 */
-	TEST_voidManual(FLASH_STR("7-segment counts 00 .. 99 (100 ms per step) , then shows 99 for 2 s (150 is clipped)"));
+	TEST_voidCheck(Local_u8Ok, FLASH_STR("SEVEN_SEG"), FLASH_STR("digits 0..9 : both chip ports equal the pattern table"));
+	SEVEN_SEG_voidSetNumber(37);
+	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_EXPECTED[3],TEST_SEG_EXPECTED[7]), FLASH_STR("SEVEN_SEG"), FLASH_STR("37 : tens = pattern of 3 (0xB0) , units = pattern of 7 (0xF8)"));
+	TEST_voidManual(FLASH_STR("7-segment shows 37 (2 s)"));
+	TEST_voidWaitMs(2000);
+	SEVEN_SEG_voidDisable();
+	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_BLANK,TEST_SEG_BLANK), FLASH_STR("SEVEN_SEG"), FLASH_STR("Disable : 0xFF on both chips"));
+	SEVEN_SEG_voidSetNumber(52);
+	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_BLANK,TEST_SEG_BLANK), FLASH_STR("SEVEN_SEG"), FLASH_STR("SetNumber while disabled keeps the display blank"));
+	SEVEN_SEG_voidEnable();
+	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_EXPECTED[5],TEST_SEG_EXPECTED[2]), FLASH_STR("SEVEN_SEG"), FLASH_STR("Enable shows the stored number again (52)"));
+	SEVEN_SEG_voidSetNumber(150);
+	TEST_voidCheck(TEST_u8SegPorts(TEST_SEG_EXPECTED[9],TEST_SEG_EXPECTED[9]), FLASH_STR("SEVEN_SEG"), FLASH_STR("150 is limited to 99"));
+	/* manual : count , every segment */
+	TEST_voidManual(FLASH_STR("7-segment counts 00 .. 99 (100 ms per step)"));
 	for(u8 i = 0 ; i < 100 ; i++){
 		SEVEN_SEG_voidSetNumber(i);
 		TEST_voidWaitMs(100);
 	}
-	SEVEN_SEG_voidSetNumber(150);
+	TEST_voidManual(FLASH_STR("7-segment shows 88 (every segment of both digits lit) for 2 s"));
+	SEVEN_SEG_voidSetNumber(88);
 	TEST_voidWaitMs(2000);
-	/* blank */
 	SEVEN_SEG_voidDisable();
-	TEST_voidWaitMs(20);
-	TEST_voidCheck((TEST_u8DigitOn(SEVEN_SEG_TENS_PIN) == 0) && (TEST_u8DigitOn(SEVEN_SEG_UNITS_PIN) == 0), FLASH_STR("SEVEN_SEG"), FLASH_STR("Disable : both digits off"));
 	TEST_voidManual(FLASH_STR("7-segment is blank"));
 	TEST_voidWaitMs(1000);
 }
@@ -794,7 +796,6 @@ int main(void){
 	/*1. Outputs and PWM first : Timer1 runs from now on (stop watch) */
 	DIO_voidSetPinDirection(TEST_LED_PORT,TEST_LED_PIN,DIO_PIN_OUTPUT);
 	USART_voidInit();
-	SEVEN_SEG_voidInit();
 	SERVO_voidInit();
 	FAN_voidInit();
 	DIMMER_voidInit();

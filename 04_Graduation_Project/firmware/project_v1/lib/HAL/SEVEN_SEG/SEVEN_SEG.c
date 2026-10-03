@@ -5,93 +5,105 @@
  *      Author: eslam
  */
 #include "../../Service/std_types.h"
-#include "../../Service/Bit_math.h"
-#include "../../MCAL/DIO/DIO.h"
+#include "../../MCAL/TWI/TWI.h"
+#include "../PCF8574/PCF8574.h"
 #include "SEVEN_SEG.h"
 #include "SEVEN_SEG_cfg.h"
 
-#define SEVEN_SEG_DIGIT_OFF_LEVEL   (!SEVEN_SEG_DIGIT_ON_LEVEL)
-
-#if SEVEN_SEG_BLANK_TICKS >= SEVEN_SEG_TICKS_PER_DIGIT
-#error "SEVEN_SEG_BLANK_TICKS must be smaller than SEVEN_SEG_TICKS_PER_DIGIT"
+/* Pattern -> pin level : the tables below are written for a LOW = ON (common anode) wiring */
+#if SEVEN_SEG_ON_LEVEL == 0
+#define SEVEN_SEG_LEVEL(pattern)    ((u8)(pattern))
+#else
+#define SEVEN_SEG_LEVEL(pattern)    ((u8)~(pattern))
 #endif
+#define SEVEN_SEG_BLANK             SEVEN_SEG_LEVEL(0xFF)
 
-/* Shared with the tick ISR (SEVEN_SEG_voidRefresh) : single bytes , so every access is atomic.
- * The number is kept as packed BCD (tens in the high nibble) so one write changes both digits. */
-static volatile u8 Global_u8Bcd = 0 ;
-static volatile u8 Global_u8Enabled = 0 ;
-/* used by the ISR only */
-static u8 Global_u8Ticks = 0 ;
-static u8 Global_u8NextDigit = 0 ;      /* 0 = tens , 1 = units */
+/* Digit 0..9 : bit0 = a ... bit6 = g , bit7 = dp (always off) , bit = 0 lights the segment.
+ *   a
+ * f   b       0xC0 = a b c d e f on , g off
+ *   g
+ * e   c
+ *   d                                                                    */
+static const __flash u8 SEVEN_SEG_TABLE[10] = {
+		0xC0,   /* 0 */
+		0xF9,   /* 1 */
+		0xA4,   /* 2 */
+		0xB0,   /* 3 */
+		0x99,   /* 4 */
+		0x92,   /* 5 */
+		0x82,   /* 6 */
+		0xF8,   /* 7 */
+		0x80,   /* 8 */
+		0x90    /* 9 */
+};
 
-static void SEVEN_SEG_voidBothOff(){
-	DIO_voidSetPinValue(SEVEN_SEG_DIGIT_PORT,SEVEN_SEG_TENS_PIN ,SEVEN_SEG_DIGIT_OFF_LEVEL);
-	DIO_voidSetPinValue(SEVEN_SEG_DIGIT_PORT,SEVEN_SEG_UNITS_PIN,SEVEN_SEG_DIGIT_OFF_LEVEL);
+static u8 Global_u8Number = 0 ;
+static u8 Global_u8Enabled = 0 ;
+/* what the two chips show now ; Global_u8KnownTens / Units = 0 means "unknown , write it" */
+static u8 Global_u8ShownTens = 0 ;
+static u8 Global_u8ShownUnits = 0 ;
+static u8 Global_u8KnownTens = 0 ;
+static u8 Global_u8KnownUnits = 0 ;
+static u8 Global_u8Status = 0 ;
+
+/* write one digit only when its pattern is not on the chip yet ; returns the I2C status */
+static u8 SEVEN_SEG_u8WriteDigit(u8 Copy_u8Address, u8 Copy_u8Pattern, u8 * Copy_pu8Shown, u8 * Copy_pu8Known){
+	u8 Local_u8Status = TWI_OK ;
+	if((*Copy_pu8Known == 0) || (*Copy_pu8Shown != Copy_u8Pattern)){
+		Local_u8Status = PCF8574_u8WritePort(Copy_u8Address,Copy_u8Pattern);
+		if(Local_u8Status == TWI_OK){
+			*Copy_pu8Shown = Copy_u8Pattern ;
+			*Copy_pu8Known = 1 ;
+		}else{
+			/* the chip may have missed it : try again at the next call */
+			*Copy_pu8Known = 0 ;
+		}
+	}
+	return Local_u8Status ;
 }
-static void SEVEN_SEG_voidPutBcd(u8 Copy_u8Digit){
-	DIO_voidSetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_A,GET_BIT(Copy_u8Digit,0));
-	DIO_voidSetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_B,GET_BIT(Copy_u8Digit,1));
-	DIO_voidSetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_C,GET_BIT(Copy_u8Digit,2));
-	DIO_voidSetPinValue(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_D,GET_BIT(Copy_u8Digit,3));
+/* bring both chips to the wanted state */
+static void SEVEN_SEG_voidShow(){
+	u8 Local_u8Tens = SEVEN_SEG_BLANK ;
+	u8 Local_u8Units = SEVEN_SEG_BLANK ;
+	u8 Local_u8Status ;
+	if(Global_u8Enabled == 1){
+		Local_u8Tens  = SEVEN_SEG_LEVEL(SEVEN_SEG_TABLE[Global_u8Number / 10]) ;
+		Local_u8Units = SEVEN_SEG_LEVEL(SEVEN_SEG_TABLE[Global_u8Number % 10]) ;
+	}
+	Global_u8Status = TWI_OK ;
+	Local_u8Status = SEVEN_SEG_u8WriteDigit(SEVEN_SEG_TENS_ADDRESS,Local_u8Tens,&Global_u8ShownTens,&Global_u8KnownTens);
+	if(Local_u8Status != TWI_OK){
+		Global_u8Status = Local_u8Status ;
+	}
+	Local_u8Status = SEVEN_SEG_u8WriteDigit(SEVEN_SEG_UNITS_ADDRESS,Local_u8Units,&Global_u8ShownUnits,&Global_u8KnownUnits);
+	if(Local_u8Status != TWI_OK){
+		Global_u8Status = Local_u8Status ;
+	}
 }
 
 void SEVEN_SEG_voidInit(){
-	/*0. PC2..PC5 are JTAG pins : release them (pin_map C-3) */
-	DIO_voidDisableJTAG();
-	/*1. Digit enables : off first , then output (no flash at start-up) */
-	SEVEN_SEG_voidBothOff();
-	DIO_voidSetPinDirection(SEVEN_SEG_DIGIT_PORT,SEVEN_SEG_TENS_PIN ,DIO_PIN_OUTPUT);
-	DIO_voidSetPinDirection(SEVEN_SEG_DIGIT_PORT,SEVEN_SEG_UNITS_PIN,DIO_PIN_OUTPUT);
-	/*2. BCD pins output */
-	DIO_voidSetPinDirection(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_A,DIO_PIN_OUTPUT);
-	DIO_voidSetPinDirection(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_B,DIO_PIN_OUTPUT);
-	DIO_voidSetPinDirection(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_C,DIO_PIN_OUTPUT);
-	DIO_voidSetPinDirection(SEVEN_SEG_BCD_PORT,SEVEN_SEG_BCD_PIN_D,DIO_PIN_OUTPUT);
-	/*3. Blank display. From now on only SEVEN_SEG_voidRefresh (ISR) writes these pins. */
-	Global_u8Bcd = 0 ;
+	PCF8574_voidInit();
+	Global_u8Number = 0 ;
 	Global_u8Enabled = 0 ;
-	Global_u8Ticks = 0 ;
-	Global_u8NextDigit = 0 ;
+	Global_u8KnownTens = 0 ;
+	Global_u8KnownUnits = 0 ;
+	SEVEN_SEG_voidShow();
 }
 void SEVEN_SEG_voidSetNumber(u8 Copy_u8Number){
 	if(Copy_u8Number > 99){
 		Copy_u8Number = 99 ;
 	}
-	Global_u8Bcd = (u8)(((Copy_u8Number / 10) << 4) | (Copy_u8Number % 10)) ;
+	Global_u8Number = Copy_u8Number ;
+	SEVEN_SEG_voidShow();
 }
 void SEVEN_SEG_voidEnable(){
 	Global_u8Enabled = 1 ;
+	SEVEN_SEG_voidShow();
 }
 void SEVEN_SEG_voidDisable(){
-	/* the ISR switches the digits off , so the main loop never touches the port */
 	Global_u8Enabled = 0 ;
+	SEVEN_SEG_voidShow();
 }
-void SEVEN_SEG_voidRefresh(){
-	if(Global_u8Enabled == 0){
-		SEVEN_SEG_voidBothOff();
-		Global_u8Ticks = 0 ;
-		return ;
-	}
-	/* every SEVEN_SEG_TICKS_PER_DIGIT ticks : show the other digit */
-	if(Global_u8Ticks < SEVEN_SEG_BLANK_TICKS){
-		/*1. dead time : both digits off , so the old digit (slow PNP) is really dark
-		 *   before the new BCD appears (no ghosting) */
-		SEVEN_SEG_voidBothOff();
-	}else if(Global_u8Ticks == SEVEN_SEG_BLANK_TICKS){
-		u8 Local_u8Bcd = Global_u8Bcd ;
-		/*2. BCD of the digit to show */
-		if(Global_u8NextDigit == 0){
-			SEVEN_SEG_voidPutBcd(Local_u8Bcd >> 4);
-			DIO_voidSetPinValue(SEVEN_SEG_DIGIT_PORT,SEVEN_SEG_TENS_PIN,SEVEN_SEG_DIGIT_ON_LEVEL);
-			Global_u8NextDigit = 1 ;
-		}else{
-			SEVEN_SEG_voidPutBcd(Local_u8Bcd & 0x0F);
-			DIO_voidSetPinValue(SEVEN_SEG_DIGIT_PORT,SEVEN_SEG_UNITS_PIN,SEVEN_SEG_DIGIT_ON_LEVEL);
-			Global_u8NextDigit = 0 ;
-		}
-	}
-	Global_u8Ticks++;
-	if(Global_u8Ticks >= SEVEN_SEG_TICKS_PER_DIGIT){
-		Global_u8Ticks = 0 ;
-	}
+u8 SEVEN_SEG_u8GetStatus(){
+	return Global_u8Status ;
 }
