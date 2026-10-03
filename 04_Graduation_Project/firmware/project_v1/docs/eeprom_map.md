@@ -12,7 +12,7 @@ Chip: 24C08, I²C address 0x50, 1024 bytes, 16-byte pages. The design uses the f
 |---|---|---|
 | Blocks | 4 x 256 bytes; address bits 9:8 travel in the slave address (0x50–0x53) | all data is in block 0: slave address always 0x50, one word-address byte |
 | Page | 16 bytes; a page write must stay inside one page | every record is exactly one page and starts on a page boundary |
-| Write cycle | up to 5 ms (data sheet), **10 ms in the Proteus model** (`TD_WRITE`) | during the cycle the chip does not answer its address -> ACK polling, time-out 50 ms |
+| Write cycle | up to 5 ms (data sheet); the **Proteus model has no write delay** (it ACKs its address right after a write) | during the cycle a real chip does not answer its address -> ACK polling, time-out 50 ms. The polling is written for the real chip; in Proteus the first poll already succeeds |
 | Endurance | 1 000 000 writes per page | a page is written only when a byte in it really changed |
 
 ---
@@ -156,7 +156,9 @@ The lockdown state is **not** stored: a reset always clears it (REQ-SEC-05).
 
 ## 7. Proteus notes
 
-- NM24C08 part: A2 = GND (address 0x50), **WP = GND** (the netlist export does not list this pin, so the HAL test confirms that writes are accepted; pin_map C-7), page size 16, `TD_WRITE = 10 ms`.
+- NM24C08 part: A2 = GND (address 0x50), **WP = GND** (the netlist export does not list this pin, so the HAL test confirms that writes are accepted; pin_map C-7), page size 16.
+- The model has **no write-cycle delay**: it answers its address right after a write (found with `test_hal`, reported there and in `test_service` as `[INFO]`, never as a failure). An earlier version of this file said `TD_WRITE = 10 ms`; that was wrong. One page therefore takes two 10 ms slots in simulation (write, then one successful poll): first boot = 13 pages = about 260 ms.
 - A real power cycle for the firmware = the **RESET push button** on the ATmega32: the MCU restarts and the EEPROM model keeps its content. This is how the persistence tests are run.
 - Whether the model keeps its content when the whole simulation is stopped and started again depends on the part's settings and is checked in the HAL test; the test plan does not depend on it.
-- The I²C debugger shows a write as `S A0 A <addr> A <16 data bytes> P`, then polls `S A0 N P` until `S A0 A P`.
+- The I²C debugger shows a write as `S A0 A <addr> A <16 data bytes> P`, then one poll `S A0 A P` 10 ms later (a real chip would answer `S A0 N P` until its write cycle is over).
+- `test_service` uses page 0x3E0 (outside the map) for a 2-byte marker that tells the run after a RESET to check persistence instead of blanking the chip.

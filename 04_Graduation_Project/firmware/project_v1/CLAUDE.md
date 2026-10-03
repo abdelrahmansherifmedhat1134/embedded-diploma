@@ -56,7 +56,8 @@ Produce these files and wait for the user's approval before writing firmware:
 
 ### Phase 2 — Implement bottom-up
 **Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added.
-**Phase 2 HAL: DONE (2026-10-03).** Branch `phase2-hal`, `test_hal` added; as-built notes, Proteus findings and the 7-segment story are in `docs/hal_summary.md`. Next: Phase 2, SERVICE.
+**Phase 2 HAL: DONE (2026-10-03).** Branch `phase2-hal`, `test_hal` added; as-built notes, Proteus findings and the 7-segment story are in `docs/hal_summary.md`.
+**Phase 2 SERVICE: DONE (2026-10-03).** Branch `phase2-service`, `test_service` added (static RAM 564 bytes, flash 22 536 bytes); as-built notes are in `docs/architecture.md` Section 3.3. Next: Phase 2, APP.
 Order: MCAL → HAL → SERVICE → APP → `main.c`. One module at a time:
 write → `pio run` → fix → short summary of what changed → next module.
 Stop for review after finishing each layer.
@@ -108,7 +109,7 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
   **Required for new ISRs:** declare them `__attribute__ ((signal, used, externally_visible))`. With only `signal`, PlatformIO's LTO discards the ISR at link time (found in Phase 0: ADC/TIMER0/EXTI handlers were dropped, so `test_base` builds with `build_unflags = -flto` until they are fixed).
 - Delay usage: `<util/delay.h>`. CLCD in I²C mode (the selected mode): 40/5/1 ms one-time init delays, 2 ms after clear/home, no per-pulse delay (each I²C write already takes ~0.3 ms). The parallel CLCD modes (unused) still have a 10 ms enable pulse. ADC sync, USART send/receive, KPAD (waits for key release) and TWI (~90 µs per byte, no timeout) all busy-wait.
 - Indentation, brace style: tabs, K&R braces on the same line, `switch` with `case X: stmt; break ;` on one line, space before `;` in `break ;` / `return x ;`. Files are CRLF. No fixed line-width limit.
-- Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), as in `test_mains/test_base.c`. In Phase 2 the macro moves to `lib/Service/flash_str.h` so all layers share it.
+- Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), from `lib/Service/flash_str.h` (moved there in Phase 2 SERVICE; include it after `std_types.h`), so all layers share it.
 - Test programs: `test_mains/test_<layer>.c`, functions `TEST_voidName`, checks through `TEST_voidCheck(ok, FLASH_STR("MOD"), FLASH_STR("what"))`, status LED on PA3, Proteus wiring in the header comment.
 
 ### Known driver issues after Phase 0 (fix in Phase 2, bottom-up)
