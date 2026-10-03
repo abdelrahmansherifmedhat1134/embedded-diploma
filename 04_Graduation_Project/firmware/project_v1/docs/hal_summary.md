@@ -49,7 +49,7 @@ Manual steps: LCD text, relays/LED/buzzer, lamp chase, **7-segment** (below), LM
 - The servo model maps a 1–2 ms pulse to -90..+90° by default: set Min/Max Angle to 0 / 180.
 - Reading back a PCF8574 whose pins drive segment LEDs returns another value than the one written (the display itself is right): do not read-back-check segment chips.
 - A multiplexed 7447 display with PNP drivers did not work reliably (D-20).
-- The buzzer produced no sound when wired straight to PD3. The Proteus model ("DC Buzzer with Sound") has `LOAD=12` and `VNOM=5V`, i.e. it wants 0.4 A, far more than an AVR pin can give (and a real board needs a transistor anyway). Fix: PD3 -> 1 kΩ -> NPN (2N2222) -> buzzer; `test_hal` now buzzes 3 s with a steady level, then 3 s with a 500 Hz square wave as a debugging aid. Status: waiting for confirmation in Proteus.
+- The buzzer was silent when wired straight to PD3 with the model defaults ("DC Buzzer with Sound": `VNOM=5V`, `LOAD=12`, i.e. 0.4 A). An NPN driver stage was tried first and did not make it sound. **What works in Proteus:** buzzer directly between PD3 and GND with Operating Voltage = **3 V** and Load Resistance = **150 Ω** (confirmed 2026-10-03; `test_hal` buzzes 3 s steady, then 3 s with a 500 Hz square wave as a debugging aid). **Open for real hardware (pin_map C-9):** that current (about 20–33 mA) is at or above what an AVR pin should give; the real board needs a transistor driver (PD3 -> 1 kΩ -> NPN base, buzzer between +5 V and the collector, flyback diode). No firmware change is needed for it.
 
 ## 5. Experiment folders (not part of the firmware)
 

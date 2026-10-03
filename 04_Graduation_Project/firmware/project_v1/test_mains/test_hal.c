@@ -44,8 +44,9 @@
  *                    each segment pin -> 220R -> segment (a segment lights when its pin is LOW)
  *  NEW  Heating relay/LED   PB6 -> 330R -> LED -> GND   (heating element)
  *  NEW  Cooling relay/LED   PB7 -> 330R -> LED -> GND   (cooling element)
- *  NEW  Buzzer       the Proteus BUZZER model draws 5 V / 12 R = 0.4 A , so it needs a driver :
- *                    PD3 -> 1k -> base of an NPN (2N2222) , emitter GND , collector -> buzzer pin 2 , buzzer pin 1 -> +5 V
+ *  NEW  Buzzer       BUZZER ("DC Buzzer with Sound") directly between PD3 and GND , properties
+ *                    Operating Voltage = 3 V , Load Resistance = 150 R (the defaults 5 V / 12 R stay silent).
+ *                    Real hardware needs a transistor driver (pin_map.md C-9).
  *  NEW  Servo        SERVO motor : signal -> PD5 (OC1A)
  *  NEW  DC motor fan MOTOR with NPN driver : base through 1k from PD4 (OC1B)
  *  NEW  Dimmer       PB3 (OC0) -> RC filter (1k + 10uF) -> voltmeter or LED , or just the oscilloscope

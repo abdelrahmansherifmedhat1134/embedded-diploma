@@ -59,7 +59,7 @@ Pin numbers are for the DIP-40 package. "Owner" is the only file that may name t
 | PD0 | 14 | in, RXD | UART receive | — | USART hardware | Virtual Terminal TXD (HC-05 TXD on real hardware) |
 | PD1 | 15 | out, TXD | UART transmit | — | USART hardware | Virtual Terminal RXD (HC-05 RXD through a 5 V -> 3.3 V divider) |
 | PD2 | 16 | in, INT0 | PIR — **reserved, not used in v1** | high | — | test_base / test_mcal put a push button here for the EXTI check |
-| PD3 | 17 | out | Buzzer driver | high | `BUZZER_cfg.h` | PD3 -> 1 kΩ -> base of an NPN (2N2222); emitter to GND; collector to BUZ1 pin 2; BUZ1 pin 1 to +5 V (optional 1N4148 across the buzzer, cathode to +5 V). **Changed 2026-10-03**: the Proteus buzzer model has a 12 Ω load (0.4 A at 5 V), so a direct connection from the pin was silent |
+| PD3 | 17 | out | Buzzer | high | `BUZZER_cfg.h` | **Proteus (works):** BUZ1 directly between PD3 and GND with Operating Voltage = 3 V and Load Resistance = 150 Ω. **Real hardware (TODO, see C-9):** needs a transistor driver |
 | PD4 | 18 | out, OC1B | **AC fan PWM** (Timer1, 50 Hz) | high | `FAN_cfg.h` | R3 1 kΩ -> Q1 2N2222 base; DC MOTOR between its supply and the collector, 1N4007 across the motor (motor not visible in the netlist) |
 | PD5 | 19 | out, OC1A | Door servo (Timer1, 50 Hz) | 1–2 ms pulse | `SERVO_cfg.h` | MOTOR-PWMSERVO control pin (not visible in the netlist) |
 | PD6 | 20 | in, pull-up | Heater ON/OFF button | low | `BUTTON_cfg.h` | push button to GND (not visible in the netlist) |
@@ -122,6 +122,7 @@ The PCF8574 is a 100 kHz part, so the bus is not run at 400 kHz. Only the main l
 | **C-5** | AREF (Proteus + hardware) | The ADC uses the internal 2.56 V reference; AREF tied to 5 V would short it and make every temperature read about half | **Closed.** AREF is open in the netlist, AVCC is on +5 V |
 | **C-6** | Dimmer lamp driver (Proteus) | The lamp was wired straight to a port pin | **Closed.** RC filter (R6 10 kΩ, C1 10 µF) -> Q4 -> lamp on +12 V. See the note below |
 | **C-7** | 24C08 pin 7, write protect (Proteus) | If the pin is high, every write is ignored | **Wired by the user; cannot be seen in the netlist** (the export does not list this pin). The HAL EEPROM test proves that writes are accepted |
+| **C-9** | Buzzer on PD3 (Proteus + hardware) | With the model defaults (5 V, 12 Ω = 0.4 A) the direct connection was silent. In Proteus it works with Operating Voltage 3 V and Load 150 Ω (about 20–33 mA from the pin). That is still at or above the 20 mA an AVR pin should give, and a real buzzer is not this model | **Open for the real board.** Add a driver: PD3 -> 1 kΩ -> base of an NPN (2N2222 / BC547), emitter GND, buzzer between +5 V and the collector, 1N4148 across the buzzer (cathode to +5 V); use an active buzzer rated for 5 V. No firmware change (`BUZZER_ON_LEVEL` stays HIGH) |
 | **C-8** | PC6 / PC7 digit drivers (Proteus) | PNP drivers: a digit is on when the pin is low; the emitters had no supply | **Obsolete (D-20).** The PNP drivers and the 7447 were replaced by two PCF8574 chips; both digits stay lit without multiplexing |
 
 Note on C-6, to check in the HAL test (not a blocker): with R6 = 10 kΩ the base current of Q4 is at most (5 − 0.7) V / 10 kΩ = 0.43 mA, and the lamp (12 V, 24 Ω) needs 0.5 A for full brightness. Unless the transistor gain is above 1000 the lamp will stay dim even at 100 %. If that shows in the simulation, either lower R6 to 1 kΩ (the filter still has 10 ms, plenty at 7.8 kHz) or set the lamp's LOAD to about 240 Ω. No firmware change either way.
@@ -152,8 +153,7 @@ Not conflicts, noted so they are not mistaken for one:
 | Heating / cooling indicator | LED-RED, LED-BLUE + 220 Ω | 2 | yes (PB6, PB7) |
 | Fan | MOTOR (DC) + 2N2222 + 1 kΩ + 1N4007 | 1 | transistor yes, motor not exported |
 | Door | MOTOR-PWMSERVO | 1 | not exported (PD5) |
-| Buzzer | BUZZER (active, "DC Buzzer with Sound", 5 V, 12 Ω, 500 Hz) | 1 | yes (PD3, **now through the NPN driver**) |
-| Buzzer driver | 2N2222 + 1 kΩ | 1 | to add (see PD3 row) |
+| Buzzer | BUZZER ("DC Buzzer with Sound", set to **3 V, 150 Ω**, 500 Hz) | 1 | yes (PD3, direct) |
 | LDR | TORCH_LDR + 10 kΩ | 1 | yes (PA2, unused by the firmware) |
 | I²C pull-ups | RES 4.7 kΩ | 2 | yes |
 | Instruments | VIRTUAL TERMINAL (9600, 8N1), I2C DEBUGGER, OSCILLOSCOPE | — | not exported |

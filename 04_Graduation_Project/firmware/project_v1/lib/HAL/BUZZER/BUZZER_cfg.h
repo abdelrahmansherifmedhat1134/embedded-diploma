@@ -10,8 +10,10 @@
 
 #define BUZZER_PORT          DIO_PORTD
 #define BUZZER_PIN           DIO_PIN_3
-/* HIGH = buzzer on. The pin drives the base of an NPN transistor (1k) that switches the buzzer :
- * the buzzer takes far more current (5 V / 12 R in the Proteus model) than an AVR pin may give. */
+/* HIGH = buzzer on.
+ * Proteus: the buzzer sits directly on the pin (model set to 3 V , 150 R).
+ * Real hardware (TODO , pin_map.md C-9): the pin must drive an NPN transistor (1k to the base) that
+ * switches the buzzer ; an AVR pin may not give the buzzer current. Nothing changes in the firmware. */
 #define BUZZER_ON_LEVEL      DIO_PIN_HIGH
 
 #endif /* HAL_BUZZER_BUZZER_CFG_H_ */
