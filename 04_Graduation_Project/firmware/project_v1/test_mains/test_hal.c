@@ -109,10 +109,8 @@
 #include "../lib/HAL/EXT_EEPROM/EXT_EEPROM.h"
 #include "../lib/HAL/EXT_EEPROM/EXT_EEPROM_cfg.h"
 
-/* Keep text in flash , not RAM (2 KB RAM only). Same idea as avr-libc PSTR() ,
- * but with the GCC "__flash" keyword , so no <avr/pgmspace.h> is needed
- * (that header pulls <avr/io.h> , which clashes with reg_def.h). */
-#define FLASH_STR(str)    (__extension__({ static const __flash c8 Local_c8Text[] = (str); &Local_c8Text[0]; }))
+/* FLASH_STR("...") : text kept in flash , shared by all layers */
+#include "../lib/Service/flash_str.h"
 
 /* Test configuration */
 #define TEST_LED_PORT             DIO_PORTA      /* status LED = heater LED pin */
