@@ -175,7 +175,7 @@ void SEVEN_SEG_voidRefresh();                          /* called from the 1 ms t
 #define SEVEN_SEG_DIGIT_ON_LEVEL    DIO_PIN_LOW        /* PNP (2N3906) high-side drivers in the schematic */
 #define SEVEN_SEG_TICKS_PER_DIGIT   5                  /* 5 ms per digit -> 100 Hz refresh */
 ```
-`SEVEN_SEG_voidRefresh` counts ticks; every 5th tick it switches both digits off, puts the other digit's BCD on PC2–PC5, and switches that digit on (off-first avoids ghosting). After init **only the ISR writes PORTC**, so no read-modify-write of a port can be interrupted half-way. `SEVEN_SEG_voidInit` calls `DIO_voidDisableJTAG()` first, because it owns PC2–PC5 (JTAG pins).
+`SEVEN_SEG_voidRefresh` counts ticks; every 5th tick it switches both digits off; one tick later (`SEVEN_SEG_BLANK_TICKS` = 1 ms dead time, found in Proteus: a PNP driver turns off too slowly, so both digits showed the same number) it puts the other digit's BCD on PC2–PC5 and switches that digit on (off-first avoids ghosting). After init **only the ISR writes PORTC**, so no read-modify-write of a port can be interrupted half-way. `SEVEN_SEG_voidInit` calls `DIO_voidDisableJTAG()` first, because it owns PC2–PC5 (JTAG pins).
 
 #### BUTTON — debounced push buttons
 ```c

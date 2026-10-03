@@ -12,6 +12,10 @@
 
 #define SEVEN_SEG_DIGIT_OFF_LEVEL   (!SEVEN_SEG_DIGIT_ON_LEVEL)
 
+#if SEVEN_SEG_BLANK_TICKS >= SEVEN_SEG_TICKS_PER_DIGIT
+#error "SEVEN_SEG_BLANK_TICKS must be smaller than SEVEN_SEG_TICKS_PER_DIGIT"
+#endif
+
 /* Shared with the tick ISR (SEVEN_SEG_voidRefresh) : single bytes , so every access is atomic.
  * The number is kept as packed BCD (tens in the high nibble) so one write changes both digits. */
 static volatile u8 Global_u8Bcd = 0 ;
@@ -69,10 +73,12 @@ void SEVEN_SEG_voidRefresh(){
 		return ;
 	}
 	/* every SEVEN_SEG_TICKS_PER_DIGIT ticks : show the other digit */
-	if(Global_u8Ticks == 0){
-		u8 Local_u8Bcd = Global_u8Bcd ;
-		/*1. both off first , so the old digit never shows the new BCD (ghosting) */
+	if(Global_u8Ticks < SEVEN_SEG_BLANK_TICKS){
+		/*1. dead time : both digits off , so the old digit (slow PNP) is really dark
+		 *   before the new BCD appears (no ghosting) */
 		SEVEN_SEG_voidBothOff();
+	}else if(Global_u8Ticks == SEVEN_SEG_BLANK_TICKS){
+		u8 Local_u8Bcd = Global_u8Bcd ;
 		/*2. BCD of the digit to show */
 		if(Global_u8NextDigit == 0){
 			SEVEN_SEG_voidPutBcd(Local_u8Bcd >> 4);
