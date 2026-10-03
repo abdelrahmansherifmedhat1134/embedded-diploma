@@ -55,7 +55,8 @@ Produce these files and wait for the user's approval before writing firmware:
 - A list of the open decisions from Section 12 with your recommended answer for each.
 
 ### Phase 2 — Implement bottom-up
-**Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added. Next: Phase 2, HAL.
+**Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added.
+**Phase 2 HAL: DONE (2026-10-03).** Branch `phase2-hal`, `test_hal` added; as-built notes, Proteus findings and the 7-segment story are in `docs/hal_summary.md`. Next: Phase 2, SERVICE.
 Order: MCAL → HAL → SERVICE → APP → `main.c`. One module at a time:
 write → `pio run` → fix → short summary of what changed → next module.
 Stop for review after finishing each layer.
@@ -82,7 +83,8 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
   - If UART is not yet tested/available, use LEDs only.
 - Checks that need the user (keypad, buttons, sensors, servo angle, PWM duty) print what to do in Proteus and what the user should see, and use the scheduler/tick rather than long delays once it exists.
 - Each test file starts with a header comment: Proteus parts needed, their wiring (matching `docs/pin_map.md`), and the expected result.
-- A layer is only **done** when `pio run -e test_<layer>` and `pio run -e app` both build with zero warnings.
+- A layer is only **done** when `pio run -e test_<layer>` builds with zero warnings, and `test_base` and the earlier `test_<layer>` environments still do.
+- Until Phase 3, `pio run -e app` is **not** a compile check for new modules: `src/APP/main.c` includes no drivers, so nothing from `lib/` is built there. The per-module compile check is `pio run -e test_base` (it builds all of MCAL and HAL with `-Wall`), and `pio run -e test_<layer>` once that layer's test exists. `app` becomes the real check when `main.c` is rewritten in Phase 3.
 - End each layer with exactly 3 lines for the user: the build command, the `.hex` path to load in Proteus (`.pio/build/test_<layer>/firmware.hex`), and what to watch for.
 
 ---
@@ -116,20 +118,23 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **ADC:** no function to switch `ADIE` off; after one async conversion the sync `ADC_u16StartConversion` hangs (the ISR clears `ADIF`). The comment in `ADC_voidInit` says AVCC, but the code selects the internal 2.56 V reference (which is what we want for the LM35: 4 steps per °C).
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
-- **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
+- **FIXED (Phase 2 HAL, 2026-10-02)** · **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
-- **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
-- **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
+- **FIXED (Phase 2 HAL, 2026-10-02)** · **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
+- **FIXED (Phase 2 HAL, 2026-10-02)** · **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
 - **main.c:** includes `../lib/service/Std_Types.h` with the wrong letter case (works on Windows only). Rewritten in Phase 3.
 - The exact fix for every item is in `docs/architecture.md` Section 2.
-- **SSG:** writes raw segments to a whole port; does not fit the 7447 + 2-digit mux design → new SEVEN_SEG driver.
+- **FIXED (Phase 2 HAL, 2026-10-02)** · **SSG:** writes raw segments to a whole port; does not fit the 2-digit design → new SEVEN_SEG driver (two PCF8574 chips since D-20; the first 7447 + multiplexed version was dropped because it was unreliable in Proteus).
 
 ### Proteus notes found in Phase 0
 - A single read of the shared UBRRH/UCSRC address seems to return UCSRC in Proteus (a real ATmega32 returns UBRRH), so UBRRH cannot be verified in simulation.
 - Parts powered from DC generators do not appear as VCC in the `.SDF` netlist; check the schematic before calling a pin "unconnected".
 - Keypad wiring: keypad rows A–D → PA4–PA7, columns 1–4 → PB0, PB1, PB2, PB4.
 - The `.SDF` netlist does not export simulation-only parts (keypad, 7-segment display, push buttons, motors, servo, instruments). A pin that goes only to such a part looks open in the netlist; that does not mean it is unconnected.
-- The NM24C08 model has a 10 ms write cycle (`TD_WRITE`), longer than the 5 ms of the data sheet.
+- Reading back a PCF8574 whose pins drive 7-segment LEDs returns a different value than the one written, while the display shows the right digit (found with `hal_testing_v2`). Do not read-back-check the segment chips; the `test_hal` 7-segment steps are manual.
+- The Proteus 24C08 model has **no write-cycle delay**: it ACKs its address right after a write (`test_hal` reports "ready at once" as `[INFO]`, not a failure). The real chip needs about 5 ms, so ACK polling in `ESTORE` must still be written for it. (An earlier note here said the model had a 10 ms `TD_WRITE`; that was wrong.)
+- The Proteus buzzer ("DC Buzzer with Sound") is silent with its defaults (`VNOM=5V`, `LOAD=12`) on PD3. It works directly on PD3 with Operating Voltage = 3 V and Load Resistance = 150 Ω. **Real hardware still needs an NPN driver stage** (pin_map C-9): PD3 -> 1k -> base, buzzer between +5 V and the collector, flyback diode.
+- The Proteus servo model maps a 1-2 ms pulse to -90..+90 degrees by default. Set its Min/Max Angle properties to 0 / 180 so 1 ms = 0 degrees and 2 ms = 180 degrees.
 
 ### Expertise level
 Write code at the same level as the existing drivers: plain C, readable, well commented, no clever tricks.
@@ -158,8 +163,8 @@ Rules:
 - `main.c` only does: init all modules, enable global interrupts, run the super-loop that dispatches scheduler tasks.
 
 ### Timing model (no blocking delays)
-- One hardware timer produces a **1 ms system tick** (see Section 8). The ISR only increments a tick counter and sets task flags. It does no real work, with one allowed exception: advancing the 7-segment multiplexing, which is a few register writes.
-- The super-loop checks the flags and runs tasks: 5 ms (7-seg mux, if not in ISR), 10–20 ms (keypad scan, button debounce), 100 ms (temperature sampling), 500 ms / 1 s (blinking, timeouts).
+- One hardware timer produces a **1 ms system tick** (see Section 8). The ISR only increments a tick counter and sets task flags. It does no real work at all (the 7-segment display has its own PCF8574 chips and needs no refresh, decision D-20).
+- The super-loop checks the flags and runs tasks: 5 ms (LCD update), 10–20 ms (keypad scan, button debounce), 100 ms (temperature sampling), 500 ms / 1 s (blinking, timeouts).
 - Every APP module is a **non-blocking state machine**: it never waits in a loop; it keeps its state and returns.
 - Allowed delays: microsecond-level delays required by a chip's timing inside a HAL driver (e.g. LCD enable pulse), and one-time delays during init before the scheduler starts (e.g. LCD power-up). Nothing longer than ~2 ms after init.
 - UART RX uses the RX-complete interrupt into a ring buffer. UART TX should use a TX ring buffer with the UDRE interrupt so long messages never block the loop.
@@ -238,7 +243,7 @@ Rules:
 
 ## 7. Pin map (final — full detail in `docs/pin_map.md`)
 
-The full feature list does **not** fit the 32 I/O pins if everything is wired directly (~41 pins needed). **Decided:** LCD and the 5 lamps on the I²C bus (PCF8574 expanders), 7-segments through a 7447 BCD decoder, and (Phase 1) the dimmer on Timer0 and the AC fan on Timer1.
+The full feature list does **not** fit the 32 I/O pins if everything is wired directly (~41 pins needed). **Decided:** LCD and the 5 lamps on the I²C bus (PCF8574 expanders), 7-segments on two more PCF8574 expanders (one per digit, no multiplexing), and (Phase 1) the dimmer on Timer0 and the AC fan on Timer1.
 
 | Pin | Function | Notes |
 |---|---|---|
@@ -257,9 +262,7 @@ The full feature list does **not** fit the 32 I/O pins if everything is wired di
 | PB7 | Cooling element (SSR) | |
 | PC0 | SCL | I²C bus |
 | PC1 | SDA | I²C bus |
-| PC2–PC5 | 7447 BCD inputs A–D | shared by both digits. JTAG pins: on real hardware disable JTAG (JTD bit / fuse) |
-| PC6 | 7-seg digit 1 (tens) enable | multiplexed, active-low (PNP driver) |
-| PC7 | 7-seg digit 2 (units) enable | multiplexed, active-low (PNP driver) |
+| PC2–PC7 | spare | free since D-20 (the 7447 and the multiplexing were removed). PC2–PC5 are JTAG pins on a real chip |
 | PD0 | UART RXD | |
 | PD1 | UART TXD | |
 | PD2 | PIR (INT0) | optional |
@@ -269,7 +272,7 @@ The full feature list does **not** fit the 32 I/O pins if everything is wired di
 | PD6 | Heater ON/OFF button | polling + debounce |
 | PD7 | Heater Up button | |
 
-I²C bus devices: 24C08 EEPROM (0x50), PCF8574 for the LCD (0x27), PCF8574 for lamps 1–5 on P0–P4 (0x20, **active-low**: lamp ON = bit 0).
+I²C bus devices: 24C08 EEPROM (0x50), PCF8574 for the LCD (0x27), PCF8574 for lamps 1–5 on P0–P4 (0x20, **active-low**: lamp ON = bit 0), PCF8574 for the tens digit of the 7-segment display (0x21) and one for the units digit (0x22): P0..P6 = segments a..g, P7 = dp, common anode, **active-low**, 0xFF = blank.
 
 ---
 
@@ -312,7 +315,7 @@ If the existing timer drivers do not support a needed mode, extend them in their
 
 ## 11. Coding checklist (check before calling any module done)
 
-- [ ] Compiles with zero warnings (`pio run`).
+- [ ] Compiles with zero warnings (`pio run -e test_base`, or `-e test_<layer>` once it exists; `-e app` only from Phase 3, see "Test program per layer").
 - [ ] Matches Section 4 conventions exactly.
 - [ ] No blocking delays beyond what Section 5 allows.
 - [ ] No register access or pin numbers in APP code.
