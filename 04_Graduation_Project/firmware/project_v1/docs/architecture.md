@@ -819,6 +819,8 @@ Screens (16 x 2, texts final in Phase 2):
 | AC | `AC:ON  Room:29C` | `on>28 off<21` |
 | Heater | `Water:55C HEAT` | `Set:60C  + / -` |
 
+**As built (2026-10-04):** two additions to the table. While an ID or PIN is being typed and the admin logs in or blocks the keypad, the screen shows `Keypad blocked` / `by admin` and goes back to `STATUS` (otherwise `SEC` would refuse the login and count a wrong attempt). The 30 s idle time also ends a login that was started and left (`ASK_ID`, `ASK_PIN`), and `=` with no PIN digit is ignored. The feature screens are redrawn every second, so changes made from the terminal show up. Temperatures on the LCD are limited to 99. With the dimmer at 100 % page 1 reads `Lamps:1-3--D100%`.
+
 ### 5.8 UIREM — UART terminal (REQ-RUI-01..04, SEC-01, 03, 06)
 
 Texts, menu numbers and error messages: [uart_protocol.md](uart_protocol.md).
@@ -858,6 +860,12 @@ Output rule: the task prints at most one "step" per call and only when `TERM_u8T
 | any | 5 ms task | `ALARM_u8IsActive()` | print the lock message once; received bytes are thrown away | `LOCKED` |
 
 While nobody is logged in remotely the events in `EVQ` are read and discarded (except `EVQ_LOCKDOWN`, which is always printed).
+
+**As built (2026-10-04):**
+- `BANNER` and `MENU_PRINT` are not states: they are messages in a 6-entry **print queue**. Every reply is a chain of messages (for example error line, menu, prompt); the task prints one step of the first message per call. The task does nothing at all while `TERM_u8TxFree() < 64`, and it reads typed input only when the queue is empty, so the echo of a typed line is never dropped either (typed bytes wait in the RX ring).
+- The lockdown alert is printed from `ALARM_u8IsActive()`, so it appears whoever caused it and whether or not somebody is logged in; the `EVQ_LOCKDOWN` event itself is not printed a second time.
+- `EVQ` is muted around commands 1, 2, 5 and 16. It is **not** muted around login, logout and command 9, so the admin sees `[INFO] Keypad user logged out` when the login or the block ended a keypad session.
+- ASSUMPTIONS in the code: Enter alone at the username prompt asks again and a too long name or password gives `[ERR] Input too long.` and restarts the login; neither is counted as an attempt (no pair was checked). After the 120 s timeout, characters typed without Enter stay in the line editor. Factory reset also gives the default set temperature to `HEATER`.
 
 ### 5.9 Supporting state machines (SERVICE / HAL)
 
@@ -943,6 +951,8 @@ All text is in flash. Today `KPAD` keeps 24 bytes of tables in RAM; the fix in S
 
 **Measured, APP part A (2026-10-03, `pio run -e test_app`):** static RAM = **628 bytes (30.7 %)**, flash = **13 000 bytes (39.7 %)** with LIGHT, DOOR, CLIMATE, HEATER, ALARM, SEC and their test (no LCD, no keypad, no UI text yet).
 
+**Measured, whole APP layer (2026-10-04, `pio run -e test_app`):** static RAM = **767 bytes (37.5 %)**, flash = **21 718 bytes (66.3 %)** with all 8 APP modules, the LCD, the keypad and the part A checks. Part B added 139 bytes of RAM (mainly `LCD_BUF` 67, `UIREM` about 50, `UILOC` about 26) and 8.7 KB of flash (UILOC + UIREM code and about 2 KB of terminal text; the part A test text is still inside). Both are under the limits (1300 bytes, 28 KB). Lesson kept in `UIREM.c`: a `switch` whose cases only return a text pointer is turned by the compiler into a pointer table in RAM (it cost 100 bytes); the cases print by themselves instead.
+
 ### 7.2 Flash (32 768 bytes)
 
 Reference point: `test_base` (existing drivers + about 2 KB of test text, no LTO) is 7.4 KB today.
@@ -970,7 +980,7 @@ One module at a time: write -> `pio run` -> fix -> short summary. Each layer end
 | **MCAL** | `reg_def.h` additions -> ISR attributes (ADC, TIMER0, EXTI) + remove `-flto` unflag -> TIMER0 PWM fix -> ADC fix -> EXTI fix -> DIO JTAG -> USART (baud + interrupts) -> TWI (timeout + probe) -> TIMER2 -> TIMER1 | `test_mains/test_mcal.c`, `[env:test_mcal]`. `test_base` must now be all `[PASS]` |
 | **HAL** | PCF8574 multi-byte -> CLCD -> LCD_BUF -> KPAD -> BUTTON -> SEVEN_SEG -> LM35 -> RELAY, LED, BUZZER -> LAMP -> FAN -> SERVO -> DIMMER -> EXT_EEPROM | `test_mains/test_hal.c`, `[env:test_hal]` (uses TIMER2 directly for a 1 ms tick, because SCHED does not exist yet) |
 | **SERVICE** | flash_str.h -> RINGBUF -> MAVG -> FMT -> SCHED -> TERM -> EVQ -> ESTORE -> USERDB | `test_mains/test_service.c`, `[env:test_service]` |
-| **APP** | part A: LIGHT -> DOOR -> CLIMATE -> HEATER -> ALARM -> SEC (bottom-up: ALARM calls HEATER and CLIMATE, SEC calls ALARM, so each module links on its own) · part B: UILOC -> UIREM | `test_mains/test_app.c`, `[env:test_app]` (its own small super-loop; source filter `+<APP/> -<APP/main.c>`) |
+| **APP** (done 2026-10-04) | part A: LIGHT -> DOOR -> CLIMATE -> HEATER -> ALARM -> SEC (bottom-up: ALARM calls HEATER and CLIMATE, SEC calls ALARM, so each module links on its own) · part B: UILOC -> UIREM | `test_mains/test_app.c`, `[env:test_app]` (its own small super-loop; source filter `+<APP/> -<APP/main.c>`) |
 | **Phase 3** | `src/APP/main.c`, full build, docs updated to the real code | `pio run -e app` + the full `test_plan.md` |
 
 What each test program checks is listed in [test_plan.md](test_plan.md) Section 2.
