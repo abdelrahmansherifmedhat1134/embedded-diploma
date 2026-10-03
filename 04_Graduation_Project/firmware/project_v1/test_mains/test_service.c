@@ -525,6 +525,12 @@ static void TEST_voidTermOutput(){
 		Local_u16Ms++;
 	}
 	TEST_voidCheck(TERM_u8TxFree() == TERM_TX_BUFFER_SIZE, FLASH_STR("TERM"), FLASH_STR("empty TX ring : TxFree = 128 (TERM_TX_BUFFER_SIZE is real)"));
+	/* the [PASS] line above went into the ring itself : let it leave , or only part of the dots would fit */
+	Local_u16Ms = 0 ;
+	while((TERM_u8TxFree() != TERM_TX_BUFFER_SIZE) && (Local_u16Ms < 1000)){
+		TEST_voidWaitMs(1);
+		Local_u16Ms++;
+	}
 	/*2. fill it with the interrupts off (nothing can leave) , then 10 characters too many */
 	GIE_voidDisableGlobalInterrupt();
 	for(i = 0 ; i < TERM_TX_BUFFER_SIZE ; i++){
@@ -974,8 +980,10 @@ static void TEST_voidAfterReset(){
 	TEST_voidWriteMark(0xFF,0xFF);
 }
 
-static void TEST_voidSummary(){
-	TEST_voidPrint(FLASH_STR("SUMMARY: "));
+static void TEST_voidSummary(const __flash c8 * Copy_pc8Run){
+	TEST_voidPrint(FLASH_STR("SUMMARY "));
+	TEST_voidPrint(Copy_pc8Run);
+	TEST_voidPrint(FLASH_STR(": "));
 	TEST_voidPrintNum(Global_u8PassCount);
 	TEST_voidPrint(FLASH_STR(" passed , "));
 	TEST_voidPrintNum(Global_u8FailCount);
@@ -1002,7 +1010,7 @@ int main(void){
 		Global_u8UseTerm = 1 ;
 		TEST_voidNewLine();
 		TEST_voidAfterReset();
-		TEST_voidSummary();
+		TEST_voidSummary(FLASH_STR("run 2 (after RESET)"));
 		TEST_voidPrintLine(FLASH_STR("MANUAL: press RESET once more for the full test."));
 	}else{
 		/*3. part 1 : no terminal needed , printed with the blocking USART functions */
@@ -1028,7 +1036,7 @@ int main(void){
 		/* marker first (the bus still works) , the fault step is the last one */
 		TEST_voidWriteMark(TEST_EE_MARK_0,TEST_EE_MARK_1);
 		TEST_voidEstoreFault();
-		TEST_voidSummary();
+		TEST_voidSummary(FLASH_STR("run 1 (full test)"));
 		TEST_voidPrintLine(FLASH_STR("MANUAL: now press the RESET button of the ATmega32 : the next run checks that the EEPROM data survived."));
 	}
 
