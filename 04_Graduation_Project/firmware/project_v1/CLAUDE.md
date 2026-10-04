@@ -58,7 +58,7 @@ Produce these files and wait for the user's approval before writing firmware:
 **Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added.
 **Phase 2 HAL: DONE (2026-10-03).** Branch `phase2-hal`, `test_hal` added; as-built notes, Proteus findings and the 7-segment story are in `docs/hal_summary.md`.
 **Phase 2 SERVICE: DONE (2026-10-03).** Branch `phase2-service`, `test_service` added (static RAM 564 bytes, flash 22 536 bytes); as-built notes are in `docs/architecture.md` Section 3.3.
-**Phase 2 APP: part A done (2026-10-03).** Branch `phase2-app`, `test_app` added with LIGHT, DOOR, CLIMATE, HEATER, ALARM, SEC (static RAM 628 bytes, flash 13 000 bytes). Next: part B (UILOC, UIREM).
+**Phase 2 APP: DONE (2026-10-04).** Branch `phase2-app`, `test_app` runs all 8 APP modules in the full super-loop (static RAM 767 bytes, flash 21 718 bytes); as-built notes are in `docs/architecture.md` Sections 5.7 and 5.8. Next: Phase 3.
 Order: MCAL → HAL → SERVICE → APP → `main.c`. One module at a time:
 write → `pio run` → fix → short summary of what changed → next module.
 Stop for review after finishing each layer.
