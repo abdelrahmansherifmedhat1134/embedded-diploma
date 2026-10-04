@@ -55,4 +55,4 @@ Keypad (calculator pad): digits enter the ID and PIN, `=` Enter, `*` or `C` back
 
 ## Test evidence
 
-Each layer has its own test program (`test_mains/`, run with `pio run -e test_<layer>`, hex in `.pio/build/test_<layer>/firmware.hex`): `test_base`, `test_mcal`, `test_hal`, `test_service`, `test_app`. They print `[PASS]` / `[FAIL]` lines on the UART. All six environments (`app` and the five tests) build with zero warnings. The APP layer test passed 130 steps in Proteus: 48 in part A and the rest in part B (see the two PDFs above). `test_app` runs the same super-loop as `app` after its automatic part.
+Each layer has its own test program (`test_mains/`, run with `pio run -e test_<layer>`, hex in `.pio/build/test_<layer>/firmware.hex`): `test_base`, `test_mcal`, `test_hal`, `test_service`, `test_app`. They print `[PASS]` / `[FAIL]` lines on the UART. All six environments (`app` and the five tests) build with zero warnings. The APP layer test passed 130 steps in Proteus: 48 in part A and 82 in part B (see the two PDFs above). `test_app` runs the same super-loop as `app` after its automatic part.
