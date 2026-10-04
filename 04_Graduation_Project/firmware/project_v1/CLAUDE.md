@@ -64,6 +64,7 @@ write → `pio run` → fix → short summary of what changed → next module.
 Stop for review after finishing each layer.
 
 ### Phase 3 — Integrate and document
+**Status: DONE (2026-10-04).** Branch `phase3-integration`; `app` builds with `-Wall` (static RAM 733 bytes, flash 16 344 bytes).
 Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and `docs/architecture.md` to match the real code.
 
 ### General rules
@@ -124,7 +125,7 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - **FIXED (Phase 2 MCAL, 2026-10-02)** · **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
 - **FIXED (Phase 2 HAL, 2026-10-02)** · **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
 - **FIXED (Phase 2 HAL, 2026-10-02)** · **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
-- **main.c:** includes `../lib/service/Std_Types.h` with the wrong letter case (works on Windows only). Rewritten in Phase 3.
+- **FIXED (Phase 3, 2026-10-04)** · **main.c:** included `../lib/service/Std_Types.h` with the wrong letter case. Rewritten: correct includes, boot order and super-loop of architecture 4.6 / 4.2.
 - The exact fix for every item is in `docs/architecture.md` Section 2.
 - **FIXED (Phase 2 HAL, 2026-10-02)** · **SSG:** writes raw segments to a whole port; does not fit the 2-digit design → new SEVEN_SEG driver (two PCF8574 chips since D-20; the first 7447 + multiplexed version was dropped because it was unreliable in Proteus).
 

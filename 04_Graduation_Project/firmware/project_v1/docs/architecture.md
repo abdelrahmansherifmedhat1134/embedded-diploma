@@ -1,21 +1,21 @@
 # Architecture — ATmega32 Smart Home + Water Heater
 
-Phase 1 design. **Status: design decisions approved by the user on 2026-10-02 (Section 9). No firmware exists for this design yet.**
+Design and as-built description of the finished firmware. **Status: Phase 3 done (2026-10-04). All modules and `main.c` are built; the design decisions of Section 9 were approved on 2026-10-02.**
 Clock: `F_CPU = 16 000 000` (from `platformio.ini`, `board_build.f_cpu`). Every timing value below is derived from `F_CPU`.
 
 Related documents: [pin_map.md](pin_map.md), [eeprom_map.md](eeprom_map.md), [uart_protocol.md](uart_protocol.md), [test_plan.md](test_plan.md), [hal_summary.md](hal_summary.md) (HAL as built).
 
-Contents: 1 Layers · 2 FIX modules · 3 NEW modules (API + cfg) · 4 Scheduler · 5 State machines · 6 Data ownership · 7 RAM/flash budget · 8 Phase 2 order · 9 Design decisions
+Contents: 1 Layers · 2 FIX modules · 3 NEW modules (API + cfg) · 4 Scheduler · 5 State machines · 6 Data ownership · 7 RAM/flash budget · 8 Implementation order · 9 Design decisions
 
 ---
 
 ## 1. Layers and modules
 
-Legend: **[E]** existing, used as it is · **[F]** existing, needs a fix or an addition (Section 2) · **[N]** new (Section 3).
+Legend (all modules are built): **[E]** existing, used as it is · **[F]** existing, fixed or extended (Section 2) · **[N]** new (Section 3).
 
 ```
 +-----------------------------------------------------------------------------------------------+
-| src/APP/main.c [F, rewritten in Phase 3]   init -> GIE -> super-loop on SCHED flags           |
+| src/APP/main.c [F, rewritten]              init -> GIE -> super-loop on SCHED flags           |
 +-----------------------------------------------------------------------------------------------+
 | APP  (src/APP/<MOD>/)                                                                         |
 |   UI      : UIREM [N] (UART terminal)        UILOC [N] (LCD + keypad)                         |
@@ -27,18 +27,18 @@ Legend: **[E]** existing, used as it is · **[F]** existing, needs a fix or an a
 |   utilities : RINGBUF [N]  MAVG [N]  FMT [N]  flash_str.h [N]  std_types.h [E]  Bit_math.h [E]|
 +-----------------------------------------------------------------------------------------------+
 | HAL  (lib/HAL/<MOD>/)                                                                         |
-|   display : CLCD [F]  LCD_BUF [N]  SEVEN_SEG [N]            (SSG [E] not used)                |
+|   display : CLCD [F]  LCD_BUF [N]  SEVEN_SEG [N]            (SSG [E] present, unused)         |
 |   input   : KPAD [F]  BUTTON [N]  LM35 [N]                                                    |
 |   output  : LAMP [N]  DIMMER [N]  SERVO [N]  FAN [N]  RELAY [N]  LED [N]  BUZZER [N]          |
 |   chips   : PCF8574 [F]  EXT_EEPROM [N]                                                       |
 +-----------------------------------------------------------------------------------------------+
 | MCAL  (lib/MCAL/<MOD>/)                                                                       |
 |   DIO [F]  GIE [E]  ADC [F]  TIMER0 [F]  TIMER1 [N]  TIMER2 [N]  USART [F]  TWI [F]  EXTI [F] |
-|   reg_def.h [F]                                              (SPI [E] stub, not used)         |
+|   reg_def.h [F]                                              (SPI [E] stub, present, unused) |
 +-----------------------------------------------------------------------------------------------+
 ```
 
-42 modules: 3 existing and unused or untouched (`GIE`, `SPI`, `SSG`), 9 fixed, 30 new; plus the shared headers (`reg_def.h` fixed, `flash_str.h` new).
+42 modules: 3 existing and untouched (`GIE` is used; `SPI` and `SSG` are present in `lib/` and built, but no module calls them), 9 fixed, 30 new; plus the shared headers (`reg_def.h` fixed, `flash_str.h` new).
 
 ### 1.1 Dependency rules
 
@@ -81,7 +81,7 @@ Rule: change only what is listed, in the author's style, public API kept. Every 
 | **PCF8574** | Add `u8 PCF8574_u8WriteBytes(u8 Copy_u8Address, const u8 * Copy_pu8Data, u8 Copy_u8Length);` (several port values in one I²C transaction) | CLCD speed-up below |
 | **CLCD** | 1. Declare `CLCD_voidClearDisp` in `CLCD.h`. 2. I²C mode sends one LCD byte as **one** transaction of 4 port bytes (hi-nibble E=1, E=0, lo-nibble E=1, E=0) instead of 4 transactions: ~0.5 ms per character instead of ~1.2 ms. E pulse = one byte time (90 µs), far above the 450 ns the LCD needs. 3. Display-control command comes from new `CLCD_DISPLAY_CTRL` in `CLCD_cfg.h`, default `0b00001100` (display on, cursor off, blink off): today the cursor and blink are on, which looks wrong on a status screen. 4. Add `void CLCD_voidSendFlashString(const __flash c8 * Copy_pc8Str);` 5. Add `u8 CLCD_u8GetStatus();` = result of the last I²C write (`TWI_OK` or a TWI error; always 0 in the parallel modes), so `LCD_BUF` can see a failed write | missing prototype; speed; no flash text; error visibility |
 | **KPAD** | Add non-blocking API next to the old one: `void KPAD_voidUpdate();` (one matrix scan, call every 10 ms; a key is accepted after `KPAD_DEBOUNCE_SCANS` = 2 equal scans) and `u8 KPAD_u8GetKey();` (returns each accepted key **once**, then `KPAD_NO_KEY` 0xFF until all keys are released). `KPAD_MAT` and the two pin arrays become `static const __flash` (plain `const` would still be copied to RAM on AVR; `__flash` really frees the 24 B). `KPAD_u8GetKeyPressed` (blocking) stays for test_base | blocks until release |
-| **main.c** | Rewritten in Phase 3 only (today: hello-world with wrong-case include paths) | — |
+| **main.c** | Rewritten: boot order 4.6 and super-loop 4.2 (was a hello-world with wrong-case include paths) | — |
 
 After the ISR fixes, `build_unflags = -flto` is removed from `[env:test_base]` and test_base must report all `[PASS]`.
 
@@ -89,7 +89,7 @@ After the ISR fixes, `build_unflags = -flto` is removed from `[env:test_base]` a
 
 ## 3. NEW modules — public API and `_cfg.h`
 
-Style: `MODULE_<type><Name>`, `Copy_` parameters, `u8` status codes as `#define`s, pre-build `#define` configuration, files `MOD.c / MOD.h / MOD_cfg.h`. Bodies are Phase 2 work; the prototypes below are the contract.
+Style: `MODULE_<type><Name>`, `Copy_` parameters, `u8` status codes as `#define`s, pre-build `#define` configuration, files `MOD.c / MOD.h / MOD_cfg.h`. The prototypes below are the contract; all bodies are built.
 
 ### 3.1 MCAL
 
@@ -595,9 +595,9 @@ Timer2, CTC, prescaler 64: timer clock = 16 MHz / 64 = 250 kHz, `OCR2 = F_CPU / 
 
 Nothing else ever runs in an interrupt except the two USART ISRs, which only move one byte to/from a ring buffer.
 
-### 4.2 Super-loop (`main.c`, Phase 3)
+### 4.2 Super-loop (`src/APP/main.c`)
 
-Explicit `if` per period, no dispatch table:
+Explicit `if` per period, no dispatch table. This is the loop of `main.c` as built (`test_app` runs the same loop after its automatic part):
 
 ```c
 while(1){
@@ -663,12 +663,12 @@ Critical sections are used only in main-loop context, where interrupts are alway
 | Timer1 | mode 14, TOP = `ICR1` = 39999 | /8 -> 0.5 µs per count, 20 ms period | OC1A servo, OC1B AC fan |
 | Timer2 | CTC, `OCR2` = 249 | /64 -> 1 ms | system tick |
 
-### 4.6 Boot order (`main`)
+### 4.6 Boot order (`main`, as built in `src/APP/main.c`)
 
 1. Outputs to their safe state first: `RELAY`, `LED`, `BUZZER`, `FAN`, `SERVO`, `DIMMER` (no JTAG handling needed: PC2–PC7 are spare, D-20).
 2. `TERM_voidInit`, `LCD_BUF_voidInit` (blocking 46 ms), `LAMP_voidInit`, `SEVEN_SEG_voidInit` (blank), `KPAD_voidInit`, `BUTTON_voidInit`, `LM35_voidInit`.
 3. `ESTORE_voidInit` (blocking 19 ms read, or defaults), `USERDB_voidInit`, `EVQ_voidInit`.
-4. APP inits: `ALARM`, `SEC`, `LIGHT`, `DOOR`, `CLIMATE`, `HEATER`, `UILOC`, `UIREM`.
+4. APP inits: `ALARM`, `SEC`, `LIGHT`, `DOOR`, `CLIMATE`, `HEATER`, `UILOC`, `UIREM`. None of them posts an `EVQ` event or calls `SCHED` (checked in the code), so nothing is queued before the loop starts; `UIREM` only queues its banner text.
 5. `SCHED_voidInit`, `GIE_voidEnableGlobalInterrupt`, `SCHED_voidStart`, super-loop.
 
 ---
@@ -806,7 +806,7 @@ Keys of the fitted keypad (`KPAD_MAT`): digits, `=` Enter, `*` or `C` back (dele
 | any logged-in state | 10 ms task | `SEC_u8GetRole(LOCAL)` is NONE (admin logged in or blocked the keypad) | — | `STATUS` |
 | any | 10 ms task | `ALARM_u8IsActive()` | show `SYSTEM LOCKED` / `Reset required` | `LOCKED` (keys ignored) |
 
-Screens (16 x 2, texts final in Phase 2):
+Screens (16 x 2, texts as built):
 
 | Screen | Line 1 | Line 2 |
 |---|---|---|
@@ -953,6 +953,8 @@ All text is in flash. Today `KPAD` keeps 24 bytes of tables in RAM; the fix in S
 
 **Measured, whole APP layer (2026-10-04, `pio run -e test_app`):** static RAM = **767 bytes (37.5 %)**, flash = **21 718 bytes (66.3 %)** with all 8 APP modules, the LCD, the keypad and the part A checks. Part B added 139 bytes of RAM (mainly `LCD_BUF` 67, `UIREM` about 50, `UILOC` about 26) and 8.7 KB of flash (UILOC + UIREM code and about 2 KB of terminal text; the part A test text is still inside). Both are under the limits (1300 bytes, 28 KB). Lesson kept in `UIREM.c`: a `switch` whose cases only return a text pointer is turned by the compiler into a pointer table in RAM (it cost 100 bytes); the cases print by themselves instead.
 
+**Final, whole firmware (2026-10-04, `pio run -e app`):** static RAM = `.data` + `.bss` = **733 bytes (35.8 %)** against the estimate of ~700, flash = **16 344 bytes (49.9 %)** against the estimate of ~21 KB (the part A test text and checks of `test_app` are not in `app`). Free RAM for the stack: about 1300 bytes. Limits (1300 bytes static, 28 KB flash) are met.
+
 ### 7.2 Flash (32 768 bytes)
 
 Reference point: `test_base` (existing drivers + about 2 KB of test text, no LTO) is 7.4 KB today.
@@ -971,7 +973,7 @@ No `float`, no `printf`, no dynamic memory. The real numbers are printed by `pio
 
 ---
 
-## 8. Phase 2 implementation order
+## 8. Implementation order (as done)
 
 One module at a time: write -> `pio run` -> fix -> short summary. Each layer ends with its test program and stops for review.
 
@@ -981,11 +983,11 @@ One module at a time: write -> `pio run` -> fix -> short summary. Each layer end
 | **HAL** | PCF8574 multi-byte -> CLCD -> LCD_BUF -> KPAD -> BUTTON -> SEVEN_SEG -> LM35 -> RELAY, LED, BUZZER -> LAMP -> FAN -> SERVO -> DIMMER -> EXT_EEPROM | `test_mains/test_hal.c`, `[env:test_hal]` (uses TIMER2 directly for a 1 ms tick, because SCHED does not exist yet) |
 | **SERVICE** | flash_str.h -> RINGBUF -> MAVG -> FMT -> SCHED -> TERM -> EVQ -> ESTORE -> USERDB | `test_mains/test_service.c`, `[env:test_service]` |
 | **APP** (done 2026-10-04) | part A: LIGHT -> DOOR -> CLIMATE -> HEATER -> ALARM -> SEC (bottom-up: ALARM calls HEATER and CLIMATE, SEC calls ALARM, so each module links on its own) · part B: UILOC -> UIREM | `test_mains/test_app.c`, `[env:test_app]` (its own small super-loop; source filter `+<APP/> -<APP/main.c>`) |
-| **Phase 3** | `src/APP/main.c`, full build, docs updated to the real code | `pio run -e app` + the full `test_plan.md` |
+| **Phase 3** (done 2026-10-04) | `src/APP/main.c`, full build, docs updated to the real code | `pio run -e app` + the full `test_plan.md` |
 
 What each test program checks is listed in [test_plan.md](test_plan.md) Section 2.
 
-`platformio.ini`: each `[env:test_<layer>]` is added like `[env:test_base]` (allowed without asking). One further change is **approved** (2026-10-02) for when the SERVICE layer starts: `lib/Service` gets `.c` files for the first time, so `Service` must be added to `lib_deps`, and `[env:app]` will need the same `lib_deps` line in Phase 3.
+`platformio.ini`: each `[env:test_<layer>]` is added like `[env:test_base]` (allowed without asking). One further change is **approved** (2026-10-02) for when the SERVICE layer starts: `lib/Service` gets `.c` files for the first time, so `Service` must be added to `lib_deps`, and `[env:app]` got the same `lib_deps` line (with `-Wall`) in Phase 3.
 
 ---
 

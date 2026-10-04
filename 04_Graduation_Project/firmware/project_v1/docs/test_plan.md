@@ -11,7 +11,7 @@ Command numbers and message texts: [uart_protocol.md](uart_protocol.md). Pins an
 
 | # | Do |
 |---|---|
-| S1 | `pio run -e app`, load `.pio/build/app/firmware.hex` into the ATmega32 |
+| S1 | `pio run -e app`, load `.pio/build/app/firmware.hex` into the ATmega32 (the real firmware). `test_app` (`.pio/build/test_app/firmware.hex`) runs the same super-loop after its automatic part, so Section 3 can also be done with it |
 | S2 | ATmega32 *Clock Frequency* = **16 MHz** (must equal `F_CPU` in `platformio.ini`) |
 | S3 | Wire all parts as in `pin_map.md` Sections 1, 2 and 5, including the RESET push button |
 | S4 | Virtual Terminal on PD0/PD1: 9600, 8, NONE, 1, echo off. I²C debugger on SCL/SDA. Oscilloscope: A = PB3 (dimmer), B = PD4 (fan), C = PD5 (servo) |
