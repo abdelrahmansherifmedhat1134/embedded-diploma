@@ -1,9 +1,8 @@
-# CLAUDE.md — ATmega32 Smart Home + Water Heater
+# Specification — ATmega32 Smart Home + Water Heater
 
-This file is the single source of truth for this project. Read it fully at the start of every session.
-The original course specs are in `04_Graduation_Project/docs/Graduation_Projects.pdf` (Project 1: Smart Home, Project 2: Electric Water Heater).
-The approved design is in `docs/` (architecture, pin map, EEPROM map, UART protocol, test plan). This file states the rules and requirements; the docs hold the details.
-If this file and the PDF disagree, follow this file and point out the difference.
+Requirements, engineering rules, coding conventions and design decisions of the project.
+The original course brief is `04_Graduation_Project/docs/course_brief_graduation_projects.pdf` (Project 1: Smart Home, Project 2: Electric Water Heater); where it is ambiguous, this document records the decision taken (Section 12).
+The detailed design is in the other files of `docs/` (architecture, pin map, EEPROM map, UART protocol, test plan).
 
 ---
 
@@ -15,7 +14,7 @@ One firmware image for an **ATmega32** that merges two course projects into a si
 - **Electric Water Heater (Project 2):** Up/Down/ON-OFF buttons, 2-digit 7-segment display, water temperature sensing every 100 ms with a 10-sample average, heating and cooling elements with a ±5 °C band, set temperature saved in external EEPROM.
 - **Integration ("best of both"):** the heater is one more appliance of the smart home. It keeps its own physical panel, and its status and set temperature are also reachable from the remote terminal and shown on the LCD status screen.
 
-The project is graded on **clean embedded software engineering**, not just "it works":
+Design goal: **clean embedded software engineering**, not just "it works" —
 layered architecture (MCAL / HAL / SERVICE / APP), use of timers and interrupts instead of blocking delays, persistent storage in EEPROM, and two communication protocols (UART + I²C).
 
 Target: simulation in **Proteus**. Build system: **PlatformIO** (bare-metal avr-gcc / avr-libc). Host OS: Windows.
@@ -24,77 +23,48 @@ Target: simulation in **Proteus**. Build system: **PlatformIO** (bare-metal avr-
 
 ## 2. Build, run, verify
 
-- Build: `pio run` (run from the project root). Build after **every** module you add or change, and fix all errors and warnings before moving on.
+- Build: `pio run -e app` (run from the project root). Every module is built with `-Wall` and zero warnings.
 - Output for Proteus: `.pio/build/<env>/firmware.hex`.
 - `F_CPU`: read it from `platformio.ini` (`board_build.f_cpu`). Never assume a clock. All timer, UART baud and tick calculations must be derived from `F_CPU` and must be written as compile-time calculations or clearly commented constants.
-- Proteus clock: remind the user that the ATmega32 clock in Proteus must equal `F_CPU`.
-- Do **not** change `platformio.ini` (board, framework, clock, flags) without asking. The only exception is adding `[env:test_*]` environments (see Section 3).
-- Build a specific target with `pio run -e <env>` (`app` = real firmware, `test_<layer>` = layer test). If the framework is `arduino`, stop and ask — this project is meant to be bare-metal.
+- Proteus: the ATmega32 clock in Proteus must equal `F_CPU`.
+- `platformio.ini` defines one environment for the application (`app`) and one per layer test (`test_<layer>`).
+- Build a specific target with `pio run -e <env>` (`app` = real firmware, `test_<layer>` = layer test). The project is bare-metal: no Arduino framework.
 - There is no hardware-in-the-loop here. "Verified" means: it compiles cleanly, the logic has been traced by hand against the spec, and a Proteus test step exists for it in `docs/test_plan.md`.
 
 ---
 
-## 3. How to work in this repo (mandatory workflow)
+## 3. Development process
 
-### Phase 0 — Learn the existing code + set up tests (no driver changes)
-**Status: DONE (2026-10-01).** Merged in PR #1 and PR #2. Next: Phase 1.
-1. Read every existing file (drivers, headers, `main.c`, `platformio.ini`, folder layout).
-2. Fill in **Section 4 (Detected conventions)** of this file with concrete examples taken from the code.
-3. List every existing driver, what it supports, and what is missing for this project (e.g. "DIO: ok", "LCD: 8-bit only, needs 4-bit or I²C", "Timer: no CTC mode").
-4. Set up the test infrastructure described in "Test program per layer" below: add `[env:app]` and `[env:test_base]` to `platformio.ini`, create `test_mains/`, and write `test_mains/test_base.c`, a smoke test of the **existing** drivers only. You may edit `platformio.ini` for this.
-5. Build `pio run -e test_base` and `pio run -e app`, then report back and wait.
+The firmware was built in gated phases; each phase ended with a review and a merge.
 
-### Phase 1 — Design (no code changes except `docs/`)
-**Status: DONE (2026-10-02).** PR #3. All decisions are recorded in Section 12 and in `docs/architecture.md` Section 9. Next: Phase 2, MCAL.
-Produce these files and wait for the user's approval before writing firmware:
-- `docs/architecture.md` — layer diagram, module list, which module calls which, the scheduler design, and each APP state machine (states, events, transitions).
-- `docs/pin_map.md` — final pin table (start from Section 7 and adapt it to the existing drivers).
-- `docs/eeprom_map.md` — byte-level layout (start from Section 9).
-- `docs/uart_protocol.md` — every prompt and command (start from Section 10).
-- `docs/test_plan.md` — numbered Proteus test steps, one or more per requirement ID in Section 6.
-- A list of the open decisions from Section 12 with your recommended answer for each.
+| Phase | Content | Result |
+|---|---|---|
+| 0 | Study of the existing course drivers, conventions (Section 4), test infrastructure | `test_base` smoke test of the existing drivers |
+| 1 | Design: architecture, pin map, EEPROM map, UART protocol, test plan, open decisions | `docs/` design set, decisions in Section 12 |
+| 2 | Bottom-up implementation, one layer at a time: MCAL → HAL → SERVICE → APP | one test program per layer: `test_mcal`, `test_hal`, `test_service`, `test_app` |
+| 3 | Integration: `src/APP/main.c` (boot order + super-loop), final documentation | `app` firmware, all six builds with zero warnings |
 
-### Phase 2 — Implement bottom-up
-**Phase 2 MCAL: DONE (2026-10-02).** Branch `phase2-mcal`, `test_mcal` added.
-**Phase 2 HAL: DONE (2026-10-03).** Branch `phase2-hal`, `test_hal` added; as-built notes, Proteus findings and the 7-segment story are in `docs/hal_summary.md`.
-**Phase 2 SERVICE: DONE (2026-10-03).** Branch `phase2-service`, `test_service` added (static RAM 564 bytes, flash 22 536 bytes); as-built notes are in `docs/architecture.md` Section 3.3.
-**Phase 2 APP: DONE (2026-10-04).** Branch `phase2-app`, `test_app` runs all 8 APP modules in the full super-loop (static RAM 767 bytes, flash 21 718 bytes); as-built notes are in `docs/architecture.md` Sections 5.7 and 5.8. Next: Phase 3.
-Order: MCAL → HAL → SERVICE → APP → `main.c`. One module at a time:
-write → `pio run` → fix → short summary of what changed → next module.
-Stop for review after finishing each layer.
-
-### Phase 3 — Integrate and document
-**Status: DONE (2026-10-04).** Branch `phase3-integration`; `app` builds with `-Wall` (static RAM 733 bytes, flash 16 344 bytes).
-Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and `docs/architecture.md` to match the real code.
+Every layer was verified in Proteus before the next one started; the APP layer test is recorded step by step in `docs/test_app_partA_sequence.pdf` and `docs/test_app_partB_sequence.pdf`.
 
 ### General rules
-- Prefer small, reviewable changes. Never rewrite a working existing driver just to restyle it.
-- When editing an existing driver, change only what is needed, in the author's style, and keep its public API. If an API change is unavoidable, ask first.
-- Never delete or rename existing files without asking.
-- Every requirement you implement must be traceable: put the requirement ID from Section 6 in a comment where it is implemented (e.g. `/* REQ-HTR-07 */`).
-- If a spec point is ambiguous, use the default in Section 12, mark it in the code with `/* ASSUMPTION: ... */`, and mention it in your summary. Do not silently invent behavior.
-- Git: one branch per phase or layer. Commit once per finished module with a clear message. Open a PR when the layer is done and stop for review.
+- Small, reviewable changes. A working existing driver is never rewritten just to restyle it.
+- When an existing driver is edited, only what is needed changes, in the author's style, and its public API is kept.
+- Every implemented requirement is traceable: its ID from Section 6 is in a comment where it is implemented (e.g. `/* REQ-HTR-07 */`).
+- Where the specification is ambiguous, the decision of Section 12 is used and marked in the code with `/* ASSUMPTION: ... */`.
+- Git: one branch per phase or layer, one commit per finished module, one pull request per layer.
 
-### Test program per layer (mandatory)
-- `src/APP/main.c` is the real application. It is only rewritten in Phase 3; until then it stays as it is.
-- Phase 0 ends with `test_mains/test_base.c` (existing drivers). Every Phase 2 layer (MCAL, HAL, SERVICE, APP) ends with its own test program:
-  `test_mains/test_<layer>.c` plus a matching `[env:test_<layer>]` in `platformio.ini`.
-- Each test environment uses `build_src_filter` to exclude `src/APP/main.c` and include only its own test file (plus all driver sources). Adding a test environment does not need permission; any other `platformio.ini` change still does. Already approved: adding `Service` to `lib_deps` when the SERVICE layer gets its first `.c` file (and the same line for `[env:app]` in Phase 3).
-- A test program exercises **every module of its layer** and reports:
-  - over UART: one line per check, `[PASS] <module>: <what>` or `[FAIL] <module>: <what>`, then a final summary line;
-  - on a status LED: blinking = test running, solid ON = all passed, fast blink = at least one failure.
-  - If UART is not yet tested/available, use LEDs only.
-- Checks that need the user (keypad, buttons, sensors, servo angle, PWM duty) print what to do in Proteus and what the user should see, and use the scheduler/tick rather than long delays once it exists.
-- Each test file starts with a header comment: Proteus parts needed, their wiring (matching `docs/pin_map.md`), and the expected result.
-- A layer is only **done** when `pio run -e test_<layer>` builds with zero warnings, and `test_base` and the earlier `test_<layer>` environments still do.
-- Until Phase 3, `pio run -e app` is **not** a compile check for new modules: `src/APP/main.c` includes no drivers, so nothing from `lib/` is built there. The per-module compile check is `pio run -e test_base` (it builds all of MCAL and HAL with `-Wall`), and `pio run -e test_<layer>` once that layer's test exists. `app` becomes the real check when `main.c` is rewritten in Phase 3.
-- End each layer with exactly 3 lines for the user: the build command, the `.hex` path to load in Proteus (`.pio/build/test_<layer>/firmware.hex`), and what to watch for.
+### Test program per layer
+- Every layer has its own test program `test_mains/test_<layer>.c` with a matching `[env:test_<layer>]` in `platformio.ini`; it excludes `src/APP/main.c` and builds only its own test file plus the driver libraries.
+- A test program exercises every module of its layer and reports over UART, one line per check (`[PASS] <module>: <what>` / `[FAIL] ...`) and a summary line; a status LED shows running / all passed / failure.
+- Checks that need a person (keypad, buttons, sensors, servo angle, PWM duty) print what to do in Proteus and what should be seen.
+- Each test file starts with a header comment: Proteus parts, wiring (matching `docs/pin_map.md`) and the expected result.
+- A layer is done when its test passes in Proteus and every environment still builds with zero warnings.
 
 ---
 
-## 4. Detected conventions (Claude fills this in during Phase 0)
+## 4. Coding conventions
 
-> Match these exactly in all new and edited code. The goal is that new files look like the same person wrote them.
+> All new and edited code follows the conventions of the course drivers, so the whole code base reads as one style.
 
 > Reference style = the course author's drivers (DIO, ADC, EXTI, GIE, TIMER0, USART, CLCD, KPAD, SSG).
 > TWI was restyled to this standard (`TWI.c/.h/_cfg.h`, `u8`, `reg_def.h`, `TWI_u8SendStartCondition`). One unified style across all layers — no `<avr/io.h>`/`stdint.h` in project code.
@@ -106,7 +76,7 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 - Register access: `SET_BIT/CLR_BIT/GET_BIT/TOG_BIT` from `Bit_math.h` on registers defined as `*(volatile u8 *)(addr)` in `reg_def.h` with bit-name macros (`ADCSRA_ADEN`, `UCSRB_RXEN`). No `<avr/io.h>`. Masks written as binary literals (`ADMUX &= 0b11100000`). New registers (Timer1, Timer2, TWI) get added to `reg_def.h` the same way.
 - Return values / error handling: `void` functions; argument range checked with `if(...) {...} else { //error }`; getters return the value. No enums. Where a bus can fail (TWI, and HAL drivers on top of it) the function returns a `u8` status using `#define`d codes (`TWI_OK`, `TWI_ERR_SLA_NACK`, …).
 - Config style: pre-build `#define`s in `MOD_cfg.h` (pins as `DIO_PORTx`/`DIO_PIN_n`, mode selection via `#if CLCD_MODE == ...`). SSG uses a config struct `SSG_t` passed by pointer.
-- Header guards / includes / comments: guards like `HAL_CLCD_CLCD_H_` or `DIO_H_`; Eclipse header block (`/* * FILE.h * Created on: ... * Author: eslam */`). `.c` include order: `../../Service/std_types.h`, `../../Service/Bit_math.h`, lower-layer headers, `../reg_def.h`, own `.h`, own `_cfg.h`. Headers do not include `std_types.h` themselves. Step comments like `/*1. Select ref */`.
+- Header guards / includes / comments: guards like `HAL_CLCD_CLCD_H_` or `DIO_H_`; Eclipse header block (`/* * FILE.h * Created on: ... * Author: ... */`). `.c` include order: `../../Service/std_types.h`, `../../Service/Bit_math.h`, lower-layer headers, `../reg_def.h`, own `.h`, own `_cfg.h`. Headers do not include `std_types.h` themselves. Step comments like `/*1. Select ref */`.
 - Interrupt style: `void __vector_N () __attribute__ ((signal));` prototype in the `.h`, body in the `.c`; ISR calls a user callback through a global function pointer (`void (*TIMER0_ov_ptr)(void) = NULL;`, set via `..._SetCallBack...`), with a `!= NULL` check (EXTI lacks it). Global interrupt via `GIE_voidEnableGlobalInterrupt()` (`__asm("SEI")`).
   **Required for new ISRs:** declare them `__attribute__ ((signal, used, externally_visible))`. With only `signal`, PlatformIO's LTO discards the ISR at link time (found in Phase 0: ADC/TIMER0/EXTI handlers were dropped, so `test_base` builds with `build_unflags = -flto` until they are fixed).
 - Delay usage: `<util/delay.h>`. CLCD in I²C mode (the selected mode): 40/5/1 ms one-time init delays, 2 ms after clear/home, no per-pulse delay (each I²C write already takes ~0.3 ms). The parallel CLCD modes (unused) still have a 10 ms enable pulse. ADC sync, USART send/receive, KPAD (waits for key release) and TWI (~90 µs per byte, no timeout) all busy-wait.
@@ -114,22 +84,22 @@ Wire everything in `main.c`, run the full build, update `docs/test_plan.md` and 
 - Strings in flash: `<avr/pgmspace.h>` cannot be used, because it pulls in `<avr/io.h>`, which clashes with `reg_def.h`. Use GCC's `__flash` instead: `const __flash c8 *` parameters, plus a `FLASH_STR("...")` macro (statement expression with a `static const __flash c8[]`), from `lib/Service/flash_str.h` (moved there in Phase 2 SERVICE; include it after `std_types.h`), so all layers share it.
 - Test programs: `test_mains/test_<layer>.c`, functions `TEST_voidName`, checks through `TEST_voidCheck(ok, FLASH_STR("MOD"), FLASH_STR("what"))`, status LED on PA3, Proteus wiring in the header comment.
 
-### Known driver issues after Phase 0 (fix in Phase 2, bottom-up)
+### Fixes made to the course drivers
 Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed key table and column left LOW, SPI stub missing `return`, `u32`/`s32` were 16 bit.
-- **FIXED (Phase 2 MCAL, 2026-10-02)** · **ISRs (ADC, TIMER0, EXTI):** missing `used, externally_visible`, so LTO drops them (see Interrupt style). Fix, then remove `build_unflags = -flto` from `[env:test_base]`.
-- **FIXED (Phase 2 MCAL, 2026-10-02)** · **TIMER0:** `TIMER0_GeneratePWM` has the COM bits swapped (NONINVERTED sets 11), and 100 % duty gives `OCR0 = 256` → 0. `test_base` reports both as `[FAIL]`.
-- **FIXED (Phase 2 MCAL, 2026-10-02)** · **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
-- **FIXED (Phase 2 MCAL, 2026-10-02)** · **ADC:** no function to switch `ADIE` off; after one async conversion the sync `ADC_u16StartConversion` hangs (the ISR clears `ADIF`). The comment in `ADC_voidInit` says AVCC, but the code selects the internal 2.56 V reference (which is what we want for the LM35: 4 steps per °C).
-- **FIXED (Phase 2 MCAL, 2026-10-02)** · **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
-- **FIXED (Phase 2 HAL, 2026-10-02)** · **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
-- **FIXED (Phase 2 MCAL, 2026-10-02)** · **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
-- **FIXED (Phase 2 HAL, 2026-10-02)** · **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
-- **FIXED (Phase 2 HAL, 2026-10-02)** · **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
-- **FIXED (Phase 3, 2026-10-04)** · **main.c:** included `../lib/service/Std_Types.h` with the wrong letter case. Rewritten: correct includes, boot order and super-loop of architecture 4.6 / 4.2.
+- **Fixed (Phase 2 MCAL, 2026-10-02)** · **ISRs (ADC, TIMER0, EXTI):** missing `used, externally_visible`, so LTO drops them (see Interrupt style). Fix, then remove `build_unflags = -flto` from `[env:test_base]`.
+- **Fixed (Phase 2 MCAL, 2026-10-02)** · **TIMER0:** `TIMER0_GeneratePWM` has the COM bits swapped (NONINVERTED sets 11), and 100 % duty gives `OCR0 = 256` → 0. `test_base` reports both as `[FAIL]`.
+- **Fixed (Phase 2 MCAL, 2026-10-02)** · **EXTI:** `EXTI_voidINTx_callBack` is not declared in `EXTI.h`, and the ISRs call the callback without a `NULL` check.
+- **Fixed (Phase 2 MCAL, 2026-10-02)** · **ADC:** no function to switch `ADIE` off; after one async conversion the sync `ADC_u16StartConversion` hangs (the ISR clears `ADIF`). The comment in `ADC_voidInit` says AVCC, but the code selects the internal 2.56 V reference (which is what we want for the LM35: 4 steps per °C).
+- **Fixed (Phase 2 MCAL, 2026-10-02)** · **USART:** baud value hard-coded (`UBRRL = 103`, correct only for 16 MHz) — must be computed from `F_CPU`. TX/RX are blocking; Section 5 needs RX interrupt + ring buffers.
+- **Fixed (Phase 2 HAL, 2026-10-02)** · **KPAD:** blocks until the key is released; needs a non-blocking, debounced scan for the scheduler.
+- **Fixed (Phase 2 MCAL, 2026-10-02)** · **TWI:** blocking, with no timeout (a stuck bus hangs the loop). The 24C08 needs non-blocking ACK polling (EEP-03).
+- **Fixed (Phase 2 HAL, 2026-10-02)** · **CLCD:** `CLCD_voidClearDisp` exists but is not declared in `CLCD.h`; no text-from-flash function. `CLCD_voidInit` switches the cursor and blink ON (must be off for the status screen). One LCD byte costs 4 I²C transactions (~1.2 ms); it becomes one transaction (~0.5 ms).
+- **Fixed (Phase 2 HAL, 2026-10-02)** · **KPAD (RAM):** `KPAD_MAT` and the pin arrays are not `const`, so they sit in RAM (24 bytes).
+- **Fixed (Phase 3, 2026-10-04)** · **main.c:** included `../lib/service/Std_Types.h` with the wrong letter case. Rewritten: correct includes, boot order and super-loop of architecture 4.6 / 4.2.
 - The exact fix for every item is in `docs/architecture.md` Section 2.
-- **FIXED (Phase 2 HAL, 2026-10-02)** · **SSG:** writes raw segments to a whole port; does not fit the 2-digit design → new SEVEN_SEG driver (two PCF8574 chips since D-20; the first 7447 + multiplexed version was dropped because it was unreliable in Proteus).
+- **Fixed (Phase 2 HAL, 2026-10-02)** · **SSG:** writes raw segments to a whole port; does not fit the 2-digit design → new SEVEN_SEG driver (two PCF8574 chips since D-20; the first 7447 + multiplexed version was dropped because it was unreliable in Proteus).
 
-### Proteus notes found in Phase 0
+### Proteus simulation notes
 - A single read of the shared UBRRH/UCSRC address seems to return UCSRC in Proteus (a real ATmega32 returns UBRRH), so UBRRH cannot be verified in simulation.
 - Parts powered from DC generators do not appear as VCC in the `.SDF` netlist; check the schematic before calling a pin "unconnected".
 - Keypad wiring: keypad rows A–D → PA4–PA7, columns 1–4 → PB0, PB1, PB2, PB4.
@@ -139,9 +109,8 @@ Fixed in Phase 0: USART UCSRC read-modify-write (now one write), KPAD transposed
 - The Proteus buzzer ("DC Buzzer with Sound") is silent with its defaults (`VNOM=5V`, `LOAD=12`) on PD3. It works directly on PD3 with Operating Voltage = 3 V and Load Resistance = 150 Ω. **Real hardware still needs an NPN driver stage** (pin_map C-9): PD3 -> 1k -> base, buzzer between +5 V and the collector, flyback diode.
 - The Proteus servo model maps a 1-2 ms pulse to -90..+90 degrees by default. Set its Min/Max Angle properties to 0 / 180 so 1 ms = 0 degrees and 2 ms = 180 degrees.
 
-### Expertise level
-Write code at the same level as the existing drivers: plain C, readable, well commented, no clever tricks.
-Do not introduce things the existing code does not use (RTOS, function-pointer dispatch tables, heavy macro metaprogramming, dynamic memory, `printf`) unless it is clearly needed — and if so, explain it in one short comment and in your summary.
+### Code level
+Plain C at the level of the course drivers: readable, commented, no clever tricks. No RTOS, no dynamic memory, no `printf`, no function-pointer dispatch tables beyond the drivers' ISR callbacks.
 
 ---
 
@@ -186,11 +155,11 @@ Rules:
 - **SEC-02** Keypad users and remote users are **separate lists** with separate usernames. Keypad usernames are numeric (the keypad has digits only).
 - **SEC-03** Admin can add and remove users (both lists) from the remote terminal.
 - **SEC-04** Usernames and passwords survive power-off (EEPROM).
-- **SEC-05** The **3rd wrong login in a row** (username or password, admin or user, counted per login source) → the system **locks down and sounds the alarm until reset**. See Section 12 for exactly what "locks down" means. (The course text says "more than 3"; the user decided on the 3rd.)
+- **SEC-05** The **3rd wrong login in a row** (username or password, admin or user, counted per login source) → the system **locks down and sounds the alarm until reset**. Section 12 defines "locks down". (The course text says "more than 3"; the 3rd failure was chosen, decision 2.)
 - **SEC-06** Admin and users can control everything, **except users cannot open/close the door**.
 - **SEC-07** EEPROM access: admin = read/write, user = read-only. This applies to the **accounts**: only the admin can add, remove or change them (a write gate in `USERDB`, open only while the admin is logged in). The heater set temperature is not covered by this rule (HTR-14).
 - **SEC-08** Keypad users can control the system while a remote user is logged in. While the **admin** is logged in remotely, keypad control is blocked until the admin allows it (see Section 12).
-- **SEC-09** Default admin credentials are written on first boot when the EEPROM has no valid data (detected by a magic byte). Show them in `docs/uart_protocol.md`.
+- **SEC-09** Default admin credentials are written on first boot when the EEPROM has no valid data (detected by a magic byte). They are listed in `docs/uart_protocol.md`.
 
 ### Local UI (LCD + keypad) — REQ-LUI
 - **LUI-01** Used for emergency / non-mobile control, **user mode only**.
@@ -238,7 +207,7 @@ Rules:
 - **ALM-02** Optional enhancement: PIR motion sensor triggers the alarm when an "away/armed" mode is set by admin.
 
 ### Storage — REQ-EEP
-- **EEP-01** External **24C08** I²C EEPROM (satisfies both specs; counts as the second protocol). Internal EEPROM only if the user decides so in Phase 1.
+- **EEP-01** External **24C08** I²C EEPROM (satisfies both specs; counts as the second protocol). (The internal EEPROM is not used.)
 - **EEP-02** Data layout and a magic/version byte as in Section 9.
 - **EEP-03** EEPROM writes must not block: use the 24C08 write-cycle **ACK polling** in a non-blocking way, or schedule the next write for a later tick — never a 5–10 ms delay in the loop.
 
@@ -312,19 +281,19 @@ If the existing timer drivers do not support a needed mode, extend them in their
 - Admin menu adds: add/remove remote user, add/remove keypad user, list users, open/close door, allow/block local control, change admin password, factory reset.
 - Commands with one argument also accept it on the same line (`1 3`, `5 65`).
 - Every state change triggered from anywhere (keypad, buttons, auto AC, heater) is also printed to the remote terminal while someone is logged in remotely.
-- Write the full command list and example session in `docs/uart_protocol.md`.
+- The full command list and an example session are in `docs/uart_protocol.md`.
 
 ---
 
-## 11. Coding checklist (check before calling any module done)
+## 11. Coding checklist (applied to every module)
 
-- [ ] Compiles with zero warnings (`pio run -e test_base`, or `-e test_<layer>` once it exists; `-e app` only from Phase 3, see "Test program per layer").
+- [ ] Compiles with zero warnings (`pio run -e app` and `pio run -e test_<layer>`).
 - [ ] Matches Section 4 conventions exactly.
 - [ ] No blocking delays beyond what Section 5 allows.
 - [ ] No register access or pin numbers in APP code.
 - [ ] Shared ISR variables are `volatile` and read atomically when multi-byte.
 - [ ] String constants in flash (`__flash` / `FLASH_STR`).
-- [ ] Integer math only (no `float`) unless the user agrees — e.g. LM35 with 2.56 V internal reference: `temp_x4 = adc_value` (0.25 °C units), or with AVCC 5 V: `temp = (adc * 500UL) / 1024`.
+- [ ] Integer math only (no `float`) — e.g. LM35 with 2.56 V internal reference: `temp_x4 = adc_value` (0.25 °C units), or with AVCC 5 V: `temp = (adc * 500UL) / 1024`.
 - [ ] Requirement IDs commented where implemented.
 - [ ] Assumptions marked with `/* ASSUMPTION: */`.
 - [ ] `docs/test_plan.md` updated with the Proteus test steps for this module.
@@ -332,7 +301,7 @@ If the existing timer drivers do not support a needed mode, extend them in their
 
 ---
 
-## 12. Decisions (all decided — Phase 1, 2026-10-02)
+## 12. Decisions
 
 1. **SEC-08 remote/local arbitration:** keypad user control is allowed while a remote *user* is logged in; blocked while the *admin* is logged in until the admin sends "allow keypad". An admin login ends an active keypad session, and the allow flag resets at every admin login.
 2. **SEC-05 lockdown:** the system locks right after the **3rd** failed login in a row. Counters are per login source (UART / keypad) and reset on a successful login. Safe state: heating element OFF, cooler OFF, fan OFF, lamps / dimmer / door unchanged, buzzer beeps 0.5 s on / 0.5 s off, LCD shows `SYSTEM LOCKED`, UART prints a lock message, all input ignored until MCU reset.

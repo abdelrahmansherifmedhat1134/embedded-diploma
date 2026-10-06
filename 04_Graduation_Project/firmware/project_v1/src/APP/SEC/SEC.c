@@ -2,7 +2,7 @@
  * SEC.c
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 #include "../../../lib/Service/std_types.h"
 #include "../../../lib/Service/EVQ/EVQ.h"

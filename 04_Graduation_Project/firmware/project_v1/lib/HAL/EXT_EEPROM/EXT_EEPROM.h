@@ -2,7 +2,7 @@
  * EXT_EEPROM.h
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef HAL_EXT_EEPROM_EXT_EEPROM_H_

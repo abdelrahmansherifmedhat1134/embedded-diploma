@@ -2,7 +2,7 @@
  * SSG_CFG.h
  *
  *  Created on: Dec 24, 2025
- *      Author: eslam
+ *      Author: Eng. Eslam Hefny (AMIT embedded systems diploma)
  */
 
 #ifndef HAL_SSG_SSG_CFG_H_

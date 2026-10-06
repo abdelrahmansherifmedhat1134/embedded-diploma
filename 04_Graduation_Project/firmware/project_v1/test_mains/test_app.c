@@ -2,6 +2,7 @@
  * test_app.c
  *
  *  Created on: Oct 3, 2026
+ *      Author: Abdelrahman Sherif Medhat
  *
  * =====================================================================
  *  Phase 2 test of the APP layer (part A + part B = the whole layer)

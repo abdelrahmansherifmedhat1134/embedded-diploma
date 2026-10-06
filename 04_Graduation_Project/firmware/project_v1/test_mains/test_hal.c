@@ -2,6 +2,7 @@
  * test_hal.c
  *
  *  Created on: Oct 2, 2026
+ *      Author: Abdelrahman Sherif Medhat
  *
  * =====================================================================
  *  Phase 2 test of the HAL layer
@@ -469,7 +470,7 @@ static void TEST_voidShowStep(u8 Copy_u8Number, u16 Copy_u16Ms){
 static void TEST_voidSevenSeg(){
 	/* The chip ports are NOT read back here : in Proteus a pin that drives a segment LED reads
 	 * a different value than the one written, while the display itself shows the right digit.
-	 * So the digits are checked by eye (see CLAUDE.md, Proteus notes). */
+	 * So the digits are checked by eye (see docs/specification.md, Proteus simulation notes). */
 	SEVEN_SEG_voidInit();
 	TEST_voidCheck(SEVEN_SEG_u8GetStatus() == TWI_OK, FLASH_STR("SEVEN_SEG"), FLASH_STR("init: chips 0x21 0x22 answer"));
 	SEVEN_SEG_voidEnable();

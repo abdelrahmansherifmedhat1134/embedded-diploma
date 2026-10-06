@@ -2,6 +2,7 @@
  * TWI.h
  *
  *  Created on: Sep 28, 2026
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef MCAL_TWI_TWI_H_

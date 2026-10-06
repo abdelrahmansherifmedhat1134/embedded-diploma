@@ -2,7 +2,7 @@
  * TIMER2.h
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef MCAL_TIMER2_TIMER2_H_

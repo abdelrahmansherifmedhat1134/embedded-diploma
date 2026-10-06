@@ -2,7 +2,8 @@
  * UASRT.c
  *
  *  Created on: Feb 18, 2026
- *      Author: eslam
+ *      Author: Eng. Eslam Hefny (AMIT embedded systems diploma)
+ *    Modified: Abdelrahman Sherif Medhat (graduation project fixes, docs/architecture.md Section 2)
  */
 #include "../../Service/std_types.h"
 #include "../../Service/Bit_math.h"

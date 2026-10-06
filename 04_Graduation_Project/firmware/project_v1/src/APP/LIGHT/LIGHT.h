@@ -2,7 +2,7 @@
  * LIGHT.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_LIGHT_LIGHT_H_

@@ -2,7 +2,7 @@
  * EVQ.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef SERVICE_EVQ_EVQ_H_

@@ -2,7 +2,8 @@
  * TIMER0.h
  *
  *  Created on: Feb 4, 2026
- *      Author: Eslam
+ *      Author: Eng. Eslam Hefny (AMIT embedded systems diploma)
+ *    Modified: Abdelrahman Sherif Medhat (graduation project fixes, docs/architecture.md Section 2)
  */
 
 #ifndef MCAL_TIMER0_TIMER0_H_

@@ -2,7 +2,7 @@
  * USERDB.c
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 #include "../std_types.h"
 #include "../ESTORE/ESTORE.h"

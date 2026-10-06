@@ -2,7 +2,7 @@
  * DOOR_cfg.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_DOOR_DOOR_CFG_H_

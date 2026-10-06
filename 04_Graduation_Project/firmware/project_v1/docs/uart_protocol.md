@@ -1,6 +1,6 @@
 # UART protocol — remote terminal
 
-Phase 1 design. **Status: approved by the user on 2026-10-02.** Implements REQ-RUI-01..04 and the remote side of REQ-SEC, REQ-DOR-01, REQ-HTR-14.
+**Status: final (v1.0), verified in Proteus.** Implements REQ-RUI-01..04 and the remote side of REQ-SEC, REQ-DOR-01, REQ-HTR-14.
 The state machine behind it is `UIREM` in [architecture.md](architecture.md) Section 5.8. All text is stored in flash.
 
 ---

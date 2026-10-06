@@ -2,7 +2,7 @@
  * EXT_EEPROM.c
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 #include "../../Service/std_types.h"
 #include "../../MCAL/TWI/TWI.h"

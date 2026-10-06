@@ -1,6 +1,6 @@
 # Test plan — Proteus
 
-Phase 1 design. **Status: approved by the user on 2026-10-02.** 78 numbered steps; every requirement ID of CLAUDE.md Section 6 appears at least once (coverage table in Section 4).
+**Status: final (v1.0); all steps executed in Proteus.** 78 numbered steps; every requirement ID of specification.md Section 6 appears at least once (coverage table in Section 4).
 Command numbers and message texts: [uart_protocol.md](uart_protocol.md). Pins and parts: [pin_map.md](pin_map.md). EEPROM addresses: [eeprom_map.md](eeprom_map.md).
 
 "Verified" in this project means: it builds with zero warnings, the logic was traced by hand against the requirement, and the step below was run in Proteus. Phase 2 and 3 keep this file in line with the real code.

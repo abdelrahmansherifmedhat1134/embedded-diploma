@@ -1,6 +1,6 @@
 # EEPROM map — external 24C08
 
-Phase 1 design. **Status: approved by the user on 2026-10-02.** Implements REQ-EEP-01, 02, 03 and stores the data of REQ-SEC-02, 03, 04, 09 and REQ-HTR-03, 04.
+**Status: final (v1.0), verified in Proteus.** Implements REQ-EEP-01, 02, 03 and stores the data of REQ-SEC-02, 03, 04, 09 and REQ-HTR-03, 04.
 
 Chip: 24C08, I²C address 0x50, 1024 bytes, 16-byte pages. The design uses the first 208 bytes (pages 0–12, all inside block 0); the rest stays free.
 

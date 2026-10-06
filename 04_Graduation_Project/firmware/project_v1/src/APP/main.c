@@ -2,9 +2,9 @@
  * main.c
  *
  *  Created on: Oct 4, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  *
- *  ATmega32 smart home + water heater (CLAUDE.md Section 5, docs/architecture.md 4.2 and 4.6).
+ *  ATmega32 smart home + water heater (specification.md Section 5, docs/architecture.md 4.2 and 4.6).
  *  main() only initialises the modules , enables interrupts and runs the super-loop.
  */
 #include "../lib/Service/std_types.h"

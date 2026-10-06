@@ -1,6 +1,6 @@
 # Architecture — ATmega32 Smart Home + Water Heater
 
-Design and as-built description of the finished firmware. **Status: Phase 3 done (2026-10-04). All modules and `main.c` are built; the design decisions of Section 9 were approved on 2026-10-02.**
+Design and as-built description of the finished firmware. **Status: final (v1.0), verified in Proteus.** Design decisions are listed in Section 9.
 Clock: `F_CPU = 16 000 000` (from `platformio.ini`, `board_build.f_cpu`). Every timing value below is derived from `F_CPU`.
 
 Related documents: [pin_map.md](pin_map.md), [eeprom_map.md](eeprom_map.md), [uart_protocol.md](uart_protocol.md), [test_plan.md](test_plan.md), [hal_summary.md](hal_summary.md) (HAL as built).
@@ -627,7 +627,7 @@ The offsets (0, 2, 1, 3, 4) are chosen so that no two periods ever become due in
 
 ### 4.3 Blocking budget
 
-Rule from CLAUDE.md: nothing longer than ~2 ms after init.
+Rule from specification.md Section 5: nothing longer than ~2 ms after init.
 
 | Operation | Time | Where |
 |---|---|---|
@@ -993,16 +993,16 @@ What each test program checks is listed in [test_plan.md](test_plan.md) Section 
 
 ## 9. Design decisions and assumptions
 
-**All approved by the user on 2026-10-02.** Marked in code as `/* ASSUMPTION: ... */` where they are implemented. "CLAUDE" = CLAUDE.md.
+**Fixed at design time (2026-10-02).** Marked in code as `/* ASSUMPTION: ... */` where they are implemented. "SPEC" = specification.md.
 
 | ID | Decision | Reason |
 |---|---|---|
-| D-1 | Modules added to CLAUDE Section 5: HAL `LCD_BUF`, `RELAY`, `LED`; SERVICE `TERM`, `ESTORE`, `EVQ`, `MAVG`, `FMT`, `flash_str.h` | I²C LCD is too slow to write synchronously; EEPROM reads must not wait for write cycles; UI and feature modules need a one-way link |
-| D-2 | `SCHED` and `TERM` (SERVICE) call MCAL directly | CLAUDE Section 5 places the scheduler in SERVICE and the UART in MCAL but also says a layer only calls the layer directly below; an empty HAL wrapper would be the only alternative |
+| D-1 | Modules added to SPEC Section 5: HAL `LCD_BUF`, `RELAY`, `LED`; SERVICE `TERM`, `ESTORE`, `EVQ`, `MAVG`, `FMT`, `flash_str.h` | I²C LCD is too slow to write synchronously; EEPROM reads must not wait for write cycles; UI and feature modules need a one-way link |
+| D-2 | `SCHED` and `TERM` (SERVICE) call MCAL directly | SPEC Section 5 places the scheduler in SERVICE and the UART in MCAL but also says a layer only calls the layer directly below; an empty HAL wrapper would be the only alternative |
 | D-3 | USART stays a thin MCAL driver with callbacks; the ring buffers are in `TERM` | keeps MCAL free of SERVICE code and matches the author's ISR -> callback style |
 | D-4 | TWI stays polled (with timeout) instead of interrupt-driven | every transfer is bounded (<= 1.7 ms); an interrupt-driven master with a transaction queue is a much bigger and riskier module |
 | D-5 | The whole EEPROM map is mirrored in RAM (208 bytes) | login must scan up to 11 records; reading them from the chip would block ~20 ms and would fail during a write cycle |
-| D-6 | An account slot has no separate valid byte: a first name byte of `0x00` or `0xFF` means "empty" | keeps a record at exactly one 16-byte page with 8 + 8 characters, so every add/remove is one atomic page write (CLAUDE Section 9 suggested a flag byte) |
+| D-6 | An account slot has no separate valid byte: a first name byte of `0x00` or `0xFF` means "empty" | keeps a record at exactly one 16-byte page with 8 + 8 characters, so every add/remove is one atomic page write (SPEC Section 9 suggested a flag byte) |
 | D-7 | Keypad: `=` is Enter (the keypad has no `#`), `*` and `C` are back, `+`/`-` step values | `KPAD_MAT` is a calculator keypad; changing the driver table is not needed |
 | D-8 | The full menu is printed after login, after an error and on `?`; after a successful command only the one-line prompt. `UIREM_MENU_AFTER_COMMAND 1` restores "menu after every command" | a 15-line menu after every command takes 0.5 s at 9600 baud and floods a phone screen |
 | D-9 | Extras beyond the spec: one-line commands (`1 3`), admin "change password" and "factory reset", keypad users may change the heater set temperature with `+`/`-` | small, and they make the demo and the tests much easier; each can be dropped without touching the rest |
@@ -1012,7 +1012,7 @@ What each test program checks is listed in [test_plan.md](test_plan.md) Section 
 | D-13 | Passwords are stored and compared as plain text | simulation project; hashing is a possible later improvement |
 | D-14 | Lamp, dimmer and door states are not stored in EEPROM (boot = off, closed) | not required |
 | D-15 | Lockdown buzzer beeps 0.5 s / 0.5 s | recognisable as an alarm; one macro makes it continuous |
-| D-16 | Not built in the first version: AC-03 fan speed ramp, ALM-02 PIR, LDR. Pins stay reserved | CLAUDE: optional, after the spec is done |
+| D-16 | Not built in the first version: AC-03 fan speed ramp, ALM-02 PIR, LDR. Pins stay reserved | SPEC: optional, after the spec is done |
 | D-17 | Dimmer and fan swapped against the first pin plan: dimmer on PB3 / OC0 (Timer0, 7.8 kHz), fan on PD4 / OC1B (Timer1, 50 Hz) | the dimmer needs a 0–5 V level; 7.8 kHz filters with a small RC and reacts fast, 50 Hz does not. 50 Hz is fine for an on/off fan (pin_map C-1) |
 | D-18 | Lamps on the PCF8574 are active-low (`LAMP_ON_LEVEL 0`) | a PCF8574 can sink but not source LED current, and its power-up state (all high) then means all lamps off (pin_map C-2) |
 | D-19 | `Service` is added to `lib_deps` when the SERVICE layer gets its first `.c` file, and `[env:app]` gets the same line in Phase 3 | without it the layer does not link |

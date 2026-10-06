@@ -2,7 +2,7 @@
  * UILOC_cfg.h
  *
  *  Created on: Oct 4, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_UILOC_UILOC_CFG_H_

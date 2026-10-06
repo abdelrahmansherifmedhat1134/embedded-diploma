@@ -2,6 +2,7 @@
  * TWI.c
  *
  *  Created on: Sep 28, 2026
+ *      Author: Abdelrahman Sherif Medhat
  */
 #include "../../Service/std_types.h"
 #include "../../Service/Bit_math.h"

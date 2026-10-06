@@ -2,7 +2,7 @@
  * UIREM_cfg.h
  *
  *  Created on: Oct 4, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_UIREM_UIREM_CFG_H_

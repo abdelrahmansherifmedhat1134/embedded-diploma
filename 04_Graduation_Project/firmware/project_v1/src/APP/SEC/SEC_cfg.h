@@ -2,7 +2,7 @@
  * SEC_cfg.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_SEC_SEC_CFG_H_

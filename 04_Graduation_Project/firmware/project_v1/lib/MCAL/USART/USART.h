@@ -2,7 +2,8 @@
  * USART.h
  *
  *  Created on: Feb 18, 2026
- *      Author: eslam
+ *      Author: Eng. Eslam Hefny (AMIT embedded systems diploma)
+ *    Modified: Abdelrahman Sherif Medhat (graduation project fixes, docs/architecture.md Section 2)
  */
 
 #ifndef MCAL_USART_USART_H_

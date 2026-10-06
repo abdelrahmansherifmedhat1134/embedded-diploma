@@ -2,7 +2,7 @@
  * spi.h
  *
  *  Created on: Feb 25, 2026
- *      Author: eslam
+ *      Author: Eng. Eslam Hefny (AMIT embedded systems diploma)
  */
 
 #ifndef MCAL_SPI_SPI_H_
