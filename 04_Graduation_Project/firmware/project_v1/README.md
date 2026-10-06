@@ -33,11 +33,21 @@ Not built in v1 (decision 15): AC fan speed ramp, PIR alarm, LDR. Their pins sta
 pio run -e app
 ```
 
-Hex file: `.pio/build/app/firmware.hex`. Load it in the ATmega32 of the Proteus project in `simulation/` (`project_v1_phase2_APP_partB.pdsprj` has the full wiring) and set the ATmega32 **clock to 16 MHz** (it must equal `F_CPU` in `platformio.ini`). Virtual Terminal on PD0 / PD1: 9600, 8N1.
+Hex file: `.pio/build/app/firmware.hex`. Load it in the ATmega32 of the final Proteus project [`project_v1_phase3_final.pdsprj`](../../simulation/project_v1_phase3_final.pdsprj) (full system wiring, matches `docs/pin_map.md`) and set the ATmega32 **clock to 16 MHz** (it must equal `F_CPU` in `platformio.ini`). Virtual Terminal on PD0 / PD1: 9600, 8N1.
 
 Default login on first boot (blank EEPROM): **admin / 1234** (remote terminal only). Change it with admin command 15.
 
 Keypad (calculator pad): digits enter the ID and PIN, `=` Enter, `*` or `C` back (delete a digit / leave the screen), `+` / `-` step a value (dimmer ±10 %, heater ±5 °C). Keypad usernames and PINs are numeric.
+
+## Proteus projects (`../../simulation/`)
+
+| File | Use |
+|---|---|
+| `project_v1_phase3_final.pdsprj` | **final system**: load `.pio/build/app/firmware.hex` |
+| `project_v1_phase2_APP_partA.pdsprj`, `project_v1_phase2_APP_partB.pdsprj` | APP layer tests (`test_app`) |
+| `project_v1_phase2_HAL.pdsprj`, `project_v1_phase2_MCAL.pdsprj`, `project_v1_phase2_services.pdsprj` | layer tests (`test_hal`, `test_mcal`, `test_service`) |
+| `project_v1_phase0.pdsprj` | Phase 0 base wiring |
+| `buzzer_test`, `hal_test_7seg_v1_fail` / `v2`, `led_switching` | small experiments (see `docs/hal_summary.md`) |
 
 ## Documents (`docs/`)
 
