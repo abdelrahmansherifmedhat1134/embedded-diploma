@@ -2,7 +2,7 @@
  * ESTORE_cfg.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  *
  *  The EEPROM map as code (REQ-EEP-02). Explained in docs/eeprom_map.md.
  */

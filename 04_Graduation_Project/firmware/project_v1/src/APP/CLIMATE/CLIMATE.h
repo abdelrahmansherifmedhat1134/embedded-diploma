@@ -2,7 +2,7 @@
  * CLIMATE.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_CLIMATE_CLIMATE_H_

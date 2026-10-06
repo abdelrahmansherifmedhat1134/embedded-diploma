@@ -2,7 +2,7 @@
  * LM35_cfg.h
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef HAL_LM35_LM35_CFG_H_

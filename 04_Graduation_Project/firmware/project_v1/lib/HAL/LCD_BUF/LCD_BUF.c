@@ -2,7 +2,7 @@
  * LCD_BUF.c
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 #include "../../Service/std_types.h"
 #include "../../Service/Bit_math.h"

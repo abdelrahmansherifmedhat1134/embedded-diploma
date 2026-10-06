@@ -2,7 +2,7 @@
  * FAN_cfg.h
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef HAL_FAN_FAN_CFG_H_

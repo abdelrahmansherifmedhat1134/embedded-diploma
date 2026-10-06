@@ -2,7 +2,7 @@
  * CLIMATE_cfg.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_CLIMATE_CLIMATE_CFG_H_

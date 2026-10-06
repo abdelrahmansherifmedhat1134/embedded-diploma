@@ -2,7 +2,7 @@
  * SEVEN_SEG_cfg.h
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef HAL_SEVEN_SEG_SEVEN_SEG_CFG_H_

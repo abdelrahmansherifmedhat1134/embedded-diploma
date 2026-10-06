@@ -2,7 +2,7 @@
  * MAVG.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef SERVICE_MAVG_MAVG_H_

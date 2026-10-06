@@ -2,7 +2,7 @@
  * GIE.h
  *
  *  Created on: Jan 19, 2026
- *      Author: Eslam
+ *      Author: Eng. Eslam Hefny (AMIT embedded systems diploma)
  */
 
 #ifndef MCAL_GIE_GIE_H_

@@ -2,7 +2,7 @@
  * USERDB_cfg.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  *
  *  Record layout and slot counts are part of the EEPROM map : ESTORE_cfg.h
  */

@@ -2,7 +2,7 @@
  * HEATER.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_HEATER_HEATER_H_

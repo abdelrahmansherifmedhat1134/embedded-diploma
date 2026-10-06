@@ -2,7 +2,7 @@
  * USART_cfg.h
  *
  *  Created on: Oct 2, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef MCAL_USART_USART_CFG_H_

@@ -2,7 +2,7 @@
  * ALARM.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_ALARM_ALARM_H_

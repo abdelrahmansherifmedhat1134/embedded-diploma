@@ -2,6 +2,7 @@
  * test_hal.c
  *
  *  Created on: Oct 2, 2026
+ *      Author: Abdelrahman Sherif Medhat
  *
  * =====================================================================
  *  Phase 2 test of the HAL layer

@@ -2,7 +2,7 @@
  * SEC.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef APP_SEC_SEC_H_

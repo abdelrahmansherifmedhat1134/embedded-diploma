@@ -2,7 +2,7 @@
  * flash_str.h
  *
  *  Created on: Oct 3, 2026
- *      Author: eslam
+ *      Author: Abdelrahman Sherif Medhat
  */
 
 #ifndef SERVICE_FLASH_STR_H_
