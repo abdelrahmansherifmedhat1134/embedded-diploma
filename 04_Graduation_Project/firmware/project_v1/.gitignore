@@ -3,3 +3,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# Local Claude Code instructions (not part of the project documentation)
+CLAUDE.md

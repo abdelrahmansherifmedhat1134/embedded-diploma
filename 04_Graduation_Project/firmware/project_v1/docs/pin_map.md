@@ -1,7 +1,7 @@
 # Pin map — ATmega32 Smart Home + Water Heater
 
-Phase 1 design. **Status: approved by the user on 2026-10-02.**
-This is the final pin assignment. It is CLAUDE.md Section 7 with one approved change: **the dimmer and the AC fan swapped pins** (dimmer on PB3, fan on PD4; architecture decision D-17).
+**Status: final (v1.0), verified in Proteus.**
+This is the final pin assignment. It is specification.md Section 7 with one approved change: **the dimmer and the AC fan swapped pins** (dimmer on PB3, fan on PD4; architecture decision D-17).
 
 Checked against the netlist `simulation/project_v1_phase1.SDF` (exported 2026-10-02). Proteus does not export simulation-only parts (keypad, 7-segment display, push buttons, motors, servo, instruments), so pins that go only to those parts look open in the netlist. Those rows say "not visible in the netlist"; they are confirmed by the layer tests in Phase 2.
 
@@ -121,7 +121,7 @@ The PCF8574 is a 100 kHz part, so the bus is not run at 400 kHz. Only the main l
 | **C-4** | PB5, PB6, PB7 = ISP pins MOSI, MISO, SCK (hardware) | During in-circuit programming the heating/cooling outputs toggle and the Down button can disturb the programmer | **Accepted.** Nothing in firmware; on a real board use 1 kΩ series resistors or a jumper |
 | **C-5** | AREF (Proteus + hardware) | The ADC uses the internal 2.56 V reference; AREF tied to 5 V would short it and make every temperature read about half | **Closed.** AREF is open in the netlist, AVCC is on +5 V |
 | **C-6** | Dimmer lamp driver (Proteus) | The lamp was wired straight to a port pin | **Closed.** RC filter (R6 10 kΩ, C1 10 µF) -> Q4 -> lamp on +12 V. See the note below |
-| **C-7** | 24C08 pin 7, write protect (Proteus) | If the pin is high, every write is ignored | **Wired by the user; cannot be seen in the netlist** (the export does not list this pin). The HAL EEPROM test proves that writes are accepted |
+| **C-7** | 24C08 pin 7, write protect (Proteus) | If the pin is high, every write is ignored | **Wired to GND in the schematic; cannot be seen in the netlist** (the export does not list this pin). The HAL EEPROM test proves that writes are accepted |
 | **C-9** | Buzzer on PD3 (Proteus + hardware) | With the model defaults (5 V, 12 Ω = 0.4 A) the direct connection was silent. In Proteus it works with Operating Voltage 3 V and Load 150 Ω (about 20–33 mA from the pin). That is still at or above the 20 mA an AVR pin should give, and a real buzzer is not this model | **Open for the real board.** Add a driver: PD3 -> 1 kΩ -> base of an NPN (2N2222 / BC547), emitter GND, buzzer between +5 V and the collector, 1N4148 across the buzzer (cathode to +5 V); use an active buzzer rated for 5 V. No firmware change (`BUZZER_ON_LEVEL` stays HIGH) |
 | **C-8** | PC6 / PC7 digit drivers (Proteus) | PNP drivers: a digit is on when the pin is low; the emitters had no supply | **Obsolete (D-20).** The PNP drivers and the 7447 were replaced by two PCF8574 chips; both digits stay lit without multiplexing |
 

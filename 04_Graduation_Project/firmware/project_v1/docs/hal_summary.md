@@ -1,8 +1,8 @@
-# HAL layer — as built (Phase 2 HAL, 2026-10-03)
+# HAL layer — as built
 
-What was built, where it differs from the Phase 1 design, what was found in Proteus, and how the 7-segment display ended up on two PCF8574 chips. API details stay in [architecture.md](architecture.md) Section 3.2; wiring in [pin_map.md](pin_map.md); test steps in [test_plan.md](test_plan.md).
+What was built, where it differs from the original design, what was found in Proteus, and how the 7-segment display ended up on two PCF8574 chips. API details stay in [architecture.md](architecture.md) Section 3.2; wiring in [pin_map.md](pin_map.md); test steps in [test_plan.md](test_plan.md).
 
-Branch `phase2-hal`, PR #5. Test program: `test_mains/test_hal.c`, `pio run -e test_hal` -> `.pio/build/test_hal/firmware.hex`.
+Test program: `test_mains/test_hal.c`, `pio run -e test_hal` -> `.pio/build/test_hal/firmware.hex`.
 
 ---
 
@@ -43,7 +43,7 @@ Manual steps: LCD text, relays/LED/buzzer, lamp chase, **7-segment** (below), LM
 4. **Bench `experiments/hal_testing_v2`** (I²C version, project_v1 `lib/` copied, with the LCD and the lamp chip on the same bus): bus scan, raw 22-pattern port test per chip, digit patterns, all 100 numbers, driver behaviour, bus sharing, stress, timing, looks. Schematic: `simulation/hal_test_7seg_v2.pdsprj`. Result: **the display shows the right digits**; the chip port read-back returns other values than the lit digit, so read-back checks were dropped from `test_hal` and the display is checked by eye.
 5. `project_v1`: driver and docs moved to D-20; schematic `simulation/project_v1_phase2_HAL.pdsprj`.
 
-## 4. Proteus findings (also in CLAUDE.md "Proteus notes")
+## 4. Proteus findings (also in specification.md, "Proteus simulation notes")
 
 - The 24C08 model has no write-cycle delay (it ACKs right after a write): `test_hal` reports `[INFO]`, not a failure. Real chip ~5 ms, so `ESTORE` still polls.
 - The servo model maps a 1–2 ms pulse to -90..+90° by default: set Min/Max Angle to 0 / 180.
