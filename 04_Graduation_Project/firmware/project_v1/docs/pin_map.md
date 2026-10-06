@@ -3,7 +3,7 @@
 **Status: final (v1.0), verified in Proteus.**
 This is the final pin assignment. It is specification.md Section 7 with one approved change: **the dimmer and the AC fan swapped pins** (dimmer on PB3, fan on PD4; architecture decision D-17).
 
-Checked against the netlist `simulation/project_v1_phase1.SDF` (exported 2026-10-02). Proteus does not export simulation-only parts (keypad, 7-segment display, push buttons, motors, servo, instruments), so pins that go only to those parts look open in the netlist. Those rows say "not visible in the netlist"; they are confirmed by the layer tests in Phase 2.
+Checked against the netlist `simulation/design/design_netlist_phase1.SDF` (exported 2026-10-02). Proteus does not export simulation-only parts (keypad, 7-segment display, push buttons, motors, servo, instruments), so pins that go only to those parts look open in the netlist. Those rows say "not visible in the netlist"; they are confirmed by the layer tests in Phase 2.
 
 ---
 
