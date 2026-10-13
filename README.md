@@ -6,7 +6,7 @@ Coursework and graduation project from the **AMIT Learning embedded systems dipl
 
 One ATmega32 firmware that merges the two course projects into a single smart home: remote control over UART, a keypad/LCD menu, admin and user accounts in EEPROM, lamps, a dimmer, a servo door, temperature-controlled AC, and a complete electric water heater with its own panel — on a layered MCAL / HAL / SERVICE / APP architecture with a 1 ms scheduler and no blocking delays.
 
-**→ [Project page and documentation](04_Graduation_Project/)** · **[Download firmware + Proteus project (latest release)](https://github.com/abdelrahmansherifmedhat1134/embedded-diploma/releases/latest)**
+**→ [Project page and documentation](04_Graduation_Project/)** · **[Presentation (PDF)](04_Graduation_Project/presentation/Smart_Home_Water_Heater_Presentation.pdf)** · **[Download firmware + Proteus project (latest release)](https://github.com/abdelrahmansherifmedhat1134/embedded-diploma/releases/latest)**
 
 ## Repository layout
 
