@@ -31,6 +31,8 @@ Every test prints one `[PASS]` / `[FAIL]` line per check on the UART and ends wi
 3. Virtual Terminal on PD0 / PD1: 9600 baud, 8N1, "Echo Typed Characters" off.
 4. First boot on a blank EEPROM creates the admin account **`admin` / `1234`** (terminal only; change it with command 15).
 
+All hex files (app and the five tests) can be rebuilt into `hex/<env>.hex` with `powershell -ExecutionPolicy Bypass -File scripts/build_all_hex.ps1` (`hex/` is git-ignored).
+
 Keypad (calculator pad): digits for ID and PIN, `=` Enter, `*` or `C` back, `+` / `-` step a value (dimmer ±10 %, heater ±5 °C). Keypad IDs and PINs are numeric.
 
 ## Source layout
