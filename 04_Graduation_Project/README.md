@@ -9,12 +9,13 @@
 | Instructor | Eng. Eslam Hefny |
 | Target | ATmega32 @ 16 MHz, bare-metal C (avr-gcc, PlatformIO), simulated in Proteus 8 |
 | Release | [**v1.0** — firmware `.hex` + Proteus project](https://github.com/abdelrahmansherifmedhat1134/embedded-diploma/releases/latest) |
+| Presentation | [PDF](presentation/Smart_Home_Water_Heater_Presentation.pdf) · [PowerPoint](presentation/Smart_Home_Water_Heater_Presentation.pptx) (speaker notes included) |
 
 The course offered two separate projects — a **Smart Home** and an **Electric Water Heater**. This project builds **both on one ATmega32**: the water heater becomes one appliance of the smart home. It keeps its own panel (Up / Down / ON-OFF buttons, two-digit display, status LED), and its state and set temperature are also reachable from the UART terminal and the keypad/LCD menu.
 
-<!-- DEMO: replace this comment with the demo GIF or video link once recorded:
-![Demo](firmware/project_v1/docs/images/demo.gif)
--->
+[![Demo video: the full system running in Proteus](presentation/images/schematic.png)](https://youtu.be/iW8o4F8znDA)
+
+**[▶ Watch the demo video](https://youtu.be/iW8o4F8znDA)**
 
 ## What it does
 
@@ -38,9 +39,7 @@ The course offered two separate projects — a **Smart Home** and an **Electric 
 - **Interrupt-driven UART** through ring buffers; **one I²C bus** for the LCD, lamps, both display digits and the EEPROM — which is how ~41 needed I/O lines fit on 32 pins.
 - **Small:** flash 16.3 KB (49.9 %), static RAM 733 B (35.8 %); integer maths only, all text in flash.
 
-<!-- SCHEMATIC: replace this comment with the full Proteus schematic screenshot:
-![Proteus schematic](firmware/project_v1/docs/images/schematic.png)
--->
+![Proteus schematic](presentation/images/schematic_full.png)
 
 ## Verification
 
@@ -73,6 +72,7 @@ Open [`simulation/final/smart_home_water_heater_final.pdsprj`](simulation/final/
 | [`simulation/`](simulation/) | Proteus projects: final system, one per layer test, experiments |
 | [`firmware/experiments/`](firmware/experiments/) | Test benches (7-segment redesign) and the original course baseline |
 | [`docs/`](docs/) | Course brief and pre-design notes |
+| [`presentation/`](presentation/) | Defence presentation (PDF + PowerPoint) and the pictures used in it |
 
 ## Design highlights
 
