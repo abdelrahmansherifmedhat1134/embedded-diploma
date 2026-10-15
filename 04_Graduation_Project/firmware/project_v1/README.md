@@ -52,6 +52,7 @@ Every module is `MOD.c` / `MOD.h` / `MOD_cfg.h`; pins and constants live only in
 
 | File | Content |
 |---|---|
+| [`Technical_Guide.pdf`](docs/Technical_Guide.pdf) | complete technical guide: registers, drivers, services, subsystems, timing analysis (computed and simavr-measured), verification, appendices; regenerated from the code by [`guide_src/`](docs/guide_src/) |
 | [`specification.md`](docs/specification.md) | requirements with IDs, coding conventions, fixes made to the course drivers, Proteus notes, design decisions |
 | [`architecture.md`](docs/architecture.md) | layers, every module's API, scheduler and super-loop, boot order, state machines, data ownership, RAM/flash budget, decision log |
 | [`pin_map.md`](docs/pin_map.md) | final pin table and Proteus wiring |

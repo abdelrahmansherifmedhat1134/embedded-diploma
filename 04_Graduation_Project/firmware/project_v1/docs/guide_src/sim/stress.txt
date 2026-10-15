@@ -1,0 +1,36 @@
+# stress : back-to-back EEPROM page writes + keypad lamp toggles + heater set-mode blink + terminal traffic
+end 16000
+eedelay 5
+800 uart admin\r
+900 uart 1234\r
+2500 uart 9\r
+3000 keys 1111=2222=
+3000 uart 12\r
+3100 uart 1111\r
+3200 uart 2222\r
+6000 keys 1
+6300 keys 1234512345123451234512345
+6000 btn onoff 100
+6500 btn up 80
+6800 uart 10\r
+6900 uart u1\r
+7000 uart pass1\r
+7100 uart 10\r
+7200 uart u2\r
+7300 uart pass2\r
+7400 uart 10\r
+7500 uart u3\r
+7600 uart pass3\r
+7700 uart 6\r
+7800 uart 14\r
+7900 uart 5 45\r
+8000 uart 5 50\r
+8100 uart 5 55\r
+8200 uart 11 u1\r
+8300 uart 11 u2\r
+8400 uart 2 30\r
+9000 btn up 80
+9300 btn up 80
+9600 btn down 80
+10000 uart 16\r
+10100 uart YES\r

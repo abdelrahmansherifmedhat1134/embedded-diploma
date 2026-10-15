@@ -1,0 +1,219 @@
+<h1 data-ch="3"><span class="num">Chapter 3</span>HAL — one driver per part</h1>
+<p class="lead">A HAL module hides one part, or one kind of part, behind functions that speak in the part's own terms: a lamp number, a temperature, a key, an angle. Above the HAL nobody knows a pin, an I²C address or a register. Chips that sit behind other chips form small HAL chains: <code>LCD_BUF → CLCD → PCF8574 → TWI</code>.</p>
+
+<table class="tight">
+<thead><tr><th>Module</th><th>Part</th><th>Uses</th><th>Called from</th><th>Blocking time per call (computed)</th></tr></thead>
+<tr><td>PCF8574</td><td>8-bit I²C expander</td><td>TWI</td><td>CLCD, LAMP, SEVEN_SEG</td><td>{{ f(N['TWI_TX']['lamp'],0) }} µs per one-byte write</td></tr>
+<tr><td>CLCD</td><td>HD44780 LCD behind a PCF8574</td><td>PCF8574</td><td>LCD_BUF</td><td>{{ f(N['TWI_TX']['lcd_byte'],0) }} µs per byte; init {{ f(N['LCD_INIT_MS'],1) }} ms (boot)</td></tr>
+<tr><td>LCD_BUF</td><td>non-blocking LCD screen</td><td>CLCD</td><td>UILOC (writes), main loop (5 ms)</td><td>≤ one LCD byte per call</td></tr>
+<tr><td>KPAD</td><td>4×4 calculator keypad</td><td>DIO</td><td>UILOC, main loop (10 ms)</td><td>≈ 25 µs per scan</td></tr>
+<tr><td>BUTTON</td><td>3 push buttons</td><td>DIO</td><td>HEATER, main loop (10 ms)</td><td>a few µs</td></tr>
+<tr><td>LM35</td><td>2 temperature sensors</td><td>ADC</td><td>HEATER, CLIMATE (100 ms)</td><td>{{ f(N['ADC_CONV_US'],0) }} µs per reading</td></tr>
+<tr><td>SEVEN_SEG</td><td>2 common-anode digits, one PCF8574 each</td><td>PCF8574</td><td>HEATER</td><td>0, 190 or 380 µs (only changed digits)</td></tr>
+<tr><td>LAMP</td><td>5 LEDs on a PCF8574</td><td>PCF8574</td><td>LIGHT</td><td>{{ f(N['TWI_TX']['lamp'],0) }} µs</td></tr>
+<tr><td>RELAY, LED, BUZZER</td><td>GPIO outputs</td><td>DIO</td><td>HEATER, ALARM</td><td>&lt; 2 µs</td></tr>
+<tr><td>DIMMER, SERVO, FAN</td><td>PWM outputs</td><td>TIMER0 / TIMER1, DIO</td><td>LIGHT, DOOR, CLIMATE</td><td>&lt; 10 µs (register writes)</td></tr>
+<tr><td>EXT_EEPROM</td><td>24C08 EEPROM</td><td>TWI</td><td>ESTORE</td><td>page write {{ f(N['TWI_TX']['ee_page']/1000,2) }} ms, poll {{ f(N['TWI_TX']['ee_poll'],0) }} µs</td></tr>
+</table>
+
+<!-- ======================================================= PCF8574 -->
+<h2>3.1 PCF8574 — I²C port expander <span class="tag hal">HAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>The PCF8574 turns one I²C byte into eight pin levels. Four of them on one bus give the LCD (0x27), the five lamps (0x20) and the two display digits (0x21, 0x22), which is how the design fits into 32 pins (§1.3).</p>
+<p class="k">Hardware</p>
+<p>The address is <code>0100 A2 A1 A0</code>, set by three pins. The pins are <i>quasi-bidirectional</i>: writing 0 turns on a strong pull-down (sinks up to 25 mA), writing 1 leaves only a weak pull-up (≈ 100 µA). So a PCF8574 drives LEDs <b>active low</b>, and a pin used as an input must first be written 1. At power-up all pins are 1.</p>
+<p class="k">Design and API</p>
+<pre class="plain">void PCF8574_voidInit();                                         /* TWI_voidMasterInit ; a second call is harmless */
+u8   PCF8574_u8WritePort (u8 Address, u8 Value);                 /* START , addr+W , value , STOP */
+u8   PCF8574_u8ReadPort  (u8 Address, u8 *Value);
+u8   PCF8574_u8WriteBytes(u8 Address, const u8 *Data, u8 Length); /* new: several port values in ONE transaction */</pre>
+<p>Every function returns the TWI status, so the caller can see a missing chip. <code>PCF8574_u8WriteBytes</code> is the addition made for CLCD: the chip latches every byte as it arrives, so four bytes in one transaction produce four successive pin states, 90 µs apart.</p>
+<p class="k">Pitfall</p>
+<p>Reading back a PCF8574 whose pins drive LEDs returns the pin <i>levels</i>, not the written latch. With segment LEDs pulling the pins, the value read in Proteus differed from the one written while the display was right. The 7-segment read-back checks were removed from <code>test_hal</code> (specification §4).</p>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Address 0x20 + A2A1A0.</li><li>Write = one-byte TWI transmit.</li><li>Multi-byte write for timed sequences.</li><li>Return the TWI status.</li><li>Drive loads active low.</li></ol>
+
+<!-- ======================================================= CLCD -->
+<h2 class="mod-start">3.2 CLCD — character LCD over I²C <span class="tag hal">HAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>Driver for the 16×2 HD44780-compatible LCD (LM016L), in the course's I²C mode (<code>CLCD_MODE = CLCD_I2C_MODE</code>). It is blocking, with about 0.46 ms per byte. Only <code>LCD_BUF</code> calls it after boot.</p>
+<p class="k">Hardware</p>
+<x-fig src="sch_lcd.svg" w="80" label="code">Wiring of the LCD expander (<code>CLCD_cfg.h</code>, pin_map.md §2).</x-fig>
+<x-fig src="pcf_lcd.svg" w="96" label="code">One LCD byte becomes four port values: the high nibble with E = 1, then E = 0, then the low nibble the same way. The LCD latches data on the falling edge of E.</x-fig>
+<p class="k">Design</p>
+<p>In 4-bit mode the LCD takes every byte as two nibbles on D4–D7, each latched by a falling edge of E. The course driver sent each nibble edge as its own I²C transaction: 4 transactions × 3 bytes ≈ 1.2 ms per character. The fixed driver builds all four port values and sends them in one transaction of 5 bytes, {{ f(N['TWI_TX']['lcd_byte'],0) }} µs computed, ≈ 0.48 ms measured in Proteus (hal_summary.md). The E pulse is one I²C byte long (90 µs), far above the 450 ns the LCD needs, so no delay is added.</p>
+<x-code src="lib/HAL/CLCD/CLCD.c" fn="I2C_voidSendByte"/>
+<p><b>Init sequence</b> (<code>CLCD_voidInit</code>, boot only): wait 40 ms after power-up; send nibble 0x3 three times (5 ms and 1 ms apart) to force 8-bit mode from any state; send 0x2 to switch to 4-bit mode; Function Set <code>0x28</code> (4-bit, 2 lines, 5×8); Display Control <code>CLCD_DISPLAY_CTRL = 0x0C</code> (display on, cursor off, blink off); Clear <code>0x01</code> followed by 2 ms (Clear and Home need 1.52 ms). Total {{ f(N['LCD_INIT_MS'],1) }} ms computed, 50.6 ms in simavr.</p>
+<p><b>Cursor:</b> <code>CLCD_voidSetCursorPosition(x, y)</code> sends <code>0x80 | (x + 0x40·y)</code>: row 0 starts at DDRAM 0x00, row 1 at 0x40.</p>
+<p class="k">API</p>
+<pre class="plain">void CLCD_voidInit();  void CLCD_voidSendCommand(u8);  void CLCD_voidSendData(u8);
+void CLCD_voidSetCursorPosition(u8 x, u8 y);  void CLCD_voidSendString(char*);  void CLCD_voidClearDisp();
+void CLCD_voidSendFlashString(const __flash c8 *);   /* new */
+u8   CLCD_u8GetStatus();                             /* new: TWI status of the last write */
+void CLCD_voidCreatSpecialChar(u8 Index, u8 *Pattern);</pre>
+<p class="k">Pitfalls (fixed in Phase 2)</p>
+<ul>
+<li>Cursor and blink were switched on at init; on a status screen that shows a blinking block. Now set from <code>CLCD_DISPLAY_CTRL</code>.</li>
+<li><code>CLCD_voidClearDisp</code> existed but was not declared in the header.</li>
+<li>Writes could fail silently. <code>CLCD_u8GetStatus()</code> now reports the last TWI result, so LCD_BUF can retry.</li>
+<li>The parallel modes (unused) still have a 10 ms enable pulse; they would block the loop if ever selected.</li>
+</ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Map PCF8574 bits to RS, RW, E, BL, D4–D7.</li><li>Byte = 4 port values (nibble with E high, then low) in one transaction.</li><li>Init: 40 ms, 0x3 ×3, 0x2, 0x28, 0x0C, 0x01 + 2 ms.</li><li>Cursor = 0x80 | address (row 1 at 0x40).</li><li>Keep the last TWI status.</li></ol>
+
+<!-- ======================================================= LCD_BUF -->
+<h2>3.3 LCD_BUF — the non-blocking LCD <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>Writing a 16-character line with CLCD blocks for 16 × 0.46 ms ≈ 7.5 ms, and longer with set-cursor commands. LCD_BUF keeps the loop free: writers only change RAM, and a 5 ms task copies the differences to the LCD, one byte per call (LUI-02, LUI-03).</p>
+<p class="k">Design</p>
+<p>Two 32-byte arrays: <code>Global_c8Wanted</code> (what the application wants) and <code>Global_c8Shown</code> (what the LCD shows), plus the LCD's cursor position as LCD_BUF believes it to be. <code>LCD_BUF_voidUpdate</code> searches round-robin from the last position for a cell where the two differ. If the cursor is not on that cell, the call sends one set-cursor command. If it is, the call sends the character, marks the cell shown and advances the cursor, because the LCD auto-increments. At the end of a row the cursor is marked unknown, because the next DDRAM address (0x10) is not on screen.</p>
+<x-fig src="lcd_buf.svg" w="100" label="code">The wanted/shown comparison. Only differing cells cost bus time.</x-fig>
+<x-code src="lib/HAL/LCD_BUF/LCD_BUF.c" grep="/*4. Cursor is there : this call sends the character */" n="15" title="end of LCD_BUF_voidUpdate"/>
+<p><b>Error handling:</b> if CLCD reports an I²C error, the byte is not marked shown, the cursor becomes unknown, and the module stays quiet for <code>LCD_BUF_RETRY_UPDATES</code> = 200 calls = 1 s. An unplugged LCD therefore costs one failed transaction per second, not one per 5 ms.</p>
+<p class="k">Timing (computed)</p>
+<table class="tight">
+<tr><td>One character changed (cursor elsewhere)</td><td class="n">2 calls → visible after 5–10 ms</td></tr>
+<tr><td>Full screen redraw (32 cells + 2 cursor moves)</td><td class="n">34 calls × 5 ms = 170 ms</td></tr>
+<tr><td>Longest call</td><td class="n">one transaction, {{ f(N['TWI_TX']['lcd_byte'],0) }} µs computed · 0.49 ms Proteus (hal_summary.md)</td></tr>
+</table>
+<x-fig src="repo_i2c_debugger_lcd.png" w="72" label="proteus">Proteus I²C debugger (presentation capture): one LCD transaction <code>S 4E xx xx xx xx P</code> every 5 ms (452.122 s, 452.127 s, …) — the LCD_BUF cadence.</x-fig>
+<p class="k">API</p>
+<pre class="plain">void LCD_BUF_voidInit();     /* CLCD_voidInit (blocking , boot) + both buffers blank */
+void LCD_BUF_voidClear();    /* RAM only */
+void LCD_BUF_voidWriteChar (u8 Row, u8 Col, c8 Char);
+void LCD_BUF_voidWriteFlash(u8 Row, u8 Col, const __flash c8 *Text);   /* cut at the row end */
+void LCD_BUF_voidWriteRam  (u8 Row, u8 Col, const c8 *Text);
+void LCD_BUF_voidUpdate();   /* every 5 ms : at most ONE byte to the LCD */</pre>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Two cell arrays, wanted and shown.</li><li>Writers touch only wanted.</li><li>Update: find the next difference; set the cursor or send one char.</li><li>Track the auto-incremented cursor; forget it at row ends and on errors.</li><li>Back off after an error.</li></ol>
+
+<!-- ======================================================= KPAD -->
+<h2 class="mod-start">3.4 KPAD — 4×4 keypad <span class="tag hal">HAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>Reads the calculator keypad (<code>7 8 9 / · 4 5 6 * · 1 2 3 - · C 0 = +</code>) for UILOC (LUI-02). It adds a non-blocking, debounced scan next to the course's blocking function.</p>
+<x-fig src="keypad.svg" w="82" label="code">Keypad matrix and scan (<code>KPAD_cfg.h</code>, <code>KPAD_MAT</code>).</x-fig>
+<p class="k">Design</p>
+<p><code>KPAD_voidUpdate</code> runs every 10 ms. It drives each column low in turn, waits 5 µs for the row lines to settle through the pull-ups, reads the four rows, and drives the column high again; the first low row gives the key. A key becomes the stable value after <code>KPAD_DEBOUNCE_SCANS</code> = 2 equal scans. A new stable key is stored once in <code>Global_u8Pending</code>; <code>KPAD_u8GetKey()</code> returns it once and then <code>KPAD_NO_KEY</code> (0xFF), so a held key gives exactly one event. The key table and the pin arrays are <code>static const __flash</code>: plain <code>const</code> data is still copied to RAM on the AVR, and <code>__flash</code> keeps the 24 bytes in program memory.</p>
+<x-code src="lib/HAL/KPAD/KPAD.c" grep="u8 Local_u8Raw = KPAD_u8ScanMatrix();" n="15" title="KPAD_voidUpdate"/>
+<p class="k">Timing</p>
+<p>A clean press is accepted on the 2nd scan that sees it, 10–20 ms after the contact closes (computed). UILOC reads the key in the same 10 ms slot, right after <code>KPAD_voidUpdate</code>. simavr measured {{ f(R['latency']['key_lamp']['lamp_write_after_ms'],1) }} ms from key-down to the lamp write.</p>
+<p class="k">Pitfalls (fixed)</p>
+<ul><li>The course table was transposed (row/column swapped), and one column was left low after a key was found (Phase 0).</li>
+<li><code>KPAD_u8GetKeyPressed</code> waits until the key is released, which blocks the loop for as long as the key is held. It is kept only for <code>test_base</code>.</li></ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Rows = inputs with pull-ups, columns = outputs, idle high.</li><li>Scan: column low, short settle, read rows, column high.</li><li>Debounce: N equal scans.</li><li>Report a new key once.</li><li>Keep the tables in flash.</li></ol>
+
+<!-- ======================================================= BUTTON -->
+<h2>3.5 BUTTON — heater push buttons <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>Debounced level and press/release events for ON/OFF (PD6), Up (PD7) and Down (PB5) (HTR-01, HTR-02, HTR-05).</p>
+<x-fig src="sch_button.svg" w="62" label="code">Each button connects its pin to ground; the internal pull-up holds the pin high when released.</x-fig>
+<p class="k">Design</p>
+<p>Every 10 ms <code>BUTTON_voidUpdate</code> reads the three pins. If a pin differs from the debounced level, a counter runs; after <code>BUTTON_DEBOUNCE_SAMPLES</code> = 3 differing samples in a row the level changes and a press or release flag is set. A sample equal to the old level restarts the count, so a bounce is ignored. The event flags are cleared by reading them.</p>
+<x-fig src="debounce.svg" w="96" label="computed">Debounce timing.</x-fig>
+<x-fig src="sm_debounce.svg" w="66" label="code">BUTTON debounce as a state machine (per button).</x-fig>
+<p>HEATER acts on the <b>release</b> of ON/OFF (HTR-05), so holding the button does nothing, and on the <b>press</b> of Up and Down.</p>
+<p class="k">API</p>
+<pre class="plain">void BUTTON_voidInit();  void BUTTON_voidUpdate();          /* every 10 ms */
+u8 BUTTON_u8IsPressed(u8 ID);  u8 BUTTON_u8GetPressEvent(u8 ID);  u8 BUTTON_u8GetReleaseEvent(u8 ID);
+/* IDs: BUTTON_ONOFF 0 , BUTTON_UP 1 , BUTTON_DOWN 2 */</pre>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Inputs with pull-ups; pressed = low.</li><li>Count consecutive differing samples.</li><li>Change the level after N samples and raise an event.</li><li>Reset the count on a bounce.</li><li>Clear events on read.</li></ol>
+
+<!-- ======================================================= LM35 -->
+<h2>3.6 LM35 — temperature sensors <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>Two LM35s: ambient air for the AC (PA0, AC-01) and water for the heater (PA1, HTR-07).</p>
+<x-fig src="sch_lm35.svg" w="66" label="code">LM35 wiring.</x-fig>
+<x-fig src="lm35.svg" w="82" label="computed">ADC value against temperature. The thresholds used by CLIMATE and HEATER are marked.</x-fig>
+<p class="k">Design</p>
+<p>With the 2.56 V reference, one ADC step is 2.5 mV = 0.25 °C, so <b>the raw ADC value is the temperature in quarter degrees</b>. <code>LM35_u16ReadTempX4</code> returns it unchanged; CLIMATE and HEATER keep everything in this unit and round to whole degrees only for display: <code>(x4 + 2) / 4</code>. An unknown sensor ID returns 0. The range ends at 1023 / 4 = 255.75 °C, well above the 0–100 °C an LM35 delivers here.</p>
+<x-code src="lib/HAL/LM35/LM35.c" fn="LM35_u16ReadTempX4"/>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Pick Vref so that 1 LSB is a round fraction of a degree.</li><li>Return raw counts.</li><li>Compare thresholds in counts (× 4).</li><li>Round only for display.</li><li>Leave AREF open with the internal reference.</li></ol>
+
+<!-- ======================================================= SEVEN_SEG -->
+<h2 class="mod-start">3.7 SEVEN_SEG — two-digit display <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>The heater's display: water temperature, or the blinking set temperature (HTR-10, HTR-11). Each common-anode digit has its own PCF8574 (tens 0x21, units 0x22), with no multiplexing (D-20). The history of this design is in §8.5.</p>
+<x-fig src="sch_7seg.svg" w="80" label="code">One digit: common anode on +5 V; each segment is lit when its PCF8574 pin is low.</x-fig>
+<x-fig src="sevenseg.svg" w="96" label="code">Segment patterns of <code>SEVEN_SEG_TABLE</code>.</x-fig>
+<p class="k">Design</p>
+<p>The module remembers what each chip shows (<code>Shown</code>) and whether that is known (<code>Known</code>). <code>SetNumber</code>, <code>Enable</code> and <code>Disable</code> compute both patterns and write a chip <b>only if its pattern differs</b> from what it shows. Changing 55 to 56 costs one 190 µs write, not two; repeating a number costs nothing. A failed write marks that digit unknown, so the next call writes it again. Numbers above 99 show 99; a number below 10 shows a leading zero.</p>
+<x-code src="lib/HAL/SEVEN_SEG/SEVEN_SEG.c" fn="SEVEN_SEG_u8WriteDigit"/>
+<p class="k">API</p>
+<pre class="plain">void SEVEN_SEG_voidInit();                  /* blank */
+void SEVEN_SEG_voidSetNumber(u8 Number);    /* 0..99 */
+void SEVEN_SEG_voidEnable();  void SEVEN_SEG_voidDisable();   /* show / blank (0xFF on both chips) */
+u8   SEVEN_SEG_u8GetStatus();               /* TWI status of the last write */</pre>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Pattern table, a 0 bit = lit (common anode).</li><li>One expander per digit: no refresh needed.</li><li>Write only changed digits.</li><li>Mark a digit unknown after a failed write.</li><li>Call from the main loop only (the bus is polled).</li></ol>
+
+<!-- ======================================================= LAMP -->
+<h2>3.8 LAMP — five lamps on a PCF8574 <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>On/off control of lamps 1–5 on P0–P4 of the expander at 0x20 (LGT-01).</p>
+<x-fig src="sch_lamp.svg" w="76" label="code">One lamp channel (Proteus uses an LED per lamp).</x-fig>
+<p class="k">Design</p>
+<p>The PCF8574 cannot be read back reliably as an output latch, so LAMP keeps a RAM copy of the port, <code>Global_u8Port</code>, starting at 0xFF (all off, unused pins high). To switch a lamp it changes one bit in a <i>copy</i> of that byte, writes the whole byte, and stores it as the new state <b>only if the chip acknowledged</b>. After an I²C error the copy still matches the chip. The level for "on" comes from <code>LAMP_ON_LEVEL = 0</code>.</p>
+<x-code src="lib/HAL/LAMP/LAMP.c" grep="u8 Local_u8Bit = LAMP_FIRST_BIT + (Copy_u8LampNumber - 1) ;" n="13" title="inside LAMP_u8SetState"/>
+<p class="k">API</p>
+<pre class="plain">void LAMP_voidInit();                         /* all off */
+u8   LAMP_u8SetState(u8 Lamp, u8 State);      /* lamp 1..5 , LAMP_ON / LAMP_OFF ; TWI status or LAMP_ERR_NUMBER (0xFF) */
+u8   LAMP_u8GetState(u8 Lamp);                /* last state written successfully */</pre>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Shadow byte of the port.</li><li>Change a bit in a copy, write the byte.</li><li>Commit the copy only on ACK.</li><li>Active-low level as a cfg constant.</li><li>Distinct error code for a bad lamp number.</li></ol>
+
+<!-- ======================================================= RELAY LED BUZZER -->
+<h2>3.9 RELAY, LED, BUZZER — plain outputs <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p>Three small drivers with the same shape: an ID, <code>_voidOn</code>, <code>_voidOff</code>, and an init that <b>sets the off level before making the pin an output</b>, so nothing switches on during reset. RELAY has <code>RELAY_HEATING</code> (PB6) and <code>RELAY_COOLING</code> (PB7); LED has <code>LED_HEATER</code> (PA3); BUZZER is PD3. All are active high.</p>
+<x-code src="lib/HAL/RELAY/RELAY.c" fn="RELAY_voidInit"/>
+<div class="cols2">
+<x-fig src="sch_outputs.svg" w="100" label="code">Heater outputs in Proteus: LEDs stand for the solid-state relays.</x-fig>
+<x-fig src="sch_buzzer.svg" w="100" label="code">Buzzer: direct in Proteus; the driver stage a real board needs.</x-fig>
+</div>
+<p class="small">HEATER guarantees that the two elements are never on together: it always switches one off before switching the other on (§5.6).</p>
+
+<!-- ======================================================= DIMMER SERVO FAN -->
+<h2 class="mod-start">3.10 DIMMER, SERVO, FAN — PWM outputs <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p>Three drivers on the PWM channels of chapter 2. They share the same corner-case rules: <b>0 %</b> = compare output disconnected and the pin driven low (a compare value of 0 still gives a one-count spike), <b>100 %</b> = compare value equal to TOP (constant high), and values above the range are clamped.</p>
+<div class="cols2">
+<x-fig src="sch_dimmer.svg" w="100" label="code">Dimmer: PWM → RC filter → transistor → 12 V lamp.</x-fig>
+<x-fig src="sch_fan.svg" w="100" label="code">AC fan: OC1B → 1 kΩ → NPN; flyback diode across the motor.</x-fig>
+</div>
+<x-fig src="sch_servo.svg" w="58" label="code">Door servo: the signal pin takes the 1–2 ms pulse directly.</x-fig>
+<table class="tight">
+<thead><tr><th>Driver</th><th>Pin / timer</th><th>Conversion</th><th>API</th></tr></thead>
+<tr><td>DIMMER</td><td>PB3 / Timer0 fast PWM, {{ f(N['T0_FREQ'],1) }} Hz</td><td>OCR0 = p × 255 / 100</td><td><code>DIMMER_voidInit()</code>, <code>DIMMER_voidSetLevel(u8 percent)</code></td></tr>
+<tr><td>SERVO</td><td>PD5 / Timer1 OC1A, 50 Hz</td><td>pulse = 1000 + angle × 1000 / 180 µs; OCR1A = pulse × 2000 / 1000</td><td><code>SERVO_voidInit()</code> (→ 0°), <code>SERVO_voidSetAngle(u8 deg)</code></td></tr>
+<tr><td>FAN</td><td>PD4 / Timer1 OC1B, 50 Hz</td><td>OCR1B = p × 40000 / 100 (100 % = TOP)</td><td><code>FAN_voidInit()</code> (stopped), <code>FAN_voidSetSpeed(u8 percent)</code></td></tr>
+</table>
+<x-code src="lib/HAL/SERVO/SERVO.c" fn="SERVO_voidSetAngle"/>
+<x-code src="lib/HAL/DIMMER/DIMMER.c" fn="DIMMER_voidSetLevel"/>
+<p class="k">Pitfall</p>
+<p>The dimmer lamp stage: with R6 = 10 kΩ the base current is at most (5 − 0.7) V / 10 kΩ = 0.43 mA, while a 12 V / 24 Ω lamp needs 0.5 A. Unless the transistor gain is above about 1000, the lamp stays dim even at 100 %. pin_map.md notes the remedies (R6 = 1 kΩ, or a lighter lamp load in Proteus); no firmware change is involved.</p>
+
+<!-- ======================================================= EXT_EEPROM -->
+<h2>3.11 EXT_EEPROM — the 24C08 <span class="tag hal">HAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>Raw access to the 1 KB I²C EEPROM that holds the accounts and the heater set temperature (EEP-01). It knows the chip's two quirks, blocks and pages; the RAM image and the write-behind logic are one layer up in ESTORE.</p>
+<x-fig src="sch_eeprom.svg" w="72" label="code">24C08 wiring: A2 and WP to ground.</x-fig>
+<p class="k">Hardware</p>
+<ul>
+<li><b>Blocks:</b> 1024 bytes need 10 address bits, but one word-address byte carries 8. Bits 9:8 (B1 B0) travel in the slave address: block 0 = 0x50 … block 3 = 0x53. A read is split at 256-byte borders. The project uses block 0 only (bytes 0x00–0xCF).</li>
+<li><b>Pages:</b> a write may carry 1–16 bytes, all inside one 16-byte page; past the page end the chip wraps to the page start. <code>EXT_EEPROM_u8WritePage</code> refuses anything that would cross a page.</li>
+<li><b>Write cycle:</b> after the STOP the chip programs the page for up to 5 ms and does not acknowledge its address meanwhile. That NACK is the "ready" signal: <b>ACK polling</b>.</li>
+</ul>
+<x-code src="lib/HAL/EXT_EEPROM/EXT_EEPROM.c" fn="EXT_EEPROM_u8IsReady"/>
+<x-fig src="ee_poll.svg" w="100" label="computed">How ESTORE uses the three functions: a page write in one 10 ms slot, one ACK poll in the next.</x-fig>
+<p class="k">API</p>
+<pre class="plain">void EXT_EEPROM_voidInit();
+u8   EXT_EEPROM_u8ReadBlock(u16 Address, u8 *Data, u8 Length);       /* blocking , ≈ 90 µs per byte : boot only */
+u8   EXT_EEPROM_u8WritePage(u16 Address, const u8 *Data, u8 Length); /* 1..16 bytes in ONE page ; returns after the STOP */
+u8   EXT_EEPROM_u8IsReady();                                         /* ONE probe : 1 = write cycle over ; never waits */</pre>
+<p class="k">Timing (computed)</p>
+<p>Page write = START + address + word address + 16 data = 18 bytes → {{ f(N['TWI_TX']['ee_page'],0) }} µs. ACK poll = START + address + STOP → {{ f(N['TWI_TX']['ee_poll'],0) }} µs. Boot read of 208 bytes = write phase (2 bytes) + repeated START + read phase (209 bytes) → {{ f(N['TWI_TX']['ee_boot_read']/1000,2) }} ms (simavr: 19.3 ms).</p>
+<p class="k">Pitfall</p>
+<p>The Proteus 24C08 model has no write-cycle delay: it acknowledges right after a write, so the first poll always succeeds. Real chips need the polling, so it is written for them (specification §4). <code>pin_map.md</code> §2 still says the model has <code>TD_WRITE = 10 ms</code>; that contradicts the other documents and the observed behaviour.</p>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Slave address = 0x50 | address bits 9:8.</li><li>Read: write the word address, repeated START, read with ACK … NACK.</li><li>Write: one page at most, never across a border.</li><li>Ready = one probe; never loop on it.</li><li>Leave timing decisions to the caller.</li></ol>

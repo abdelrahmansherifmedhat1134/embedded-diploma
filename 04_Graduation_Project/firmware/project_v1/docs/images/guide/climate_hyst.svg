@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="437.601094pt" height="168.956461pt" viewBox="0 0 437.601094 168.956461" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:12.316141</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 168.956461 
+L 437.601094 168.956461 
+L 437.601094 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 68.707969 134.507125 
+L 425.827969 134.507125 
+L 425.827969 18.083125 
+L 68.707969 18.083125 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <defs>
+       <path id="m264ffb2e99" d="M 0 0 
+L 0 3.5 
+" style="stroke: #52606d; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#m264ffb2e99" x="68.707969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_1">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="68.707969" y="149.7415" transform="rotate(-0 68.707969 149.7415)">15.0</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="113.347969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_2">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="113.347969" y="149.7415" transform="rotate(-0 113.347969 149.7415)">17.5</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_3">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="157.987969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_3">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="157.987969" y="149.7415" transform="rotate(-0 157.987969 149.7415)">20.0</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_4">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="202.627969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_4">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="202.627969" y="149.7415" transform="rotate(-0 202.627969 149.7415)">22.5</text>
+     </g>
+    </g>
+    <g id="xtick_5">
+     <g id="line2d_5">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="247.267969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_5">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="247.267969" y="149.7415" transform="rotate(-0 247.267969 149.7415)">25.0</text>
+     </g>
+    </g>
+    <g id="xtick_6">
+     <g id="line2d_6">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="291.907969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_6">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="291.907969" y="149.7415" transform="rotate(-0 291.907969 149.7415)">27.5</text>
+     </g>
+    </g>
+    <g id="xtick_7">
+     <g id="line2d_7">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="336.547969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_7">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="336.547969" y="149.7415" transform="rotate(-0 336.547969 149.7415)">30.0</text>
+     </g>
+    </g>
+    <g id="xtick_8">
+     <g id="line2d_8">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="381.187969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_8">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="381.187969" y="149.7415" transform="rotate(-0 381.187969 149.7415)">32.5</text>
+     </g>
+    </g>
+    <g id="xtick_9">
+     <g id="line2d_9">
+      <g>
+       <use xlink:href="#m264ffb2e99" x="425.827969" y="134.507125" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_9">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="425.827969" y="149.7415" transform="rotate(-0 425.827969 149.7415)">35.0</text>
+     </g>
+    </g>
+    <g id="text_10">
+     <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="247.267969" y="164.026168" transform="rotate(-0 247.267969 164.026168)">room temperature, 10-sample average [°C]</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_10">
+      <defs>
+       <path id="m00b17a9e43" d="M 0 0 
+L -3.5 0 
+" style="stroke: #52606d; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#m00b17a9e43" x="68.707969" y="118.983925" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_11">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: end; fill: #52606d" x="61.707969" y="123.101113" transform="rotate(-0 61.707969 123.101113)">fan off</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_11">
+      <g>
+       <use xlink:href="#m00b17a9e43" x="68.707969" y="41.367925" style="fill: #52606d; stroke: #52606d; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_12">
+      <text style="font-size: 8.5px; font-family: 'Inter'; text-anchor: end; fill: #52606d" x="61.707969" y="45.485113" transform="rotate(-0 61.707969 45.485113)">fan on (100 %)</text>
+     </g>
+    </g>
+   </g>
+   <g id="line2d_12">
+    <path d="M 68.707969 118.983925 
+L 300.835969 118.983925 
+L 300.835969 41.367925 
+" clip-path="url(#p51f9749d92)" style="fill: none; stroke: #2b6cb0; stroke-width: 1.6; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_13">
+    <path d="M 425.827969 41.367925 
+L 175.843969 41.367925 
+L 175.843969 118.983925 
+" clip-path="url(#p51f9749d92)" style="fill: none; stroke-dasharray: 5.92,2.56; stroke-dashoffset: 0; stroke: #c05621; stroke-width: 1.6"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 68.707969 134.507125 
+L 68.707969 18.083125 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 68.707969 134.507125 
+L 425.827969 134.507125 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 300.835969 85.940277 
+Q 300.835969 80.176227 300.835969 75.530211 
+" style="fill: none; stroke: #2b6cb0; stroke-linecap: round"/>
+    <path d="M 299.135969 78.930211 
+L 300.835969 75.530211 
+L 302.535969 78.930211 
+" style="fill: none; stroke: #2b6cb0; stroke-linecap: round"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 175.843969 74.411573 
+Q 175.843969 80.175623 175.843969 84.821639 
+" style="fill: none; stroke: #c05621; stroke-linecap: round"/>
+    <path d="M 177.543969 81.421639 
+L 175.843969 84.821639 
+L 174.143969 81.421639 
+" style="fill: none; stroke: #c05621; stroke-linecap: round"/>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 7px; font-family: 'Inter'; text-anchor: start; fill: #2b6cb0" x="306.192769" y="80.175925" transform="rotate(-0 306.192769 80.175925)">avg &gt; 28 °C → ON</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #c05621" transform="translate(132.691544 71.706198)">avg &lt; 21 °C</text>
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #c05621" transform="translate(148.222794 80.175925)">→ OFF</text>
+   </g>
+   <g id="text_15">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="68.707969" y="12.083125" transform="rotate(-0 68.707969 12.083125)">CLIMATE hysteresis (REQ-AC-02)</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p51f9749d92">
+   <rect x="68.707969" y="18.083125" width="357.12" height="116.424"/>
+  </clipPath>
+ </defs>
+</svg>

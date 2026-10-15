@@ -1,0 +1,204 @@
+<h1 data-ch="4"><span class="num">Chapter 4</span>SERVICE — time, text, storage and events</h1>
+<p class="lead">The SERVICE layer holds everything that is neither hardware nor product behaviour. <b>System services</b> — SCHED, TERM, ESTORE, USERDB, EVQ — own a resource and its rules. <b>Utilities</b> — RINGBUF, MAVG, FMT, flash_str.h — are pure code and may be used from any layer. This is also where the ISR world meets the main loop, so each section states exactly what is shared and how it is protected.</p>
+
+<table class="tight">
+<thead><tr><th>Module</th><th>Owns</th><th>Called from</th><th class="n">RAM (B)</th><th>Shared with an ISR?</th></tr></thead>
+<tr><td>SCHED</td><td>Timer2, tick counter, 5 task flags</td><td>main loop; Timer2 ISR</td><td class="n">17</td><td>yes — tick and flags</td></tr>
+<tr><td>TERM</td><td>USART, RX/TX rings, line editor</td><td>UIREM; USART ISRs</td><td class="n">194</td><td>yes — rings and RX-activity flag</td></tr>
+<tr><td>ESTORE</td><td>24C08, 208-byte RAM image</td><td>USERDB, HEATER, UIREM; 10 ms task</td><td class="n">215</td><td>no</td></tr>
+<tr><td>USERDB</td><td>account rules, write gate</td><td>SEC, UIREM</td><td class="n">1</td><td>no</td></tr>
+<tr><td>EVQ</td><td>event ring</td><td>feature modules post, UIREM reads</td><td class="n">39</td><td>no (main loop only)</td></tr>
+<tr><td>RINGBUF · MAVG · FMT</td><td>— (data passed in)</td><td>TERM, EVQ · HEATER, CLIMATE · UIs, TERM</td><td class="n">0</td><td>RINGBUF is ISR-safe by design</td></tr>
+</table>
+
+<!-- ======================================================= SCHED -->
+<h2>4.1 SCHED — time base and task flags <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>A cooperative time-triggered scheduler: the 1 ms Timer2 interrupt sets one flag per period (5, 10, 100, 500, 1000 ms) and the super-loop runs a task when its flag is set. It replaces every <code>_delay_ms</code> of the course code with a structure in which no task ever waits.</p>
+<p class="k">Data structure</p>
+<pre class="plain">static volatile u32 Global_u32Tick;          /* ms since SCHED_voidInit          ISR writes , main reads (atomically) */
+static volatile u8  Global_u8Flags;          /* bit n = task n due                ISR sets   , main tests-and-clears   */
+static volatile u16 Global_u16Overruns;      /* flag set again before served      ISR writes , main reads (atomically) */
+static u16 Global_u16DownCount[5];           /* ISR only (loaded before the interrupt is enabled)                    */
+static const __flash u16 SCHED_PERIOD_ARR[5] = {5,10,100,500,1000};</pre>
+<p class="k">Algorithm</p>
+<x-code src="lib/Service/SCHED/SCHED.c" grep="Global_u32Tick++;" n="15" title="SCHED_voidTick: the whole ISR work"/>
+<p>Each counter starts at <code>period + offset</code> with offsets 0, 2, 1, 3, 4 ms (<code>SCHED_cfg.h</code>), so the tasks are first due on ticks <b>{{ N['FIRST_DUE']['5MS'] }}, {{ N['FIRST_DUE']['10MS'] }}, {{ N['FIRST_DUE']['100MS'] }}, {{ N['FIRST_DUE']['500MS'] }}, {{ N['FIRST_DUE']['1S'] }}</b> and then every period. Modulo 5 these phases are 0, 2, 1, 3, 4 — all different. Since every period is a multiple of 5 ms, two flags are therefore <b>never set on the same tick</b>, and a long task delays the next one by at most the time it overruns its own millisecond (chapter 7).</p>
+<x-fig src="sched_offsets.svg" w="100" label="computed">Flags set by the tick ISR around t = 1 s.</x-fig>
+<p class="k">ISR / main-loop sharing</p>
+<ul>
+<li>The <b>test-and-clear</b> of a flag in <code>SCHED_u8IsTaskDue</code> runs with interrupts off. The ISR sets other bits in the same byte; a read-modify-write that the ISR interrupts would lose a flag.</li>
+<li>The 32-bit tick and the 16-bit overrun count are copied with interrupts off: the AVR reads one byte at a time, and a tick between two byte reads gives a torn value (for example 0x00FF → 0x0100 read as 0x01FF).</li>
+<li>The down-counters belong to the ISR alone; the main loop never touches them after <code>SCHED_voidInit</code>, so they need no protection.</li>
+<li>Timeouts are counted in calls of the owning task (5 s = 50 calls of the 100 ms task), never by comparing 32-bit tick values, so no module needs <code>SCHED_u32GetTickMs</code> in the loop.</li>
+</ul>
+<x-code src="lib/Service/SCHED/SCHED.c" fn="SCHED_u8IsTaskDue"/>
+<p class="k">Invariants</p>
+<ul>
+<li>A flag is set at most once per period; if it is still set when the ISR sets it again, <code>Global_u16Overruns</code> counts the lost period. <code>test_service</code> checks 2000/1000/100/20/10 flags in 10 s with 0 overruns; the simavr runs of the application also end with 0 overruns (§7.6).</li>
+<li>A late task causes <b>jitter, not drift</b>: the counters keep running in the ISR, independent of when the loop serves a flag.</li>
+</ul>
+<p class="k">API and cost</p>
+<pre class="plain">void SCHED_voidInit();   /* Timer2 CTC + callback ; interrupt still off ; may be called again to restart at 0 */
+void SCHED_voidStart();  /* OCIE2 on */
+u8   SCHED_u8IsTaskDue(u8 TaskID);   /* SCHED_TASK_5MS / 10MS / 100MS / 500MS / 1S ; 1 once per period */
+u32  SCHED_u32GetTickMs();  u16 SCHED_u16GetOverruns();</pre>
+<p>RAM 17 bytes. ISR length {{ R['isr_main']['4']['min_cyc'] }}–{{ R['isr_main']['4']['max_cyc'] }} cycles (simavr) = {{ f(R['isr_main']['4']['min_cyc']/16,1) }}–{{ f(R['isr_main']['4']['max_cyc']/16,1) }} µs, i.e. about 1.6 % of the CPU. architecture.md §4.1 estimates "under 10 µs = 1 %"; the measured value is higher (see the discrepancy list).</p>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Exact 1 ms CTC interrupt.</li><li>ISR: tick++, one down-counter per period, set a bit, count overruns.</li><li>Distinct start offsets so no two flags share a tick.</li><li>Atomic test-and-clear in the main loop.</li><li>Count timeouts in task calls.</li></ol>
+
+<!-- ======================================================= RINGBUF -->
+<h2 class="mod-start">4.2 RINGBUF — lock-free byte ring <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>A FIFO of bytes between exactly one producer and one consumer, safe between an ISR and the main loop <b>without disabling interrupts</b>. Used three times: TERM RX (ISR → loop), TERM TX (loop → ISR), and EVQ (loop → loop).</p>
+<p class="k">Data structure</p>
+<pre class="plain">typedef struct{
+    volatile u8 * Buffer ;   /* storage given by the user                         */
+    u8   Size ;              /* bytes of storage ; capacity = Size - 1           */
+    volatile u8 Head ;       /* next free slot  - written ONLY by the producer   */
+    volatile u8 Tail ;       /* next byte to read - written ONLY by the consumer */
+}RINGBUF_t;</pre>
+<x-fig src="ringbuf.svg" w="96" label="code">Head and Tail; one slot always stays empty.</x-fig>
+<p class="k">Algorithm and why it is safe</p>
+<p>Empty is <code>Head == Tail</code>; full is <code>Head + 1 == Tail</code> (modulo Size). Keeping one slot empty means the two states never look the same, so no shared counter is needed. Each index is written by one side only, and the AVR writes a <code>u8</code> in a single instruction, so the other side always sees either the old or the new value, never a torn one.</p>
+<x-code src="lib/Service/RINGBUF/RINGBUF.c" grep="u8 Local_u8Head = rb->Head ;" n="15" title="RINGBUF_u8Put"/>
+<p>The order inside <code>Put</code> is the whole trick: <b>store the byte first, then publish the new Head</b>. If the ISR consumer interrupted between the two, it would still see the old Head and not read the unfinished slot. <code>volatile</code> on the buffer stops the compiler (with LTO) from reordering or caching these accesses.</p>
+<p class="k">Invariants and cost</p>
+<ul><li>0 ≤ count ≤ Size − 1; <code>GetCount</code> may be one step stale when read across an interrupt, which only makes the answer conservative.</li>
+<li>Users size their storage as capacity + 1: TERM RX 33, TX 129, EVQ 33. <code>Size</code> is a <code>u8</code>, so a ring holds at most 254 bytes.</li>
+<li>No RAM of its own; 5 bytes per <code>RINGBUF_t</code>.</li></ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Head written by the producer only, Tail by the consumer only.</li><li>8-bit indexes (atomic on the AVR).</li><li>One empty slot distinguishes full from empty.</li><li>Write data, then publish the index.</li><li>Mark the buffer and indexes volatile.</li></ol>
+
+<!-- ======================================================= TERM -->
+<h2>4.3 TERM — UART terminal I/O <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>Turns the USART into a terminal for UIREM (RUI-01): interrupt-driven RX and TX through rings, a line editor with echo, masked echo for passwords, and output that <b>never waits</b>.</p>
+<x-fig src="term_path.svg" w="100" label="code">Data path. Each ring has one ISR side and one main-loop side.</x-fig>
+<p class="k">Data structure</p>
+<pre class="plain">static volatile u8 Global_u8RxStorage[33] , Global_u8TxStorage[129] ;   /* TERM_RX/TX_BUFFER_SIZE + 1 */
+static RINGBUF_t Global_RxRing , Global_TxRing ;
+static volatile u8 Global_u8RxActive ;                                  /* set by the RX ISR , read-and-clear atomically */
+static c8 Global_c8Line[17] ; u8 Length , TooLong , LastWasCR , Echo ;   /* line editor : main loop only */</pre>
+<p class="k">Algorithm</p>
+<x-code src="lib/Service/TERM/TERM.c" fn="TERM_voidTxCallback" title="UDRE ISR callback"/>
+<x-code src="lib/Service/TERM/TERM.c" fn="TERM_voidPutChar" title="main-loop side"/>
+<p><b>TX:</b> <code>TERM_voidPut…</code> puts bytes in the TX ring and enables UDRIE. The UDRE interrupt then sends one byte per frame until the ring is empty and switches itself off. The byte is in the ring <i>before</i> UDRIE is enabled, so it cannot be missed. A full ring <b>drops</b> the character; callers check <code>TERM_u8TxFree()</code> first (UIREM prints only when ≥ 64 bytes are free).</p>
+<p><b>RX and line editor</b> (<code>TERM_u8GetLine</code>, every 5 ms from UIREM): bytes are taken from the RX ring and edited.</p>
+<ul>
+<li>Printable 0x20–0x7E are stored and echoed (or <code>*</code> in masked mode).</li>
+<li>Backspace 0x08 or Delete 0x7F removes the last character and echoes <code>"\b \b"</code>.</li>
+<li>CR, LF and CR LF each end <b>one</b> line: the LF right after a CR is skipped, even when it arrives in a later call.</li>
+<li>Other control codes are ignored.</li>
+<li>A line longer than 16 characters keeps its first 16 on screen, ignores the rest, and returns <code>TERM_LINE_TOO_LONG</code> once when its end arrives.</li>
+</ul>
+<p class="k">ISR / main-loop sharing</p>
+<p>The rings need no locking (§4.2). <code>Global_u8RxActive</code> (used by UIREM's 120 s idle timer) is read and cleared with interrupts off, because the ISR sets it. The line editor belongs to the main loop alone.</p>
+<p class="k">Timing (computed)</p>
+<p>The 32-byte RX ring holds {{ f(N['RX_FILL_MS'],1) }} ms of continuous input, far more than the 5 ms between two <code>TERM_u8GetLine</code> calls (at most ≈ 5 bytes arrive meanwhile). The 128-byte TX ring drains in {{ f(N['TX_DRAIN_MS'],0) }} ms. The 408-byte admin menu therefore goes out over ≈ 0.42 s, one line per UIREM step, without the loop ever waiting.</p>
+<p class="k">API</p>
+<pre class="plain">void TERM_voidInit();  u8 TERM_u8TxFree();
+void TERM_voidPutChar(c8); void TERM_voidPutFlash(const __flash c8*); void TERM_voidPutRam(const c8*); void TERM_voidPutNumber(u16); void TERM_voidNewLine();
+void TERM_voidSetEcho(u8);              /* TERM_ECHO_OFF / NORMAL / MASKED */
+u8   TERM_u8GetLine(c8 *Line);          /* TERM_LINE_NONE / READY / TOO_LONG ; buffer of 17 bytes */
+u8   TERM_u8IsLineEmpty();  u8 TERM_u8IsRxActive();</pre>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>RX ISR → ring; TX ring → UDRE ISR.</li><li>Enable UDRIE after queuing; disable when empty.</li><li>Drop on full, never wait.</li><li>Line editor with CR/LF/CRLF, backspace, length limit.</li><li>Masked echo for passwords.</li></ol>
+
+<!-- ======================================================= EVQ -->
+<h2 class="mod-start">4.4 EVQ — event queue <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>The one-way link from feature modules to the remote terminal (RUI-02). A feature module must not call a UI (layer rule 6), yet the terminal must report every change made elsewhere. Features post <code>(event, argument)</code> pairs; UIREM prints them as <code>[INFO]</code> lines.</p>
+<table class="tight">
+<thead><tr><th>Event</th><th class="n">ID</th><th>Argument</th><th>Posted by</th><th>Printed as</th></tr></thead>
+<tr><td>EVQ_LAMP</td><td class="n">1</td><td>lamp number</td><td>LIGHT</td><td><code>[INFO] Lamp 2 is now ON</code></td></tr>
+<tr><td>EVQ_DIMMER</td><td class="n">2</td><td>percent</td><td>LIGHT</td><td><code>[INFO] Dimmer is now 30%</code></td></tr>
+<tr><td>EVQ_AC</td><td class="n">3</td><td>1 / 0</td><td>CLIMATE</td><td><code>[INFO] AC is now ON</code></td></tr>
+<tr><td>EVQ_HEATER_POWER</td><td class="n">4</td><td>1 / 0</td><td>HEATER</td><td><code>[INFO] Heater is now ON</code></td></tr>
+<tr><td>EVQ_HEATER_ELEMENT</td><td class="n">5</td><td>0 / 1 / 2</td><td>HEATER</td><td><code>[INFO] Heater: HEATING</code></td></tr>
+<tr><td>EVQ_HEATER_SET</td><td class="n">6</td><td>°C</td><td>HEATER</td><td><code>[INFO] Heater set temperature is now 65C</code></td></tr>
+<tr><td>EVQ_LOCAL_SESSION</td><td class="n">7</td><td>1 login / 0 logout</td><td>SEC</td><td><code>[INFO] Keypad user logged in</code></td></tr>
+<tr><td>EVQ_STORAGE_FAULT</td><td class="n">8</td><td>—</td><td>ESTORE</td><td><code>[WARN] EEPROM not responding…</code></td></tr>
+<tr><td>EVQ_LOCKDOWN</td><td class="n">9</td><td>—</td><td>ALARM</td><td>not printed: UIREM prints the alert from <code>ALARM_u8IsActive()</code></td></tr>
+</table>
+<p class="k">Design</p>
+<p>A RINGBUF of 33 bytes holds 16 events of 2 bytes. <code>EVQ_voidPost</code> checks that 2 bytes are free and then stores both, so an event is never stored half. When the queue is full the <i>new</i> event is dropped and the older ones keep their order. <b>Mute:</b> while UIREM executes one of its own commands it mutes the queue, because that change is already answered with <code>[OK]</code>; the queue therefore only ever holds changes made somewhere else. Main-loop context only: no ISR posts events.</p>
+<x-code src="lib/Service/EVQ/EVQ.c" fn="EVQ_voidPost"/>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Fixed-size records in a ring.</li><li>Check room for the whole record first.</li><li>Drop new on full.</li><li>Mute switch for self-caused changes.</li><li>Consumer drains when idle.</li></ol>
+
+<!-- ======================================================= ESTORE -->
+<h2>4.5 ESTORE — EEPROM image with write-behind <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>All persistent data — magic/version, heater set temperature, admin and 10 user records — in a 208-byte RAM image that mirrors bytes 0x00–0xCF of the 24C08 (EEP-01…03, D-5). Reads never touch the chip; writes go out in the background, one page per 10 ms slot, with ACK polling. No caller ever waits for the EEPROM.</p>
+<x-fig src="eeprom_map.svg" w="96" label="code">EEPROM map (<code>ESTORE_cfg.h</code>, eeprom_map.md). Every record is exactly one 16-byte page.</x-fig>
+<p class="k">Data structure</p>
+<pre class="plain">static u8  Global_u8Image[208] ;   /* = chip bytes 0x00..0xCF                 */
+static u16 Global_u16Dirty ;       /* bit n = page n differs from the chip (13 bits) */
+static u8  Global_u8State ;        /* IDLE / WRITING / FAULT                   */
+static u8  Global_u8Polls , Global_u8Status ; static u16 Global_u16PageWrites ;</pre>
+<p class="k">Algorithm</p>
+<p><b>Boot</b> (<code>ESTORE_voidInit</code>, before the scheduler): one blocking read of 208 bytes (≈ 19 ms). If the read fails: defaults in RAM, state FAULT, nothing is ever written. If the magic (0xA5) or the version (0x01) is wrong: first boot, so load the defaults and mark all 13 pages dirty.</p>
+<p><b>Write:</b> <code>ESTORE_voidWriteByte</code> compares first; an unchanged byte costs nothing, which spares the 1 000 000-cycle endurance. A changed byte updates the image and sets the page's dirty bit.</p>
+<p><b>Write-behind</b> (<code>ESTORE_voidUpdate</code>, 10 ms task): one step per call.</p>
+<x-fig src="sm_estore.svg" w="96" label="code">ESTORE write-behind state machine.</x-fig>
+<x-code src="lib/Service/ESTORE/ESTORE.c" grep="case ESTORE_STATE_IDLE:" n="15" title="IDLE step"/>
+<p>Two details carry the reliability:</p>
+<ul>
+<li><b>Highest dirty page first.</b> On first boot, page 0 with the magic byte is written last. If power fails during the first-boot writes, the magic is still missing, so the next boot simply starts again.</li>
+<li><b>Dirty bit cleared before the write.</b> If a byte of that page changes during the write cycle, the bit is set again and the page is written once more. A change can never be lost between "sent" and "done".</li>
+</ul>
+<p class="k">Timing</p>
+<p>One page = one 10 ms slot for the write (1.63 ms on the bus) + one slot for the poll = <b>20 ms per page</b>. A real 24C08 (≤ 5 ms write cycle) is always ready by the next slot; the Proteus model is ready at once. First boot: 13 pages = 260 ms in the background (simavr: page writes from 84.7 ms to 324.7 ms). After 5 failed polls (50 ms) the chip is declared gone: FAULT, <code>EVQ_STORAGE_FAULT</code>, and the system keeps working from RAM.</p>
+<p class="k">API</p>
+<pre class="plain">void ESTORE_voidInit();  void ESTORE_voidUpdate();  void ESTORE_voidLoadDefaults();   /* factory reset */
+u8   ESTORE_u8ReadByte(u8 Addr);  void ESTORE_voidReadBlock(u8 Addr, u8 *Data, u8 Len);
+void ESTORE_voidWriteByte(u8 Addr, u8 Data);  void ESTORE_voidWriteBlock(u8 Addr, const u8 *Data, u8 Len);
+u8   ESTORE_u8IsBusy();     /* 0 in FAULT : nobody waits for a write that will never happen */
+u8   ESTORE_u8GetStatus();  /* ESTORE_OK / ESTORE_FIRST_BOOT / ESTORE_FAULT */
+u16  ESTORE_u16GetPageWrites();   /* diagnostic for test_service */</pre>
+<p class="k">Invariants</p>
+<ul><li>The image is the truth; the chip follows within 20 ms per dirty page.</li><li>Every record is one page, so a record write is atomic (D-6).</li><li>Page 0 is written only by first boot and factory reset; the heater set temperature has its own page 1, so saving it can never touch the magic byte.</li></ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Mirror the used area in RAM; read it once at boot.</li><li>Magic + version → defaults when invalid.</li><li>Write = image + dirty bit, skip unchanged bytes.</li><li>Background: write one page, poll once per slot, bounded retries.</li><li>Highest page first; clear the dirty bit before writing.</li></ol>
+
+<!-- ======================================================= USERDB -->
+<h2 class="mod-start">4.6 USERDB — accounts <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>The rules for the admin record and the two user lists (SEC-02, 03, 04, 07, 09), stored in the ESTORE image.</p>
+<p class="k">Data structure</p>
+<p>A record is 16 bytes, one page: name[8] + password[8], padded with 0x00 and <b>not</b> terminated when 8 characters long. A slot is empty when its first name byte is 0x00 or 0xFF (no separate valid flag, D-6). Remote users are at 0x30–0x7F (5 slots), keypad users at 0x80–0xCF (5 slots), the admin at 0x20. The only RAM is <code>Global_u8WriteAccess</code>.</p>
+<p class="k">Algorithm and rules</p>
+<table class="tight">
+<thead><tr><th>Rule</th><th>Remote user / admin</th><th>Keypad user</th></tr></thead>
+<tr><td>Name</td><td>1–8 printable characters 0x21–0x7E (no space)</td><td>1–8 digits</td></tr>
+<tr><td>Password</td><td>4–8 printable characters</td><td>4–8 digits</td></tr>
+<tr><td>Unique</td><td>inside the list, and not the admin's name</td><td>inside the list</td></tr>
+</table>
+<x-code src="lib/Service/USERDB/USERDB.c" fn="USERDB_u8IsFieldEqual" title="compare all 8 positions"/>
+<p>Every comparison covers all 8 positions, treating the C string as 0x00-padded. "bob" therefore never matches "bobby", and an 8-character name, which has no terminator in the image, still compares correctly. Only used slots are searched, so an empty name can never match an empty slot. Add and remove write a whole record through <code>ESTORE_voidWriteBlock</code> — one page write, atomic. Remove fills the record with 0x00, so no old password is left behind.</p>
+<p><b>Write gate (SEC-07, D-12):</b> add, remove and set-admin-password return <code>USERDB_ERR_READ_ONLY</code> unless <code>USERDB_voidSetWriteAccess(1)</code> was called, which SEC does only while the admin is logged in. <code>USERDB_voidInit</code> repairs a missing or unprintable admin name with <code>admin</code> / <code>1234</code>; this repair is not a user action and bypasses the gate.</p>
+<p class="k">API</p>
+<pre class="plain">void USERDB_voidInit();
+u8 USERDB_u8CheckAdmin(const c8 *Name, const c8 *Pass);                 /* 1 = match */
+u8 USERDB_u8CheckUser (u8 List, const c8 *Name, const c8 *Pass);        /* USERDB_LIST_REMOTE / KEYPAD */
+u8 USERDB_u8AddUser   (u8 List, const c8 *Name, const c8 *Pass);        /* OK , ERR_FULL/EXISTS/NOT_FOUND/BAD_NAME/BAD_PASS/READ_ONLY */
+u8 USERDB_u8RemoveUser(u8 List, const c8 *Name);
+u8 USERDB_u8GetUserName(u8 List, u8 Slot, c8 *Name);   /* 1 = slot used ; buffer of 9 */
+u8 USERDB_u8SetAdminPassword(const c8 *Pass);  void USERDB_voidSetWriteAccess(u8 State);</pre>
+<p class="small">Passwords are stored and compared as plain text (D-13): this is a simulation project, and hashing is a listed improvement.</p>
+
+<!-- ======================================================= MAVG FMT flash_str -->
+<h2>4.7 MAVG — 10-sample moving average <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p>The averaging behind HTR-08 (water) and the AC decision (ambient). <code>MAVG_t</code> holds the last 10 samples, their running sum, an index and a count: 24 bytes per instance. Adding a sample subtracts the oldest from the sum once the window is full, so each update costs O(1), not 10 additions. The average is rounded to nearest in integer arithmetic: <code>(Sum + Count/2) / Count</code>. The sum of 10 samples of at most 1023 is 10 230, which fits a <code>u16</code>. <code>MAVG_u8IsFull</code> tells the caller when 10 samples exist; HEATER makes no decision before that.</p>
+<x-code src="lib/Service/MAVG/MAVG.c" fn="MAVG_voidAddSample"/>
+<x-fig src="mavg.svg" w="96" label="computed">Step response at 100 ms per sample. A step reaches a threshold in the middle of the band after about half the window and its full value after 10 samples = 1 s. This is the "average fill time" of the latency chains in chapter 7.</x-fig>
+
+<h2>4.8 FMT — number ↔ text without printf <span class="tag svc">SERVICE</span><span class="tag n">N</span></h2>
+<p><code>FMT_u8NumberToText(u16, c8*)</code> writes decimal digits (repeated <code>% 10</code>, then reversed) and returns the length; the buffer needs 6 bytes ("65535" + '\0'). <code>FMT_u8TextToNumber(const c8*, u16*)</code> accepts digits only, rejects an empty string, and checks for overflow <i>before</i> the multiplication (value &gt; 6553, or 6553 with a digit &gt; 5). This avoids <code>printf</code>/<code>sscanf</code>, which cost about 1.5 KB of flash and need far more stack.</p>
+
+<h2>4.9 flash_str.h — text in flash</h2>
+<p>RAM is 2 KB, and the terminal text alone is about 2 KB, so every constant string lives in flash. <code>&lt;avr/pgmspace.h&gt;</code> (and <code>PSTR()</code>) pulls in <code>&lt;avr/io.h&gt;</code>, which redefines the registers of <code>reg_def.h</code>. The project uses GCC's named address space <code>__flash</code> instead:</p>
+<x-code src="lib/Service/flash_str.h" grep="#define FLASH_STR(str)" n="1"/>
+<p>Each <code>FLASH_STR("…")</code> creates a static array in program memory and yields a <code>const __flash c8 *</code>. Functions that print text take that pointer type (<code>TERM_voidPutFlash</code>, <code>LCD_BUF_voidWriteFlash</code>, <code>CLCD_voidSendFlashString</code>), and the compiler emits <code>lpm</code> instructions to read it.</p>
+<div class="pit"><b>Lesson kept in UIREM.c</b> A <code>switch</code> whose cases only return a text pointer was turned by the compiler into a pointer table in RAM (it cost about 100 bytes). The cases now print the text themselves (<code>UIREM_u8PutFixedText</code>).</div>

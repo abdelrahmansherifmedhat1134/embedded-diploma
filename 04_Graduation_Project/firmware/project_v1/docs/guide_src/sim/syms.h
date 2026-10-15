@@ -1,0 +1,6 @@
+#define A_VEC4 0x00003ed8
+#define A_VEC13 0x00003e20
+#define A_VEC14 0x00003dca
+#define A_ISDUE 0x00001918
+#define A_FLAGS (0x00800163 - 0x800000)
+#define A_OVR (0x00800161 - 0x800000)

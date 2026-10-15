@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="407.52pt" height="109.667125pt" viewBox="0 0 407.52 109.667125" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:11.261657</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 109.667125 
+L 407.52 109.667125 
+L 407.52 -0 
+L 0 -0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 11.079184 73.523125 
+L 19.278367 73.523125 
+L 19.278367 36.563125 
+L 11.079184 36.563125 
+z
+" clip-path="url(#p2e24fd4547)" style="fill: #ffffff; stroke: #52606d; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 19.278367 73.523125 
+L 93.07102 73.523125 
+L 93.07102 36.563125 
+L 19.278367 36.563125 
+z
+" clip-path="url(#p2e24fd4547)" style="fill: #ffffff; stroke: #c05621; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 93.07102 73.523125 
+L 166.863673 73.523125 
+L 166.863673 36.563125 
+L 93.07102 36.563125 
+z
+" clip-path="url(#p2e24fd4547)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 166.863673 73.523125 
+L 240.656327 73.523125 
+L 240.656327 36.563125 
+L 166.863673 36.563125 
+z
+" clip-path="url(#p2e24fd4547)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 240.656327 73.523125 
+L 314.44898 73.523125 
+L 314.44898 36.563125 
+L 240.656327 36.563125 
+z
+" clip-path="url(#p2e24fd4547)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 314.44898 73.523125 
+L 388.241633 73.523125 
+L 388.241633 36.563125 
+L 314.44898 36.563125 
+z
+" clip-path="url(#p2e24fd4547)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 388.241633 73.523125 
+L 393.161143 73.523125 
+L 393.161143 36.563125 
+L 388.241633 36.563125 
+z
+" clip-path="url(#p2e24fd4547)" style="fill: #ffffff; stroke: #52606d; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 7px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="15.178776" y="57.589512" transform="rotate(-0 15.178776 57.589512)">S</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #c05621" transform="translate(44.066881 53.354648)">SLA+W</text>
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #c05621" transform="translate(47.691022 61.824375)">0x4E</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 6px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="88.971429" y="32.867125" transform="rotate(-0 88.971429 32.867125)">A</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(120.314456 53.354648)">byte 1</text>
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(124.124534 61.824375)">E=1</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 6px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="162.764082" y="32.867125" transform="rotate(-0 162.764082 32.867125)">A</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(193.396172 53.354648)">byte 2</text>
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(197.132422 61.824375)">E=0</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 6px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="236.556735" y="32.867125" transform="rotate(-0 236.556735 32.867125)">A</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(267.161481 53.354648)">byte 3</text>
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(271.709841 61.824375)">E=1</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 6px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="310.349388" y="32.867125" transform="rotate(-0 310.349388 32.867125)">A</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(340.85515 53.354648)">byte 4</text>
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(344.717728 61.824375)">E=0</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 6px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="384.142041" y="32.867125" transform="rotate(-0 384.142041 32.867125)">A</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 7px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="390.701388" y="57.589512" transform="rotate(-0 390.701388 57.589512)">P</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #1f2933" transform="translate(11.079184 88.466648)">one LCD byte (CLCD, I²C mode) = START + 5 × 9 SCL periods</text>
+    <text style="font-size: 7px; font-family: 'Inter'; fill: #1f2933" transform="translate(11.079184 96.936375)">= 460 µs computed · 473 µs simavr · ≈ 480 µs measured in Proteus (hal_summary.md)</text>
+   </g>
+   <g id="text_14">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="2.88" y="12.083125" transform="rotate(-0 2.88 12.083125)">I²C transaction anatomy at 100 kHz (10 µs per SCL period, 90 µs per byte incl. ACK)</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p2e24fd4547">
+   <rect x="2.88" y="18.083125" width="401.76" height="88.704"/>
+  </clipPath>
+ </defs>
+</svg>

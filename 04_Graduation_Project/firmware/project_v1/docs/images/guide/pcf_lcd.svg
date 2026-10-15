@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="407.52pt" height="115.211125pt" viewBox="0 0 407.52 115.211125" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:11.373115</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 115.211125 
+L 407.52 115.211125 
+L 407.52 -0 
+L 0 -0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 7.997962 98.867125 
+L 33.587771 98.867125 
+L 33.587771 31.547125 
+L 7.997962 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 33.587771 98.867125 
+L 59.17758 98.867125 
+L 59.17758 31.547125 
+L 33.587771 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 59.17758 98.867125 
+L 84.767389 98.867125 
+L 84.767389 31.547125 
+L 59.17758 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 84.767389 98.867125 
+L 110.357197 98.867125 
+L 110.357197 31.547125 
+L 84.767389 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #2b6cb0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 110.357197 98.867125 
+L 135.947006 98.867125 
+L 135.947006 31.547125 
+L 110.357197 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #52606d; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 135.947006 98.867125 
+L 161.536815 98.867125 
+L 161.536815 31.547125 
+L 135.947006 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #c05621; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 161.536815 98.867125 
+L 187.126624 98.867125 
+L 187.126624 31.547125 
+L 161.536815 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #52606d; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 187.126624 98.867125 
+L 212.716433 98.867125 
+L 212.716433 31.547125 
+L 187.126624 31.547125 
+z
+" clip-path="url(#p0b64830efb)" style="fill: #ffffff; stroke: #c05621; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(16.275288 63.398043)">P7</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(15.964155 72.47275)">D7</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(41.661777 63.398043)">P6</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(41.350644 72.47275)">D6</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(67.297289 63.398043)">P5</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(66.986156 72.47275)">D5</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(92.744715 63.398043)">P4</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(92.433582 72.47275)">D4</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #52606d" transform="translate(118.440578 63.398043)">P3</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #52606d" transform="translate(118.577688 72.47275)">BL</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #c05621" transform="translate(144.059684 63.398043)">P2</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #c05621" transform="translate(146.487809 72.47275)">E</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #52606d" transform="translate(170.411212 63.398043)">P1</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #52606d" transform="translate(168.223321 72.47275)">RW</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #c05621" transform="translate(195.160201 63.398043)">P0</text>
+    <text style="font-size: 7.5px; font-family: 'Inter'; fill: #c05621" transform="translate(195.102193 72.47275)">RS</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 7px; font-family: 'DejaVu Sans Mono'" transform="translate(220.393376 54.385426)">'A' = 0x41, RS = 1:</text>
+    <text style="font-size: 7px; font-family: 'DejaVu Sans Mono'" transform="translate(220.393376 62.824527)">  0x4D (hi nibble 4, E=1) → 0x49 (E=0)</text>
+    <text style="font-size: 7px; font-family: 'DejaVu Sans Mono'" transform="translate(220.393376 71.263629)">  0x1D (lo nibble 1, E=1) → 0x19 (E=0)</text>
+    <text style="font-size: 7px; font-family: 'DejaVu Sans Mono'" transform="translate(220.393376 79.665543)">sent as ONE transaction: S 4E 4D 49 1D 19 P</text>
+   </g>
+   <g id="text_10">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="2.88" y="12.083125" transform="rotate(-0 2.88 12.083125)">PCF8574 0x27 port bits → LCD pins (CLCD_cfg.h); BL is always written 1, RW always 0</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p0b64830efb">
+   <rect x="2.88" y="18.083125" width="401.76" height="94.248"/>
+  </clipPath>
+ </defs>
+</svg>

@@ -1,0 +1,127 @@
+<h1 data-ch="1"><span class="num">Chapter 1</span>System and architecture</h1>
+<p class="lead">What the system must do, how the firmware is cut into layers, and how the four scarce resources of an ATmega32 — 32 I/O pins, three timers, 32 KB of flash and 2 KB of RAM — were shared out.</p>
+
+<h2>1.1 Requirements</h2>
+<p>The course offered two separate projects, a Smart Home and an Electric Water Heater (<code>docs/course_brief_graduation_projects.pdf</code>). The specification merges them and gives every requirement an ID. Where the brief was ambiguous, a numbered decision was recorded (specification §12). The table lists all 43 requirement IDs, where each is implemented and which Proteus steps of <code>test_plan.md</code> cover it.</p>
+<table class="tight">
+<thead><tr><th style="width:9%">ID</th><th>Requirement (short form of specification §6)</th><th style="width:19%">Implemented in</th><th style="width:15%">Test steps</th></tr></thead>
+<tr><td>SEC-01</td><td>Two roles; admin logs in only over UART, users over keypad or UART</td><td>SEC, UIREM, UILOC</td><td>T-01, T-02</td></tr>
+<tr><td>SEC-02</td><td>Separate keypad and remote user lists; keypad names numeric</td><td>USERDB, SEC</td><td>T-04</td></tr>
+<tr><td>SEC-03</td><td>Admin adds/removes users of both lists from the terminal</td><td>UIREM, USERDB</td><td>T-03, T-05, T-06</td></tr>
+<tr><td>SEC-04</td><td>Accounts survive power-off (EEPROM)</td><td>USERDB, ESTORE</td><td>T-07</td></tr>
+<tr><td>SEC-05</td><td>3rd wrong login in a row (per source) → lockdown + alarm until reset</td><td>SEC, ALARM</td><td>T-08 – T-12, T-73</td></tr>
+<tr><td>SEC-06</td><td>Users control everything except the door</td><td>UIREM, UILOC</td><td>T-13, T-14</td></tr>
+<tr><td>SEC-07</td><td>Accounts: admin read/write, users read-only (write gate)</td><td>USERDB, SEC</td><td>T-15</td></tr>
+<tr><td>SEC-08</td><td>Keypad works with a remote user; blocked while the admin is logged in until allowed</td><td>SEC, UILOC, UIREM</td><td>T-16 – T-20</td></tr>
+<tr><td>SEC-09</td><td>Default admin written on first boot (magic byte)</td><td>ESTORE, USERDB</td><td>T-01, T-21</td></tr>
+<tr><td>LUI-01…04</td><td>Keypad/LCD for users only; menu; status screen when idle; PIN shown as <code>*</code></td><td>UILOC, LCD_BUF</td><td>T-22 – T-32</td></tr>
+<tr><td>RUI-01…04</td><td>Two-way UART; every change reported; menus per role; clear errors</td><td>UIREM, TERM, EVQ</td><td>T-33 – T-39</td></tr>
+<tr><td>LGT-01</td><td>5 on/off lamps</td><td>LIGHT, LAMP</td><td>T-24, T-40, T-41</td></tr>
+<tr><td>LGT-02</td><td>1 dimmable lamp, PWM → 0–5 V, 10 % steps</td><td>LIGHT, DIMMER</td><td>T-25, T-42, T-43</td></tr>
+<tr><td>DOR-01/02</td><td>Servo door, admin only; 50 Hz PWM, 0° closed, 90° open</td><td>DOOR, SERVO, UIREM</td><td>T-13, T-44, T-45</td></tr>
+<tr><td>AC-01…03</td><td>LM35 ambient; fan on above 28 °C, off below 21 °C; PWM fan</td><td>CLIMATE, FAN, LM35</td><td>T-26, T-46 – T-50</td></tr>
+<tr><td>HTR-01/02</td><td>First Up/Down press only enters setting mode; then ±5 °C per press</td><td>HEATER, BUTTON</td><td>T-54, T-55</td></tr>
+<tr><td>HTR-03/04</td><td>Set range 35–75 °C, default 60; saved to EEPROM and restored</td><td>HEATER, ESTORE</td><td>T-56, T-60 – T-62</td></tr>
+<tr><td>HTR-05/06</td><td>OFF at power-up; ON/OFF toggles on release; OFF = all heater outputs off</td><td>HEATER</td><td>T-51 – T-53, T-69</td></tr>
+<tr><td>HTR-07/08</td><td>Water sampled every 100 ms; decisions on the average of 10, none before 10</td><td>HEATER, MAVG, LM35</td><td>T-63, T-64</td></tr>
+<tr><td>HTR-09</td><td>avg &lt; set−5 → heat; avg &gt; set+5 → cool; between → keep</td><td>HEATER, RELAY</td><td>T-65, T-66</td></tr>
+<tr><td>HTR-10…12</td><td>Display water temp; in setting mode the set value blinking at 1 s; 5 s timeout</td><td>HEATER, SEVEN_SEG</td><td>T-54 – T-59</td></tr>
+<tr><td>HTR-13</td><td>Heater LED: blinks while heating, steady while cooling, off otherwise</td><td>HEATER, LED</td><td>T-67 – T-69</td></tr>
+<tr><td>HTR-14</td><td>Terminal and keypad show and change the heater with the same rules</td><td>UIREM, UILOC, HEATER</td><td>T-27, T-70 – T-72</td></tr>
+<tr><td>ALM-01/02</td><td>Buzzer on lockdown until reset; PIR (optional, not built)</td><td>ALARM, BUZZER</td><td>T-08, T-12, T-73 – T-75</td></tr>
+<tr><td>EEP-01…03</td><td>External 24C08; layout with magic/version; writes never block</td><td>ESTORE, EXT_EEPROM</td><td>T-60, T-76 – T-78</td></tr>
+</table>
+<p>Not built in v1 (decision 15 / D-16): the AC fan speed ramp (optional part of AC-03), the PIR alarm (ALM-02) and the LDR. Their pins stay reserved.</p>
+
+<h2>1.2 Layers and the rules between them</h2>
+<x-fig src="callgraph.svg" w="100" label="code">Module call graph as built: one arrow = one module calls another (from the <code>#include</code>s and calls of every <code>.c</code>). Dashed: the two approved SERVICE → MCAL shortcuts. No arrow goes upwards, and no APP module reaches MCAL.</x-fig>
+<div class="rule"><b>Layer rules (specification §5, architecture §1.1)</b>
+<ol style="margin:0">
+<li>A layer only calls the layer directly below it; APP may also use SERVICE.</li>
+<li><code>SCHED → TIMER2</code> and <code>TERM → USART</code> skip the HAL because no chip sits in between (D-2).</li>
+<li>SERVICE utilities (<code>RINGBUF</code>, <code>MAVG</code>, <code>FMT</code>, the type headers) touch no hardware and may be used anywhere.</li>
+<li>A HAL module may use a lower HAL module when one chip sits behind another: <code>LCD_BUF → CLCD → PCF8574</code>, <code>LAMP → PCF8574</code>, <code>SEVEN_SEG → PCF8574</code>.</li>
+<li>MCAL never includes an upper header. Interrupts reach upper layers only through callbacks (<code>MOD_SetCallBack…</code>).</li>
+<li>Inside APP: UI → SEC → ALARM → feature, and UI → feature. Feature modules never call a UI; they post events to <code>EVQ</code>.</li>
+<li>APP code never touches a register, a port or a pin number. All pins live in <code>_cfg.h</code> files.</li>
+</ol></div>
+<p>Every module is three files, <code>MOD.c</code> / <code>MOD.h</code> / <code>MOD_cfg.h</code>, in its own folder. Of the 42 modules, 3 course drivers are used unchanged (<code>GIE</code> is used; <code>SPI</code> and <code>SSG</code> are compiled but never called), 9 were fixed or extended, and 30 are new.</p>
+
+<h2>1.3 Pin map and the 32-pin budget</h2>
+<p>Wired directly, the full feature list needs about 41 I/O lines (specification §7). The ATmega32 has 32. Four decisions closed the gap:</p>
+<ul>
+<li>the LCD went from a 4-bit parallel bus to a PCF8574 I²C expander (6 pins → 0 extra pins);</li>
+<li>the five lamps sit on a second PCF8574;</li>
+<li>the two 7-segment digits each got their own PCF8574 (D-20). This also removed the 7447 decoder and its 6 port pins;</li>
+<li>the EEPROM is an I²C 24C08.</li>
+</ul>
+<p>The I²C bus costs two pins (PC0, PC1) for five chips.</p>
+<x-fig src="pinmap.svg" w="88" label="code">ATmega32 DIP-40 pin assignment as built (<code>docs/pin_map.md</code>, the <code>_cfg.h</code> files).</x-fig>
+<x-fig src="pinbudget.svg" w="96" label="code">The 32 I/O pins by port and bit.</x-fig>
+<div class="note"><b>Hardware notes kept from pin_map.md §4</b>
+PB5–PB7 are also the ISP pins (C-4): on a real board, add series resistors so programming does not toggle the heater outputs. AREF must stay open, because the ADC uses the internal 2.56 V reference (C-5). The buzzer needs an NPN driver stage on real hardware (C-9). PC2–PC5 are JTAG pins on a real chip, but they are unused since D-20, so <code>DIO_voidDisableJTAG()</code> is not called at boot.</div>
+
+<h2>1.4 I²C bus and address map</h2>
+<x-fig src="i2c_bus.svg" w="92" label="code">One I²C bus, five chips. A PCF8574 has the 7-bit address <code>0100 A2 A1 A0</code>; the 24C08 has <code>1010 A2 B1 B0</code>, where B1 B0 are address bits 9:8 of the memory.</x-fig>
+<table class="tight">
+<thead><tr><th>Device</th><th class="n">7-bit</th><th class="n">write / read byte</th><th>Driver</th><th>Port / content</th></tr></thead>
+<tr><td>PCF8574 — LCD</td><td class="n">0x27</td><td class="n">0x4E / 0x4F</td><td>CLCD (via LCD_BUF)</td><td>P0 RS, P1 RW, P2 E, P3 backlight, P4–P7 D4–D7</td></tr>
+<tr><td>PCF8574 — lamps</td><td class="n">0x20</td><td class="n">0x40 / 0x41</td><td>LAMP</td><td>P0–P4 = lamps 1–5, active low; P5–P7 kept high</td></tr>
+<tr><td>PCF8574 — tens digit</td><td class="n">0x21</td><td class="n">0x42 / 0x43</td><td>SEVEN_SEG</td><td>P0–P6 = segments a–g, P7 = dp; low = lit</td></tr>
+<tr><td>PCF8574 — units digit</td><td class="n">0x22</td><td class="n">0x44 / 0x45</td><td>SEVEN_SEG</td><td>same as the tens digit</td></tr>
+<tr><td>24C08 EEPROM</td><td class="n">0x50</td><td class="n">0xA0 / 0xA1</td><td>EXT_EEPROM (via ESTORE)</td><td>bytes 0x000–0x0CF used (block 0 only)</td></tr>
+</table>
+<p>Only the main loop uses the bus; no ISR touches it, so two transactions can never interleave and no bus lock is needed. The PCF8574 is a 100 kHz part, which is why the bus runs at 100 kHz, not 400 kHz.</p>
+
+<h2>1.5 Timers and peripherals</h2>
+<table class="tight">
+<thead><tr><th>Resource</th><th>Mode and numbers (computed, chapter 2)</th><th>Used by</th><th>Pin</th></tr></thead>
+<tr><td>Timer0</td><td>fast PWM, prescaler 8 → {{ f(N['T0_FREQ'],1) }} Hz</td><td>DIMMER</td><td>PB3 (OC0)</td></tr>
+<tr><td>Timer1</td><td>mode 14, TOP = ICR1 = {{ N['T1_TOP'] }}, prescaler 8 → {{ f(N['T1_FREQ'],3) }} Hz, 0.5 µs/count</td><td>SERVO (A), FAN (B)</td><td>PD5, PD4</td></tr>
+<tr><td>Timer2</td><td>CTC, prescaler 64, OCR2 = {{ N['T2_OCR'] }} → {{ f(N['T2_PERIOD_US']/1000,3) }} ms compare interrupt</td><td>SCHED (system tick)</td><td>—</td></tr>
+<tr><td>USART</td><td>9600 8N1, UBRR = {{ N['UBRR'] }}, RX-complete + UDRE interrupts</td><td>TERM</td><td>PD0, PD1</td></tr>
+<tr><td>TWI</td><td>master, polled, TWBR = {{ N['TWBR'] }}, prescaler 1 → {{ f(N['SCL_KHZ'],0) }} kHz</td><td>PCF8574, EXT_EEPROM</td><td>PC0, PC1</td></tr>
+<tr><td>ADC</td><td>internal 2.56 V reference, prescaler 128 → {{ f(N['ADC_CLK_KHZ'],0) }} kHz, polled</td><td>LM35</td><td>PA0, PA1</td></tr>
+<tr><td>INT0</td><td>not used in v1 (reserved for the PIR)</td><td>—</td><td>PD2</td></tr>
+</table>
+
+<h2>1.6 Memory budget</h2>
+<x-fig src="memory.svg" w="100" label="code">Flash and RAM of the <code>app</code> build as reported by <code>pio run</code> (README). An independent rebuild with avr-gcc 7.3.0 and the PlatformIO flags gives the same static RAM (42 B <code>.data</code> + 691 B <code>.bss</code> = 733 B) and 16 412 B of flash; the 68-byte flash difference comes from slightly different build flags.</x-fig>
+<p>All text constants live in flash through the GCC <code>__flash</code> qualifier and the <code>FLASH_STR()</code> macro (§4.9). <code>&lt;avr/pgmspace.h&gt;</code> could not be used because it pulls in <code>&lt;avr/io.h&gt;</code>, which clashes with the course's <code>reg_def.h</code>. Static RAM per module, from each module compiled on its own (<code>avr-size</code>, <code>.data + .bss</code>):</p>
+<table class="tight">
+<thead><tr><th>Module</th><th class="n">bytes</th><th>main contents</th><th>Module</th><th class="n">bytes</th><th>main contents</th></tr></thead>
+<tr><td>ESTORE</td><td class="n">215</td><td>208-byte EEPROM image + dirty mask + state</td><td>SCHED</td><td class="n">17</td><td>tick (u32), flags, 5 down-counters, overruns</td></tr>
+<tr><td>TERM</td><td class="n">194</td><td>RX 33 + TX 129 storage, line 17, 2 rings</td><td>BUTTON</td><td class="n">12</td><td>level, samples, 2 event flags × 3</td></tr>
+<tr><td>LCD_BUF</td><td class="n">68</td><td>wanted 32 + shown 32 + cursor/scan/wait</td><td>SEVEN_SEG</td><td class="n">7</td><td>number, enabled, shown/known per digit</td></tr>
+<tr><td>UIREM</td><td class="n">41</td><td>state, print queue 6, name 17, target 9</td><td>MCAL callback pointers</td><td class="n">20</td><td>TIMER0 ×2, TIMER2, ADC ×2, EXTI ×3, USART ×2</td></tr>
+<tr><td>EVQ</td><td class="n">39</td><td>33-byte ring storage + ring + mute</td><td>SEC</td><td class="n">5</td><td>role ×2, fail ×2, local-allowed flag</td></tr>
+<tr><td>HEATER</td><td class="n">31</td><td>MAVG (24) + state, set, timer, phase</td><td>others</td><td class="n">≤ 4 each</td><td>KPAD, LIGHT, ALARM, DOOR, USERDB, CLCD, LAMP</td></tr>
+<tr><td>UILOC</td><td class="n">26</td><td>state, ID 9, PIN 9, timers</td><td>switch tables (CSWTCH)</td><td class="n">34</td><td>two compiler tables in <code>.data</code></td></tr>
+<tr><td>CLIMATE</td><td class="n">25</td><td>MAVG (24) + state</td><td></td><td></td><td></td></tr>
+</table>
+<p>About 1.3 KB remain for the stack. The deepest call path is <code>main → UIREM → USERDB → ESTORE</code> with a 17-byte line buffer on the stack, plus one ISR frame (the Timer2 ISR pushes 15 registers and the return address).</p>
+
+<h2>1.7 Build environments</h2>
+<p><code>platformio.ini</code> defines one environment for the application and one per layer test. All share <code>board = ATmega32</code>, <code>board_build.f_cpu = 16000000L</code> and the include paths <code>lib/MCAL lib/HAL lib/Service src/APP</code>; all build with <code>-Wall</code> and zero warnings.</p>
+<table class="tight">
+<thead><tr><th>Environment</th><th>Sources</th><th>Libraries</th><th>Purpose</th></tr></thead>
+<tr><td><code>app</code></td><td><code>src/APP/main.c</code> + 8 APP modules</td><td>MCAL HAL Service</td><td>the firmware</td></tr>
+<tr><td><code>test_base</code></td><td><code>test_mains/test_base.c</code></td><td>MCAL HAL</td><td>smoke test of the original course drivers</td></tr>
+<tr><td><code>test_mcal</code></td><td><code>test_mains/test_mcal.c</code></td><td>MCAL</td><td>MCAL layer test (40 checks)</td></tr>
+<tr><td><code>test_hal</code></td><td><code>test_mains/test_hal.c</code></td><td>MCAL HAL</td><td>HAL layer test (65 checks + manual steps)</td></tr>
+<tr><td><code>test_service</code></td><td><code>test_mains/test_service.c</code></td><td>MCAL HAL Service</td><td>SERVICE layer test (140 checks)</td></tr>
+<tr><td><code>test_app</code></td><td><code>src/APP/</code> without <code>main.c</code> + <code>test_app.c</code></td><td>MCAL HAL Service</td><td>APP automatic checks, then the full super-loop</td></tr>
+</table>
+<p><code>scripts/build_all_hex.ps1</code> rebuilds all six into <code>hex/&lt;env&gt;.hex</code>. Proteus needs the ATmega32 <i>Clock Frequency</i> property set to 16 MHz, equal to <code>F_CPU</code>; every timing in this guide depends on it.</p>
+
+<h2>1.8 Boot order</h2>
+<p><code>main()</code> does three things: initialise every module in a fixed order, enable interrupts, and run the super-loop (chapter 6). The order matters:</p>
+<ol class="steps">
+<li><b>Outputs to a safe state first.</b> <code>RELAY</code>, <code>LED</code>, <code>BUZZER</code>, <code>FAN</code>, <code>SERVO</code>, <code>DIMMER</code> set the pin level before the pin becomes an output, so neither heater element can switch on during reset (HTR-06).</li>
+<li><b>Communication and the I²C parts:</b> <code>TERM</code> (UART + rings), then <code>LCD_BUF_voidInit</code>, the only long blocking call (CLCD power-up delays), then <code>LAMP</code>, <code>SEVEN_SEG</code>, <code>KPAD</code>, <code>BUTTON</code>, <code>LM35</code>.</li>
+<li><b>Storage:</b> <code>ESTORE_voidInit</code> reads the 208-byte image from the 24C08 (or loads the defaults on a blank chip), then <code>USERDB_voidInit</code> repairs a missing admin, then <code>EVQ_voidInit</code>.</li>
+<li><b>APP modules:</b> ALARM, SEC, LIGHT, DOOR, CLIMATE, HEATER, UILOC, UIREM. None of them posts an event or calls <code>SCHED</code>, so the queue is empty when the loop starts.</li>
+<li><b>Time base last:</b> <code>SCHED_voidInit</code>, <code>GIE_voidEnableGlobalInterrupt</code>, <code>SCHED_voidStart</code>. The tick starts only when everything it will drive is ready.</li>
+</ol>
+<x-fig src="boot_timeline.svg" w="100" label="simavr">Boot phases measured in simavr from the I²C trace (EEPROM with valid data). The CLCD init alone is {{ f(N['LCD_INIT_MS'],1) }} ms computed (48 ms of <code>_delay_ms</code> + 2.5 ms of bus time), against 51.0 − 0.4 = 50.6 ms measured. <code>docs/architecture.md</code> §4.3 quotes 46 ms (see the discrepancy list). The scheduler starts {{ f(N['SIM']['boot_first_slot_ms']['warm']-5,1) }} ms after reset, and the first 5 ms task runs at {{ f(N['SIM']['boot_first_slot_ms']['warm'],1) }} ms.</x-fig>
+<p>On a blank 24C08 the boot takes the same time: the defaults are built in RAM and the 13 pages are written in the background by the 10 ms task, 20 ms per page. In simavr the page writes start at 84.7 ms and the last one at 324.7 ms, for both the real-chip model (5 ms write cycle) and the Proteus model (no write delay).</p>

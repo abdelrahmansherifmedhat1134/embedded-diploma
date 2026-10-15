@@ -1,0 +1,92 @@
+diff --git a/simavr/sim/avr_adc.c b/simavr/sim/avr_adc.c
+index b563cba..125999f 100644
+--- a/simavr/sim/avr_adc.c
++++ b/simavr/sim/avr_adc.c
+@@ -213,6 +213,15 @@ avr_adc_write_adcsra(
+ 	uint8_t adsc = avr_regbit_get(avr, p->adsc);
+ 	uint8_t aden = avr_regbit_get(avr, p->aden);
+ 
++	/* PATCH: writing a one to ADIF clears it , writing a zero keeps it (data sheet).
++	 * v1.6 stored the written one , so a polled conversion ended at once with stale data. */
++	{
++		uint8_t ifmask = 1 << p->adc.raised.bit;
++		uint8_t clr_if = v & ifmask;
++		v = (v & ~ifmask) | (clr_if ? 0 : (avr->data[p->adsc.reg] & ifmask));
++		if (clr_if)
++			avr_clear_interrupt(avr, &p->adc);
++	}
+ 	avr->data[p->adsc.reg] = v;
+ 
+ 	// can't write zero to adsc
+diff --git a/simavr/sim/avr_twi.c b/simavr/sim/avr_twi.c
+index 8249ee7..459852b 100644
+--- a/simavr/sim/avr_twi.c
++++ b/simavr/sim/avr_twi.c
+@@ -69,7 +69,7 @@
+ #define TWI_NO_STATE               0xF8  // No relevant state information available; TWINT = �0�
+ #define TWI_BUS_ERROR              0x00  // Bus error due to an illegal START or STOP condition
+ 
+-#define AVR_TWI_DEBUG 1
++#define AVR_TWI_DEBUG 0
+ 
+ static inline void
+ _avr_twi_status_set(
+@@ -118,9 +118,17 @@ _avr_twi_delay_state(
+ 		uint8_t state)
+ {
+ 	p->next_twstate = state;
+-	// TODO: calculate clock rate, convert to cycles, and use that
+-	avr_cycle_timer_register_usec(
+-			p->io.avr, twi_cycles, avr_twi_set_state_timer, p);
++	/* PATCH (technical guide timing cross-check): one TWI (SCL) cycle =
++	 * 16 + 2*TWBR*4^TWPS CPU cycles (ATmega32 data sheet). A START (twi_cycles = 0)
++	 * is modelled as one SCL period. */
++	{
++		avr_t * avr = p->io.avr;
++		uint32_t twbr = avr->data[p->r_twbr];
++		uint32_t twps = avr->data[p->r_twsr] & 3;
++		uint32_t scl = 16 + 2 * twbr * (1u << (2 * twps));
++		uint32_t n = twi_cycles ? (uint32_t)twi_cycles : 1;
++		avr_cycle_timer_register(avr, (avr_cycle_count_t)n * scl, avr_twi_set_state_timer, p);
++	}
+ }
+ 
+ static void
+@@ -168,9 +176,14 @@ avr_twi_write(
+ 	if (!twen)
+ 		return;
+ 
+-	uint8_t cleared = avr_regbit_get(avr, p->twi.raised);
+-
+-	/*int cleared = */avr_clear_interrupt_if(avr, &p->twi, twint);
++	/* PATCH: writing a one to TWINT clears it (data sheet). v1.6 left the written 1 in TWCR
++	 * when the flag had not been raised , so the CPU saw TWINT = 1 at once. */
++	uint8_t wrote_int = (v >> p->twi.raised.bit) & 1;
++	uint8_t cleared = twint && wrote_int;
++	if (wrote_int) {	/* TWINT is a sticky flag in simavr : clear the bit itself too */
++		avr_clear_interrupt(avr, &p->twi);
++		avr_regbit_clear(avr, p->twi.raised);
++	}
+ //	AVR_TRACE(avr, "cleared %d\n", cleared);
+ 
+ 	if (!twsto && avr_regbit_get(avr, p->twsto)) {
+@@ -308,15 +321,10 @@ avr_twi_write(
+ 						p->state & TWI_COND_ACK ?
+ 								TWI_MRX_ADR_ACK : TWI_MRX_ADR_NACK);
+ 			} else {
+-				if(p->state & TWI_COND_WRITE){
+-					_avr_twi_delay_state(p, 0,
+-							p->state & TWI_COND_ACK ?
+-									TWI_MTX_DATA_ACK : TWI_MTX_DATA_NACK);
+-				}else{
+-					_avr_twi_delay_state(p, 9,
+-							p->state & TWI_COND_ACK ?
+-									TWI_MTX_ADR_ACK : TWI_MTX_ADR_NACK);
+-				}
++				/* PATCH: SLA+W always gives 0x18 / 0x20 (v1.6 returned 0x28 when TWDR had been written) */
++				_avr_twi_delay_state(p, 9,
++						p->state & TWI_COND_ACK ?
++								TWI_MTX_ADR_ACK : TWI_MTX_ADR_NACK);
+ 			}
+ 		}
+ 		p->state &= ~TWI_COND_WRITE;

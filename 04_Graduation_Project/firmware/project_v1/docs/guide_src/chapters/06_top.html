@@ -1,0 +1,67 @@
+<h1 data-ch="6"><span class="num">Chapter 6</span>The top-level application</h1>
+<p class="lead"><code>src/APP/main.c</code> is about 100 lines. It initialises everything in the order of §1.8, enables interrupts, and runs a super-loop that serves the scheduler flags. This chapter shows how the pieces of chapters 2–5 work together, and follows three real interactions through every layer, with times taken from the simavr run.</p>
+
+<h2>6.1 The super-loop</h2>
+<x-code src="src/APP/main.c" grep="if(SCHED_u8IsTaskDue(SCHED_TASK_5MS)){" n="15" title="first three slots of the loop"/>
+<p>The 500 ms slot calls <code>HEATER_voidTask500ms()</code> and <code>ALARM_voidTask500ms()</code>; the 1 s slot calls <code>UILOC_voidTask1s()</code> and <code>UIREM_voidTask1s()</code>. There is no dispatch table and no function-pointer list: one explicit <code>if</code> per period keeps the order visible and lets the compiler inline everything (with LTO, all task functions end up inside <code>main</code>).</p>
+<table class="tight">
+<thead><tr><th>Slot</th><th>First due</th><th>Calls, in order</th><th>Why this order</th></tr></thead>
+<tr><td>5 ms</td><td class="n">tick 5</td><td>LCD_BUF_voidUpdate · UIREM_voidTask5ms</td><td>one LCD byte, then terminal input and output</td></tr>
+<tr><td>10 ms</td><td class="n">tick 12</td><td>KPAD_voidUpdate · BUTTON_voidUpdate · HEATER_voidTask10ms · UILOC_voidTask10ms · ESTORE_voidUpdate</td><td>inputs first, so HEATER and UILOC see a new event in the same pass; ESTORE last, so a value saved by a UI in this pass may go out at once</td></tr>
+<tr><td>100 ms</td><td class="n">tick 101</td><td>HEATER_voidTask100ms · CLIMATE_voidTask100ms</td><td>two ADC samples, control laws, display</td></tr>
+<tr><td>500 ms</td><td class="n">tick 503</td><td>HEATER_voidTask500ms · ALARM_voidTask500ms</td><td>blink phase, buzzer beat</td></tr>
+<tr><td>1 s</td><td class="n">tick 1004</td><td>UILOC_voidTask1s · UIREM_voidTask1s</td><td>idle timeouts, status page refresh</td></tr>
+</table>
+<p>When no flag is set, the loop simply polls the five flags again. That is the idle time: 93–96 % of the CPU in simavr (§7.4). There is no sleep mode; adding <code>SLEEP</code> with the Timer2 interrupt as the wake-up source would be a small change if power ever mattered.</p>
+
+<h2>6.2 Data ownership and event flow</h2>
+<p>Rule: every piece of state has exactly one owner, as <code>static</code> variables in the owner's <code>.c</code>; everyone else goes through the owner's functions. There are no shared global variables between modules.</p>
+<x-fig src="dataflow.svg" w="100" label="code">Who drives whom. Solid: function calls. Dashed green: events posted to EVQ and printed by UIREM.</x-fig>
+<table class="tight">
+<thead><tr><th>State</th><th>Owner</th><th>Changed by (owner's API)</th><th>Read by</th></tr></thead>
+<tr><td>Lamp mask, dimmer %</td><td>LIGHT</td><td>UIREM, UILOC</td><td>UIREM, UILOC</td></tr>
+<tr><td>Door state</td><td>DOOR</td><td>UIREM (admin)</td><td>UIREM</td></tr>
+<tr><td>Room average, AC on/off</td><td>CLIMATE</td><td>itself (100 ms), ALARM (force off)</td><td>UIREM, UILOC</td></tr>
+<tr><td>Water average, panel state, element</td><td>HEATER</td><td>itself (buttons, control law), ALARM</td><td>UIREM, UILOC</td></tr>
+<tr><td>Set temperature</td><td>HEATER (working) + ESTORE (stored)</td><td>panel, UIREM, UILOC</td><td>UIREM, UILOC</td></tr>
+<tr><td>Sessions, fail counters, keypad-allowed</td><td>SEC</td><td>UIREM, UILOC</td><td>UIREM, UILOC</td></tr>
+<tr><td>Lockdown flag</td><td>ALARM</td><td>SEC</td><td>UIREM, UILOC, SEC</td></tr>
+<tr><td>Accounts</td><td>USERDB (inside the ESTORE image)</td><td>UIREM (admin, gate open)</td><td>SEC, UIREM</td></tr>
+<tr><td>EEPROM image, dirty pages, fault</td><td>ESTORE</td><td>USERDB, HEATER</td><td>USERDB, HEATER, UIREM</td></tr>
+<tr><td>Pending events</td><td>EVQ</td><td>LIGHT, CLIMATE, HEATER, SEC, ALARM, ESTORE</td><td>UIREM</td></tr>
+<tr><td>Tick, task flags</td><td>SCHED</td><td>Timer2 ISR</td><td>main</td></tr>
+<tr><td>LCD text</td><td>LCD_BUF</td><td>UILOC</td><td>— (sent to the LCD)</td></tr>
+</table>
+
+<h2>6.3 Scenario 1 — remote login, set temperature, EEPROM save</h2>
+<x-fig src="seq_remote.svg" w="100" label="simavr">Scenario 1 through the layers. Times are from the simavr main run (admin logged in at 1.1 s, <code>5 65</code> sent at 7.0 s).</x-fig>
+<table class="tight">
+<thead><tr><th>#</th><th>What happens</th><th>Where</th></tr></thead>
+<tr><td>1</td><td>Each received byte raises RXC; the ISR puts it in the RX ring (7.6 µs per byte, 122 cycles).</td><td>USART ISR → TERM</td></tr>
+<tr><td>2</td><td>Within 5 ms, <code>TERM_u8GetLine</code> takes the bytes, echoes them (<code>*</code> for the password) and returns the line on CR.</td><td>UIREM 5 ms</td></tr>
+<tr><td>3</td><td><code>SEC_u8Login(REMOTE, "admin", "1234")</code> compares both 8-byte fields with the RAM image. Admin → write gate open, local allowed = 0, keypad session ended.</td><td>SEC → USERDB → ESTORE (RAM)</td></tr>
+<tr><td>4</td><td>Welcome, menu (one line per 5 ms step) and prompt are queued; the 408 menu bytes leave in ≈ 0.42 s.</td><td>UIREM → TERM → UDRE ISR</td></tr>
+<tr><td>5</td><td><code>5 65⏎</code> → <code>UIREM_voidCommand</code> splits command and argument → <code>EVQ_voidSetMute(1)</code> → <code>HEATER_u8SetSetTemp(65)</code> → <code>ESTORE_voidWriteByte(0x10, 65)</code> sets dirty bit 1 → mute off → <code>[OK] Heater set temperature is now 65C</code>.</td><td>UIREM, HEATER, ESTORE</td></tr>
+<tr><td>6</td><td>Next 10 ms slot: page 1 written, <code>S A0 10 41 FF … P</code>, {{ f(R['latency']['set_temp_eeprom']['page_write_us'],0) }} µs on the bus, {{ f(R['latency']['set_temp_eeprom']['enter_to_page_write_ms'],1) }} ms after the Enter was received (simavr).</td><td>ESTORE 10 ms → EXT_EEPROM → TWI</td></tr>
+<tr><td>7</td><td>Next slot: one ACK poll, chip ready (its 5 ms cycle is over) → IDLE. Saved {{ f(R['latency']['set_temp_eeprom']['enter_to_page_write_ms'] + R['latency']['set_temp_eeprom']['polls_after_ms'][0],1) }} ms after the Enter.</td><td>ESTORE</td></tr>
+</table>
+
+<h2>6.4 Scenario 2 — a keypad user toggles a lamp</h2>
+<x-fig src="seq_keypad.svg" w="100" label="simavr">Scenario 2 (simavr main run, key "2" pressed at 12.5 s while the lamp screen is open and the admin is at the prompt).</x-fig>
+<table class="tight">
+<thead><tr><th>t after key-down</th><th>Event</th></tr></thead>
+<tr><td class="n">0 → 10 ms</td><td>first scan sees "2" (candidate)</td></tr>
+<tr><td class="n">10 → 20 ms</td><td>second equal scan → accepted; UILOC takes it in the same pass</td></tr>
+<tr><td class="n">{{ f(R['latency']['key_lamp']['lamp_write_after_ms'],1) }} ms</td><td>lamp chip written (<code>S 40 xx P</code>, 190 µs); EVQ_LAMP posted; screen redrawn in RAM</td></tr>
+<tr><td class="n">{{ f(R['latency']['key_lamp']['lcd_writes_after_ms'][0],1) }} ms</td><td>LCD_BUF: set cursor to row 2 under lamp 2</td></tr>
+<tr><td class="n">{{ f(R['latency']['key_lamp']['lcd_writes_after_ms'][1],1) }} ms</td><td>LCD_BUF: <code>*</code> written — the change is visible</td></tr>
+<tr><td class="n">{{ f(R['latency']['key_lamp']['terminal_info_done_ms'],1) }} ms</td><td>the terminal has received <code>[INFO] Lamp 2 is now ON</code> (≈ 24 bytes at 1.04 ms each)</td></tr>
+</table>
+
+<h2>6.5 Scenario 3 — the third wrong login</h2>
+<x-fig src="seq_lockdown.svg" w="100" label="simavr">Scenario 3 (simavr main run, third wrong pair at 26.9 s).</x-fig>
+<p>The 3rd failed <code>SEC_u8Login</code> calls <code>ALARM_voidTrigger()</code> inside the same call: elements and fan off and the buzzer on within {{ f(R['latency']['lockdown']['enter_to_buzzer_ms'],1) }} ms of the Enter (simavr). In the next 5 ms call, UIREM sees <code>ALARM_u8IsActive()</code>, empties its print queue, queues the <code>[ALERT]</code> line, switches the echo off and enters LOCKED; from then on received bytes are read and thrown away. In the next 10 ms call, UILOC shows <code>SYSTEM LOCKED / Reset required</code> and ignores keys. HEATER (LOCKED) ignores its buttons. The 500 ms task toggles the buzzer (simavr: toggles 500 ms apart). Lamps, dimmer and door are untouched. Only the RESET pin ends this.</p>
+<div class="cols2">
+<x-fig src="repo_terminal_lockdown.png" w="100" label="proteus">The lockdown in the Proteus terminal.</x-fig>
+<x-fig src="repo_lcd_system_locked.png" w="100" label="proteus">The LCD in lockdown.</x-fig>
+</div>

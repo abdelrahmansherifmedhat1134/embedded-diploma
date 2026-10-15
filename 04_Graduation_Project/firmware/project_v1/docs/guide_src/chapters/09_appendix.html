@@ -1,0 +1,163 @@
+<h1 data-ch="A"><span class="num">Appendices</span>Reference</h1>
+<p class="lead">Quick-reference tables for re-implementation and review. Every value is the one the firmware writes at run time.</p>
+
+<h2>A. Register quick reference</h2>
+<table class="reg tight">
+<thead><tr><th>Register</th><th class="n">Addr</th><th>Value / bits written</th><th>Written by</th><th>Meaning</th></tr></thead>
+<tr><td>TCCR2</td><td class="n">0x45</td><td>WGM21 = 1, WGM20 = 0, CS22:20 = 100</td><td>TIMER2_voidInit</td><td>CTC, clk/64</td></tr>
+<tr><td>OCR2</td><td class="n">0x43</td><td>249</td><td>TIMER2_voidSetOCR</td><td>1 ms period</td></tr>
+<tr><td>TIMSK</td><td class="n">0x59</td><td>OCIE2 (bit 7) = 1</td><td>SCHED_voidStart</td><td>tick interrupt</td></tr>
+<tr><td>TCCR0</td><td class="n">0x53</td><td>WGM01:00 = 11, CS02:00 = 010, COM01:00 = 10 / 00</td><td>DIMMER via TIMER0</td><td>fast PWM, clk/8, non-inv. / off</td></tr>
+<tr><td>OCR0</td><td class="n">0x5C</td><td>p × 255 / 100</td><td>TIMER0_GeneratePWM</td><td>dimmer duty</td></tr>
+<tr><td>TCCR1A</td><td class="n">0x4F</td><td>WGM11 = 1, WGM10 = 0, COM1A1:0 = 10, COM1B1:0 = 10 / 00</td><td>TIMER1</td><td>mode 14, OC1A/OC1B non-inv.</td></tr>
+<tr><td>TCCR1B</td><td class="n">0x4E</td><td>WGM13:12 = 11, CS12:10 = 010</td><td>TIMER1_voidInit</td><td>mode 14, clk/8</td></tr>
+<tr><td>ICR1H:L</td><td class="n">0x47:46</td><td>39999 (0x9C3F), high byte first</td><td>TIMER1_voidInit</td><td>TOP → 50 Hz</td></tr>
+<tr><td>OCR1AH:L</td><td class="n">0x4B:4A</td><td>2000 … 4000</td><td>SERVO</td><td>servo pulse</td></tr>
+<tr><td>OCR1BH:L</td><td class="n">0x49:48</td><td>39999 (100 %)</td><td>FAN</td><td>fan duty</td></tr>
+<tr><td>UBRRH / UBRRL</td><td class="n">0x40 / 0x29</td><td>0 / 103</td><td>USART_voidInit</td><td>9615 baud</td></tr>
+<tr><td>UCSRB</td><td class="n">0x2A</td><td>RXEN, TXEN, RXCIE; UDRIE on demand</td><td>USART, TERM</td><td>RX/TX + interrupts</td></tr>
+<tr><td>UCSRC</td><td class="n">0x40</td><td>0x86 (URSEL, UCSZ1, UCSZ0)</td><td>USART_voidInit</td><td>8N1</td></tr>
+<tr><td>TWBR / TWSR</td><td class="n">0x20 / 0x21</td><td>72 / prescaler 00</td><td>TWI_voidMasterInit</td><td>100 kHz</td></tr>
+<tr><td>TWCR</td><td class="n">0x56</td><td>TWEN; TWINT|TWEN|(TWSTA/TWSTO/TWEA) per step</td><td>TWI</td><td>bus actions</td></tr>
+<tr><td>ADMUX</td><td class="n">0x27</td><td>REFS1:0 = 11, ADLAR = 0, MUX = 0 / 1</td><td>ADC</td><td>2.56 V, channel</td></tr>
+<tr><td>ADCSRA</td><td class="n">0x26</td><td>ADEN, ADPS2:0 = 111; ADSC per conversion; ADIF cleared by writing 1; ADIE = 0</td><td>ADC</td><td>125 kHz, polled</td></tr>
+<tr><td>DDRx / PORTx</td><td class="n">—</td><td>see Appendix B</td><td>DIO via HAL inits</td><td>pin direction, level, pull-up</td></tr>
+<tr><td>SREG.I</td><td class="n">0x5F</td><td>SEI after all inits; CLI/SEI pairs in SCHED/TERM</td><td>GIE</td><td>global interrupts</td></tr>
+</table>
+
+<h2>B. Full pin table</h2>
+<table class="tight">
+<thead><tr><th>Pin</th><th class="n">DIP</th><th>Dir</th><th>Function</th><th>Active</th><th>Owner (_cfg.h)</th></tr></thead>
+<tr><td>PA0</td><td class="n">40</td><td>analog</td><td>LM35 ambient (ADC0)</td><td>10 mV/°C</td><td>LM35</td></tr>
+<tr><td>PA1</td><td class="n">39</td><td>analog</td><td>LM35 water (ADC1)</td><td>10 mV/°C</td><td>LM35</td></tr>
+<tr><td>PA2</td><td class="n">38</td><td>—</td><td>LDR, reserved (not used in v1)</td><td>—</td><td>—</td></tr>
+<tr><td>PA3</td><td class="n">37</td><td>out</td><td>heater LED</td><td>high</td><td>LED</td></tr>
+<tr><td>PA4–PA7</td><td class="n">36–33</td><td>in, pull-up</td><td>keypad rows A–D</td><td>low</td><td>KPAD</td></tr>
+<tr><td>PB0, PB1, PB2, PB4</td><td class="n">1, 2, 3, 5</td><td>out</td><td>keypad columns 1–4</td><td>low while scanned</td><td>KPAD</td></tr>
+<tr><td>PB3</td><td class="n">4</td><td>out (OC0)</td><td>dimmer PWM 7.8 kHz</td><td>high</td><td>DIMMER</td></tr>
+<tr><td>PB5</td><td class="n">6</td><td>in, pull-up</td><td>heater Down button</td><td>low</td><td>BUTTON</td></tr>
+<tr><td>PB6</td><td class="n">7</td><td>out</td><td>heating element (SSR)</td><td>high</td><td>RELAY</td></tr>
+<tr><td>PB7</td><td class="n">8</td><td>out</td><td>cooling element (SSR)</td><td>high</td><td>RELAY</td></tr>
+<tr><td>PC0 / PC1</td><td class="n">22 / 23</td><td>TWI</td><td>I²C SCL / SDA, 4.7 kΩ pull-ups</td><td>—</td><td>TWI hardware</td></tr>
+<tr><td>PC2–PC7</td><td class="n">24–29</td><td>—</td><td>spare (freed by D-20; PC2–PC5 = JTAG on a real chip)</td><td>—</td><td>—</td></tr>
+<tr><td>PD0 / PD1</td><td class="n">14 / 15</td><td>RXD / TXD</td><td>UART terminal</td><td>—</td><td>USART hardware</td></tr>
+<tr><td>PD2</td><td class="n">16</td><td>—</td><td>PIR (INT0), reserved</td><td>—</td><td>—</td></tr>
+<tr><td>PD3</td><td class="n">17</td><td>out</td><td>buzzer</td><td>high</td><td>BUZZER</td></tr>
+<tr><td>PD4</td><td class="n">18</td><td>out (OC1B)</td><td>AC fan PWM 50 Hz</td><td>high</td><td>FAN</td></tr>
+<tr><td>PD5</td><td class="n">19</td><td>out (OC1A)</td><td>door servo, 1–2 ms pulse</td><td>—</td><td>SERVO</td></tr>
+<tr><td>PD6 / PD7</td><td class="n">20 / 21</td><td>in, pull-up</td><td>heater ON/OFF / Up button</td><td>low</td><td>BUTTON</td></tr>
+<tr><td>RESET, VCC, GND, AVCC, AREF, XTAL1/2</td><td class="n">9, 10, 11/31, 30, 32, 13/12</td><td>—</td><td>reset button + 10 kΩ; +5 V; 0 V; +5 V; open; 16 MHz</td><td>—</td><td>—</td></tr>
+</table>
+
+<h2>C. EEPROM byte map (24C08, block 0)</h2>
+<table class="tight">
+<thead><tr><th>Address</th><th class="n">Size</th><th class="n">Page</th><th>Macro</th><th>Content / default</th></tr></thead>
+<tr><td>0x00</td><td class="n">1</td><td class="n">0</td><td>ESTORE_ADDR_MAGIC</td><td>0xA5 = valid data</td></tr>
+<tr><td>0x01</td><td class="n">1</td><td class="n">0</td><td>ESTORE_ADDR_VERSION</td><td>0x01 = layout version</td></tr>
+<tr><td>0x02–0x0F</td><td class="n">14</td><td class="n">0</td><td>—</td><td>reserved, 0xFF</td></tr>
+<tr><td>0x10</td><td class="n">1</td><td class="n">1</td><td>ESTORE_ADDR_HEATER_SET</td><td>set temperature °C, default 60 (0x3C)</td></tr>
+<tr><td>0x11–0x1F</td><td class="n">15</td><td class="n">1</td><td>—</td><td>reserved, 0xFF</td></tr>
+<tr><td>0x20–0x27 / 0x28–0x2F</td><td class="n">8 + 8</td><td class="n">2</td><td>ESTORE_ADDR_ADMIN</td><td>admin name "admin" / password "1234", 0x00-padded</td></tr>
+<tr><td>0x30, 0x40, 0x50, 0x60, 0x70</td><td class="n">16 each</td><td class="n">3–7</td><td>ESTORE_ADDR_REMOTE_USERS</td><td>remote users 0–4 (empty = first byte 0x00/0xFF)</td></tr>
+<tr><td>0x80, 0x90, 0xA0, 0xB0, 0xC0</td><td class="n">16 each</td><td class="n">8–12</td><td>ESTORE_ADDR_KEYPAD_USERS</td><td>keypad users 0–4 (digits only)</td></tr>
+<tr><td>0xD0–0x3FF</td><td class="n">816</td><td class="n">13–63</td><td>—</td><td>not used (test_service uses 0x3E0 as a marker)</td></tr>
+</table>
+
+<h2>D. UART command list</h2>
+<p>9600 8N1, line end <code>\r\n</code> sent, <code>\r</code>, <code>\n</code> or <code>\r\n</code> accepted; maximum 16 characters per line; one-argument commands accept the argument on the same line (<code>1 3</code>).</p>
+<table class="tight">
+<thead><tr><th class="n">#</th><th>Role</th><th>Command</th><th>Argument</th><th>Reply</th></tr></thead>
+<tr><td class="n">1</td><td>all</td><td>Lamp on/off (toggle)</td><td>1–5</td><td><code>[OK] Lamp 3 is now ON</code></td></tr>
+<tr><td class="n">2</td><td>all</td><td>Dimmer level</td><td>0–100 step 10</td><td><code>[OK] Dimmer is now 70%</code></td></tr>
+<tr><td class="n">3</td><td>all</td><td>AC status</td><td>—</td><td><code>AC is ON. Room temperature 29C.</code></td></tr>
+<tr><td class="n">4</td><td>all</td><td>Heater status</td><td>—</td><td><code>Heater is ON (HEATING). Water 52C, set 60C.</code></td></tr>
+<tr><td class="n">5</td><td>all</td><td>Heater set temperature</td><td>35–75 step 5</td><td><code>[OK] Heater set temperature is now 65C</code></td></tr>
+<tr><td class="n">6</td><td>all</td><td>System status</td><td>—</td><td>6–7 line block</td></tr>
+<tr><td class="n">7 / 8</td><td>admin</td><td>Open / close the door</td><td>—</td><td><code>[OK] Door is now OPEN</code> or <code>Door is already open.</code></td></tr>
+<tr><td class="n">9</td><td>admin</td><td>Keypad control allow / block (toggle)</td><td>—</td><td><code>[OK] Keypad control is now ALLOWED</code></td></tr>
+<tr><td class="n">10 / 12</td><td>admin</td><td>Add remote / keypad user</td><td>name, then password (echo *)</td><td><code>[OK] Remote user bob added.</code></td></tr>
+<tr><td class="n">11 / 13</td><td>admin</td><td>Remove remote / keypad user</td><td>name</td><td><code>[OK] Remote user bob removed.</code></td></tr>
+<tr><td class="n">14</td><td>admin</td><td>List users</td><td>—</td><td>names, never passwords</td></tr>
+<tr><td class="n">15</td><td>admin</td><td>Change admin password</td><td>4–8 chars (echo *)</td><td><code>[OK] Admin password changed.</code></td></tr>
+<tr><td class="n">16</td><td>admin</td><td>Factory reset</td><td>YES</td><td><code>[OK] Factory reset done. Admin is admin / 1234.</code> + logout</td></tr>
+<tr><td class="n">0 / ?</td><td>all</td><td>Logout / show menu</td><td>—</td><td><code>Goodbye admin.</code> / the menu</td></tr>
+</table>
+<p class="small">Errors: <code>[ERR] Unknown command.</code>, <code>[ERR] Not allowed for your role.</code>, <code>[ERR] Input too long.</code>, range errors per command, <code>[ERR] Device not responding.</code> (lamp chip); each is followed by the menu. Unsolicited lines: <code>[INFO]</code> (changes made elsewhere), <code>[WARN]</code> (EEPROM), <code>[ALERT]</code> (lockdown).</p>
+
+<h2>E. Glossary</h2>
+<table class="tight">
+<tr><td style="width:18%"><b>ACK polling</b></td><td>checking whether an I²C EEPROM has finished its write cycle by sending its address and seeing whether it acknowledges</td></tr>
+<tr><td><b>CTC</b></td><td>Clear Timer on Compare match: the timer counts to OCR and restarts at 0</td></tr>
+<tr><td><b>Debounce</b></td><td>accepting a mechanical contact's new level only after it has been stable for several samples</td></tr>
+<tr><td><b>Dirty page</b></td><td>an EEPROM page whose RAM copy differs from the chip and still has to be written</td></tr>
+<tr><td><b>Fast PWM</b></td><td>timer mode in which the output is set at BOTTOM and cleared at the compare match; frequency = clock / (TOP + 1)</td></tr>
+<tr><td><b>Hyperperiod</b></td><td>the least common multiple of all task periods; the schedule repeats after it (here 1000 ms)</td></tr>
+<tr><td><b>Hysteresis</b></td><td>two different thresholds for switching on and off, so that a signal near one threshold does not make the output chatter</td></tr>
+<tr><td><b>Jitter</b></td><td>variation in the start time of a periodic task</td></tr>
+<tr><td><b>LTO</b></td><td>link-time optimisation: the compiler optimises across files at link time and removes unused functions</td></tr>
+<tr><td><b>MCAL / HAL</b></td><td>Microcontroller / Hardware Abstraction Layer: register drivers / part drivers</td></tr>
+<tr><td><b>Overrun</b></td><td>a task flag set again before the previous one was served (one period lost)</td></tr>
+<tr><td><b>Quasi-bidirectional</b></td><td>a pin with a strong pull-down and a weak pull-up (PCF8574): it can sink current but hardly source it</td></tr>
+<tr><td><b>Ring buffer</b></td><td>a fixed array used as a FIFO with wrap-around head and tail indexes</td></tr>
+<tr><td><b>Super-loop</b></td><td>the endless <code>while(1)</code> in <code>main()</code> that calls tasks when their flags are set</td></tr>
+<tr><td><b>Write-behind</b></td><td>a write that updates a fast copy at once and the slow medium later, in the background</td></tr>
+<tr><td><b>WCET</b></td><td>worst-case execution time</td></tr>
+</table>
+
+<h2>F. Interview questions about this project</h2>
+<table class="tight">
+<thead><tr><th style="width:38%">Question</th><th>Short answer</th></tr></thead>
+<tr><td>Why a layered architecture on an 8-bit MCU?</td><td>Each layer can be tested on its own (one test program per layer), pins live in one place, and a part can be replaced without touching the application — the 7-segment redesign changed one HAL driver and nothing above it.</td></tr>
+<tr><td>How do you get an exact 1 ms tick at 16 MHz?</td><td>Timer2 CTC, prescaler 64 → 250 kHz, OCR2 = 249 → 250 counts = 1.000 ms; a compile-time <code>#error</code> rejects an F_CPU that cannot give an exact millisecond.</td></tr>
+<tr><td>What does your ISR do, and why so little?</td><td>Counts the tick and sets task flags (≈ 16 µs). Short ISRs keep interrupt latency low for the UART and avoid sharing complex state with the main loop.</td></tr>
+<tr><td>How are the ISR and the main loop kept consistent?</td><td><code>volatile</code> on shared data; multi-byte values and read-modify-write of flag bytes with interrupts off; single-producer/single-consumer ring buffers with 8-bit indexes need no lock.</td></tr>
+<tr><td>Why can two tasks never start in the same millisecond?</td><td>Their first-due ticks are 5, 12, 101, 503 and 1004: different modulo 5, and every period is a multiple of 5 ms.</td></tr>
+<tr><td>What is the worst-case loop pass and how did you check it?</td><td>The 10 ms slot with an EEPROM page write and a lamp toggle: ≈ 2.15 ms computed, 2.05 ms measured in a cycle-accurate simulation; no overruns.</td></tr>
+<tr><td>Why does the LCD not block the loop?</td><td>LCD_BUF keeps a wanted and a shown screen in RAM and sends at most one byte (≈ 0.46 ms) per 5 ms call.</td></tr>
+<tr><td>How do you write an EEPROM without a 5 ms delay?</td><td>RAM image + dirty bits; every 10 ms one step: write one page, or one ACK poll. Highest page first so the magic byte is written last.</td></tr>
+<tr><td>How do you send 400 bytes over a 9600-baud UART without blocking?</td><td>TX ring buffer + UDRE interrupt; the UI prints one line per 5 ms call and only when 64 bytes are free.</td></tr>
+<tr><td>Why is the I²C driver polled and not interrupt-driven?</td><td>Every transfer is short and bounded (≤ 1.7 ms) and only the main loop uses the bus; an interrupt-driven master with a queue would be a much bigger module. Each wait has a timeout so a stuck bus cannot hang the loop.</td></tr>
+<tr><td>How did you fit about 41 I/O lines on 32 pins?</td><td>LCD, lamps and both display digits on PCF8574 expanders and the EEPROM on the same I²C bus: 2 pins for 5 chips.</td></tr>
+<tr><td>Why are the lamps active low?</td><td>A PCF8574 can sink 25 mA but sources only ≈ 0.1 mA, and it powers up with every pin high — which then means all lamps off.</td></tr>
+<tr><td>How is the LM35 read without floating point?</td><td>With the 2.56 V reference one ADC step is 2.5 mV = 0.25 °C, so the raw value is the temperature × 4; thresholds are compared × 4 as well.</td></tr>
+<tr><td>Explain the heater control law.</td><td>A 10-sample moving average at 100 ms; below set − 5 heat, above set + 5 cool, in between keep the state; no decision until 10 samples exist.</td></tr>
+<tr><td>Why hysteresis for the AC?</td><td>A single threshold makes the fan chatter on noise; on above 28 °C and off below 21 °C gives a 7 °C dead band.</td></tr>
+<tr><td>What happens on the 3rd wrong login?</td><td>SEC calls ALARM in the same call: heater and fan forced off, buzzer beeping, UIs locked; only a reset clears it, because the state is not stored.</td></tr>
+<tr><td>How are keypad and remote users kept apart?</td><td>Separate lists in EEPROM; the admin record is checked only for the UART; the keypad is blocked while the admin is logged in unless allowed.</td></tr>
+<tr><td>What did LTO break and how did you find it?</td><td>ISRs declared only with <code>signal</code> were removed as unused; the MCU reset on the first interrupt. Fix: <code>used, externally_visible</code>. Found by the Phase 0 smoke test of the course drivers.</td></tr>
+<tr><td>Tell me about a design that failed.</td><td>The multiplexed 7447 display: digits ghosted in Proteus; a test bench ruled out the code and the pins, and the display moved to one I²C expander per digit, which also freed 6 pins and emptied the tick ISR.</td></tr>
+<tr><td>How would you take this to real hardware?</td><td>Buzzer driver transistor, series resistors on the ISP pins, check the I²C rise times, enable a watchdog, keep AREF open, verify the EEPROM busy path with a real chip.</td></tr>
+</table>
+
+<h2>G. Documentation errata (code is the reference)</h2>
+<p>Places where a document in <code>docs/</code> or a code comment disagrees with the code or with its measured behaviour. The guide follows the code throughout.</p>
+<table class="tight">
+<thead><tr><th>#</th><th>Where</th><th>Says</th><th>Code / measurement</th></tr></thead>
+<tr><td>1</td><td><code>TWI_cfg.h</code> comment, architecture.md §2 and §4.3</td><td>timeout ≈ 1 ms (6 cycles per wait pass)</td><td>the compiled wait loop takes 8 cycles → 2666 × 8 / 16 MHz = 1.33 ms</td></tr>
+<tr><td>2</td><td>architecture.md §4.3</td><td>LCD power-up 46 ms</td><td><code>_delay_ms</code> 40 + 5 + 1 + 2 = 48 ms + bus ≈ 50.5 ms computed; 50.6 ms simavr</td></tr>
+<tr><td>3</td><td>architecture.md §4.2 table, "First due at"</td><td>0 / 2 / 1 / 3 / 4</td><td>first due on ticks 5 / 12 / 101 / 503 / 1004 (the offsets are added to one full period; the doc's own "as built" note agrees)</td></tr>
+<tr><td>4</td><td>architecture.md §4.1</td><td>tick ISR "under 10 µs = 1 % CPU"</td><td>235–261 cycles (+7 entry) ≈ 15–17 µs ≈ 1.6 % CPU</td></tr>
+<tr><td>5</td><td>architecture.md §5.6</td><td>ON/OFF release: elements, LED and display off at once</td><td>elements off at once; display and LED follow in the next 100/500 ms task (≤ 100 ms)</td></tr>
+<tr><td>6</td><td><code>HEATER_voidRestartSetting</code> comment; test_plan T-55 wording</td><td>new set value "visible at once"</td><td>shown by the next 100 ms task; blanked again after 2 ms when that task precedes a 500 ms toggle (about 1 press in 5)</td></tr>
+<tr><td>7</td><td>eeprom_map.md §4</td><td>invalid stored set temperature: "the heater uses 60 and stores it"</td><td>60 is used; it is written only at the next save (set-mode exit, turn-off, remote/keypad change)</td></tr>
+<tr><td>8</td><td>eeprom_map.md §6</td><td>first boot: 13 pages ≈ 0.4 s in the background</td><td>20 ms per page (write slot + poll slot) → 260 ms (§7 of the same file says 260 ms); simavr 84.7–324.7 ms</td></tr>
+<tr><td>9</td><td>pin_map.md §2</td><td>Proteus 24C08 model has TD_WRITE = 10 ms</td><td>specification.md, eeprom_map.md and hal_summary.md: the model has no write delay (observed in test_hal)</td></tr>
+<tr><td>10</td><td>uart_protocol.md §6</td><td><code>[ERR] Device not responding.</code> for a lamp or EEPROM bus error</td><td>used for the lamp chip only; EEPROM problems give <code>[WARN] EEPROM not responding…</code></td></tr>
+<tr><td>11</td><td><code>test_app.c</code> header</td><td>heater LED with 330 Ω</td><td>pin_map.md: 220 Ω (wiring note only)</td></tr>
+</table>
+
+<h2>H. Regenerating this guide</h2>
+<p>The guide is generated, so a firmware change can be followed by a rebuild. Sources: <code>firmware/project_v1/docs/guide_src/</code>.</p>
+<pre class="plain">pip install matplotlib schemdraw playwright pypdf     # + graphviz (dot) and a Chromium for Playwright
+cd firmware/project_v1/docs/guide_src
+python build.py            # figures + PDF  ->  out/Technical_Guide.pdf
+python build.py --no-figs  # PDF only
+
+# timing cross-check (Linux): build simavr 1.6 with sim/simavr_v1.6_twi_adc.patch, then
+#   avr-gcc ... -flto -o app.elf (flags in sim/README.md) ; ./harness app.elf sim/main.txt main
+#   python sim/analyze.py      ->  data/results.json  (read by gnum.py)</pre>
+<ul>
+<li><code>gnum.py</code> reads <code>F_CPU</code> from <code>platformio.ini</code> and the constants from the <code>_cfg.h</code> files.</li>
+<li>Code excerpts are pulled from the sources by function name or line range; the build stops if one exceeds 15 lines.</li>
+<li>Figures are regenerated from the code tables and the simavr data.</li>
+</ul>

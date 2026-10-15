@@ -1,0 +1,93 @@
+<section class="cover">
+  <div class="band"><div style="background:#2B6CB0"></div><div style="background:#2F855A"></div><div style="background:#C05621"></div><div style="background:#6B46C1"></div></div>
+  <div class="over">Graduation project · technical documentation</div>
+  <h1 class="ct" notoc>ATmega32 Smart Home<br/>+ Water Heater</h1>
+  <div class="sub">Complete Technical Guide — from the register to the running system</div>
+  <div class="meta">
+    <div><b>Author</b>Abdelrahman Sherif Medhat</div>
+    <div><b>Course</b>Embedded Systems Diploma, AMIT Learning, 14 Sep 2025 – 8 Apr 2026</div>
+    <div><b>Instructor</b>Eng. Eslam Hefny (author of the course MCAL/HAL base drivers)</div>
+    <div><b>Target</b>ATmega32 @ 16 MHz · bare-metal C (avr-gcc, PlatformIO) · Proteus 8</div>
+    <div><b>Firmware</b>firmware/project_v1, release v1.0</div>
+  </div>
+  <img class="arch" src="images/guide/architecture.svg"/>
+  <div class="foot">Course drivers (MCAL/HAL base set) by Eng. Eslam Hefny, AMIT Learning. Project code, documentation and this guide by Abdelrahman Sherif Medhat.</div>
+</section>
+
+<h1 notoc id="how-to-read" data-ch="0"><span class="num">Front matter</span>How to read this guide</h1>
+<p class="lead">This guide explains the firmware bottom-up: one hardware block, then the driver for it, then the service that uses the driver, then the application feature, and finally the timing of the whole system. Every number, register value, address and formula is taken from the code in <code>firmware/project_v1</code> or computed from it.</p>
+
+<h3 notoc>Who it is for</h3>
+<ul>
+<li><b>An embedded student</b> who knows C and the basics of the AVR but not this code base: read chapters 1–3 in order, then the subsystem you need in chapter 5.</li>
+<li><b>The instructor</b>: chapter 1 (architecture and resource budgets), chapter 6 (the traced scenarios), chapter 7 (timing analysis) and chapter 8 (verification and traceability).</li>
+<li><b>The author, months from now</b>: the "re-implementation checklist" at the end of every module and the appendices (register reference, pin table, EEPROM map, UART commands).</li>
+</ul>
+
+<h3 notoc>Structure of every module section</h3>
+<p>Each driver, service and subsystem follows the same template, so you always know where to look:</p>
+<div class="kv">
+<div>Purpose</div><div>what the module is for and which requirement IDs it serves</div>
+<div>Hardware / registers</div><div>the chip or the registers, with the reason for every bit that is set</div>
+<div>Design</div><div>the data the module keeps and the algorithm, including what may happen in an ISR</div>
+<div>API</div><div>the public functions, exactly as declared in the header</div>
+<div>Example</div><div>a worked example with real values</div>
+<div>Pitfalls</div><div>what went wrong or could go wrong in this project</div>
+<div>Re-implementation checklist</div><div>the steps to write the module again from scratch</div>
+</div>
+
+<h3 notoc>Conventions</h3>
+<ul>
+<li>Code excerpts are copied from the source file named above them, with the original line numbers. No excerpt is longer than 15 lines; blank lines are left out.</li>
+<li>Module names are written as in the code: <code>HEATER</code>, <code>ESTORE</code>. Functions follow the course style <code>MODULE_&lt;type&gt;&lt;Name&gt;</code>, for example <code>LAMP_u8SetState</code>.</li>
+<li>Requirement IDs (<code>SEC-05</code>, <code>HTR-09</code> …) are those of <code>docs/specification.md</code> §6; in the code they appear as <code>/* REQ-HTR-09 */</code>. Design decisions <code>D-1</code> … <code>D-20</code> are in <code>docs/architecture.md</code> §9.</li>
+<li>Colours follow the architecture diagram: <span style="color:var(--app);font-weight:600">blue = APP</span>, <span style="color:var(--svc);font-weight:600">green = SERVICE</span>, <span style="color:var(--hal);font-weight:600">orange = HAL</span>, <span style="color:var(--mcal);font-weight:600">purple = MCAL</span>.</li>
+<li>Module tags: <span class="tag e" style="color:#fff;font-size:7pt;padding:1px 5px;border-radius:3px">E</span> course driver used as it is, <span class="tag f" style="color:#fff;font-size:7pt;padding:1px 5px;border-radius:3px">F</span> course driver fixed or extended, <span class="tag n" style="color:#fff;font-size:7pt;padding:1px 5px;border-radius:3px">N</span> new module written in this project.</li>
+</ul>
+
+<h3 notoc>Where the numbers come from</h3>
+<p>There is no hardware-in-the-loop. Every timing figure in this guide carries one of these labels:</p>
+<table class="tight">
+<tr><th style="width:24%">Label</th><th>Meaning</th></tr>
+<tr><td><span class="flab flab-computed">computed</span></td><td>derived on paper from <code>F_CPU = {{ f(N['F_CPU']) }}</code> (from <code>platformio.ini</code>), the <code>_cfg.h</code> constants and the ATmega32 data sheet. The generator script reads the constants from the headers, so a changed constant changes the guide.</td></tr>
+<tr><td><span class="flab flab-simavr">simavr</span></td><td>measured by running the unchanged <code>app.elf</code> in simavr, a cycle-accurate AVR simulator, with every external part emulated (I²C chips, keypad, buttons, LM35, terminal). Three bugs of the simavr 1.6 TWI/ADC models were fixed and the I²C bit time was tied to TWBR (§7.1). Method and limits: §7.1.</td></tr>
+<tr><td><span class="flab flab-proteus">Proteus</span></td><td>measured or observed in Proteus 8 by the author, as recorded in the repository (<code>docs/</code>, test sequence PDFs, presentation captures).</td></tr>
+</table>
+<p>Figures without a timing label are drawn from the source code.</p>
+
+<h1 notoc id="contents" data-ch="0">Contents</h1>
+<div class="tocwrap"><!--TOC--></div>
+
+<section class="overview">
+<h2 notoc style="margin-top:0">The system on one page</h2>
+<p>One ATmega32 runs two course projects as one product: a <b>smart home</b> (remote UART terminal, keypad + LCD, accounts in EEPROM, five lamps, a dimmable lamp, a servo door, temperature-controlled air conditioning, an alarm) and an <b>electric water heater</b> (own panel with Up/Down/ON-OFF buttons, two-digit display, heating and cooling elements, 10-sample averaged control with a ±5 °C band). The heater is one more appliance of the smart home: the terminal and the keypad show and change it as well.</p>
+<x-fig src="architecture.svg" w="92" label="reused">Firmware architecture (<code>docs/images/architecture.svg</code>). Four layers; a layer only calls the one below it. Two approved exceptions: <code>SCHED → TIMER2</code> and <code>TERM → USART</code> (D-2).</x-fig>
+<div class="cols2">
+<div>
+<h4>Key facts</h4>
+<table class="tight">
+<tr><td>CPU clock</td><td class="n">16 MHz</td></tr>
+<tr><td>System tick (Timer2 CTC)</td><td class="n">1.000 ms</td></tr>
+<tr><td>Periodic tasks</td><td class="n">5 / 10 / 100 / 500 / 1000 ms</td></tr>
+<tr><td>Worst loop pass (simavr)</td><td class="n">{{ f(max(R['slots_main']['10 ms']['max_us'], R['slots_stress']['10 ms']['max_us'])/1000, 2) }} ms</td></tr>
+<tr><td>CPU load (simavr)</td><td class="n">{{ f(R['util_main_idle_ms']*100,1) }}–{{ f(R['util_stress_worst_1s']['util']*100,1) }} %</td></tr>
+<tr><td>Flash / static RAM</td><td class="n">16 344 B (49.9 %) / 733 B (35.8 %)</td></tr>
+<tr><td>Modules</td><td class="n">42 (10 MCAL, 16 HAL, 8 SERVICE, 8 APP)</td></tr>
+<tr><td>I/O pins</td><td class="n">24 used, 2 reserved, 6 spare</td></tr>
+</table>
+</div>
+<div>
+<h4>Interfaces</h4>
+<table class="tight">
+<tr><td>UART 9600 8N1</td><td>remote terminal (Bluetooth / USB-TTL)</td></tr>
+<tr><td>I²C 100 kHz</td><td>LCD 0x27, lamps 0x20, 7-seg 0x21/0x22, 24C08 0x50</td></tr>
+<tr><td>Timer0 PWM 7.8 kHz</td><td>dimmer (PB3)</td></tr>
+<tr><td>Timer1 PWM 50 Hz</td><td>door servo (PD5), AC fan (PD4)</td></tr>
+<tr><td>ADC, 2.56 V ref</td><td>LM35 ambient (PA0), water (PA1)</td></tr>
+<tr><td>GPIO</td><td>keypad 4×4, 3 buttons, 2 elements, LED, buzzer</td></tr>
+</table>
+<h4>How it runs</h4>
+<p class="small" style="color:var(--ink)">The Timer2 ISR only counts and sets task flags. <code>main()</code> polls the flags and runs short, non-blocking state machines. The UART is interrupt-driven through ring buffers; I²C is polled from the main loop only, never from an ISR. EEPROM writes go out one page per 10 ms slot from a RAM image.</p>
+</div>
+</div>
+</section>

@@ -1,0 +1,152 @@
+<h1 data-ch="7"><span class="num">Chapter 7</span>System timing analysis</h1>
+<p class="lead">How long everything takes, how late anything can be, and how much margin is left. Every figure is either <b>computed</b> from F_CPU, the configuration constants and the data sheet, or <b>measured in simavr</b> on the unchanged application binary. Proteus observations recorded in the repository are quoted where they exist.</p>
+
+<h2>7.1 Method</h2>
+<h3>Computed values</h3>
+<p>Clock-derived values (timer periods, baud rate, ADC and SCL timing) follow from the register settings of chapter 2. They are exact, apart from the crystal tolerance. Bus times are counted in SCL periods: one byte with its ACK = 9 periods = 90 µs; a START is counted as one period. CPU times of ISRs are counted in cycles from the disassembly of an avr-gcc 7.3.0 build made with the PlatformIO flags (<code>-Os -flto -ffunction-sections -fdata-sections</code>; this build has the same RAM layout as <code>pio run</code>).</p>
+<h3>simavr measurements</h3>
+<p>simavr 1.6 is a cycle-accurate AVR simulator. A harness (<code>guide_src/sim/harness.c</code>) loads <code>app.elf</code> and emulates every external part:</p>
+<ul>
+<li>the four PCF8574 chips and a 24C08 with a 5 ms write cycle (the real chip; the Proteus model has none);</li>
+<li>the keypad matrix, which follows the column the firmware drives low;</li>
+<li>the three buttons, both LM35 inputs, and the terminal (bytes injected one frame time apart).</li>
+</ul>
+<p>The harness steps the CPU one instruction at a time and logs, with cycle timestamps:</p>
+<ul>
+<li>every served scheduler slot (from the <code>SCHED_u8IsTaskDue</code> call that returns 1 to the next call);</li>
+<li>every ISR (vector entry to the end of <code>reti</code>);</li>
+<li>every I²C transaction, the relay/LED/buzzer pins and all UART output.</li>
+</ul>
+<p>Three faults in simavr's TWI and ADC models had to be fixed first (the patch is kept in <code>guide_src/sim/</code>):</p>
+<ol>
+<li>writing 1 to TWINT did not clear the flag;</li>
+<li>SLA+W returned status 0x28 instead of 0x18;</li>
+<li>writing 1 to ADIF set the flag instead of clearing it, so polled conversions returned stale data.</li>
+</ol>
+<p>The TWI bit time was also tied to TWBR: v1.6 counts one SCL period as 1 µs, ten times too fast for 100 kHz.</p>
+<p>Two scenarios were run:</p>
+<ul>
+<li><b>main</b> (30 s): first boot on a blank EEPROM, admin login, user management, <code>1 3</code>, <code>2 70</code>, <code>5 65</code>, door, status, keypad login and lamp toggle, heater on, setting mode, water and ambient steps, logout, three wrong logins.</li>
+<li><b>stress</b> (16 s): back-to-back EEPROM writes while the keypad toggles lamps, the heater blinks in setting mode, and the terminal prints status blocks and user lists.</li>
+</ul>
+<div class="note"><b>Limits</b> simavr is not the hardware. Its I²C has ideal edges and no clock stretching; a START is modelled as one SCL period; external parts answer instantly. The cross-check validates the firmware's own timing — code paths, scheduling, bus traffic counted in bytes — against the computed model. The I²C byte durations agree with computation and with the Proteus figure in hal_summary.md (§7.3). A stuck bus was not simulated; its case is computed in §7.7.</div>
+
+<h2>7.2 From the clock to the timers</h2>
+<table>
+<thead><tr><th>Quantity</th><th>Formula (F_CPU = 16 MHz)</th><th class="n">Value</th><th>Error / note</th></tr></thead>
+<tr><td>System tick (Timer2 CTC)</td><td>(OCR2 + 1) · 64 / F_CPU, OCR2 = {{ N['T2_OCR'] }}</td><td class="n">{{ f(N['T2_PERIOD_US'],3) }} µs</td><td>{{ f(N['T2_ERR_PPM'],0) }} ppm (crystal only)</td></tr>
+<tr><td>Dimmer PWM (Timer0)</td><td>F_CPU / (8 · 256)</td><td class="n">{{ f(N['T0_FREQ'],1) }} Hz</td><td>period {{ f(N['T0_PERIOD_US'],0) }} µs, duty step 1/256</td></tr>
+<tr><td>Servo / fan PWM (Timer1)</td><td>F_CPU / (8 · (ICR1 + 1)), ICR1 = {{ N['T1_TOP'] }}</td><td class="n">{{ f(N['T1_FREQ'],3) }} Hz</td><td>{{ f(N['T1_TICK_US'],1) }} µs resolution</td></tr>
+<tr><td>Servo pulse 0° / 90° / 180°</td><td>(OCR1A + 1) · 0.5 µs, OCR1A = 2000 / 3000 / 4000</td><td class="n">1.0005 / 1.5005 / 2.0005 ms</td><td>+0.5 µs from the "+1" of fast PWM</td></tr>
+<tr><td>UART baud</td><td>F_CPU / (16 · (UBRR + 1)), UBRR = {{ N['UBRR'] }}</td><td class="n">{{ f(N['BAUD_REAL'],1) }}</td><td>+{{ f(N['BAUD_ERR_PCT'],2) }} % (limit ±2 %)</td></tr>
+<tr><td>UART byte time (8N1)</td><td>10 bits / baud</td><td class="n">{{ f(N['BYTE_MS'],3) }} ms</td><td>{{ f(1000/N['BYTE_MS'],0) }} bytes/s per direction</td></tr>
+<tr><td>ADC clock / conversion</td><td>F_CPU / 128; 13 clocks (first: 25)</td><td class="n">{{ f(N['ADC_CLK_KHZ'],0) }} kHz / {{ f(N['ADC_CONV_US'],0) }} µs</td><td>first conversion {{ f(N['ADC_FIRST_US'],0) }} µs</td></tr>
+<tr><td>I²C SCL</td><td>F_CPU / (16 + 2 · TWBR), TWBR = {{ N['TWBR'] }}</td><td class="n">{{ f(N['SCL_KHZ'],0) }} kHz</td><td>byte + ACK = {{ f(N['TWI_BYTE_US'],0) }} µs</td></tr>
+<tr><td>TWI timeout per wait</td><td>2666 passes × 8 cycles</td><td class="n">{{ f(N['TWI_TIMEOUT_MS'],2) }} ms</td><td><code>TWI_cfg.h</code> assumes 6 cycles → 1 ms</td></tr>
+</table>
+<p>A Proteus capture of the servo pulse and the dimmer PWM is Figure 2.3. <code>test_mcal</code> also counts 1000 Timer2 interrupts against Timer1 over 1 s (test_plan.md §2).</p>
+
+<h2>7.3 Task schedule, hyperperiod and I²C budget</h2>
+<h3>Periodic tasks</h3>
+<table class="tight">
+<thead><tr><th>Period</th><th>Due on ticks</th><th>Work</th><th>Bus / ADC work per call (computed)</th></tr></thead>
+<tr><td>1 ms (ISR)</td><td>every tick</td><td>tick++, 5 down-counters, flags</td><td>—</td></tr>
+<tr><td>5 ms</td><td>5, 10, 15, … (≡ 0 mod 5)</td><td>LCD_BUF (≤ 1 LCD byte or cursor command) · UIREM (one input line or one print step)</td><td>≤ 460 µs LCD + ≤ 190 µs lamp write from a command</td></tr>
+<tr><td>10 ms</td><td>12, 22, … (≡ 2 mod 10)</td><td>KPAD scan · BUTTON · HEATER buttons · UILOC key · ESTORE step</td><td>≤ 190 µs lamp write (keypad) + ≤ 1630 µs page write or 100 µs poll</td></tr>
+<tr><td>100 ms</td><td>101, 201, … (≡ 1 mod 100)</td><td>HEATER sample + control + display · CLIMATE sample + hysteresis</td><td>2 × 104 µs ADC + ≤ 2 × 190 µs display</td></tr>
+<tr><td>500 ms</td><td>503, 1003, … (≡ 3 mod 500)</td><td>HEATER blink phase + outputs · ALARM buzzer</td><td>≤ 2 × 190 µs display</td></tr>
+<tr><td>1 s</td><td>1004, 2004, … (≡ 4 mod 1000)</td><td>UILOC refresh / idle timer · UIREM idle timer</td><td>— (RAM only)</td></tr>
+</table>
+<p><b>Hyperperiod.</b> The pattern of flags repeats every lcm(5, 10, 100, 500, 1000) = <b>1000 ms</b>. In one hyperperiod there are 200 + 100 + 10 + 2 + 1 = <b>313</b> slots, and no two of them are released on the same tick (§4.1). The tightest spot is ticks 1001–1005 (mod 1000), where the 100 ms, 10 ms, 500 ms, 1 s and 5 ms flags follow each other one millisecond apart; §7.7 analyses it.</p>
+<x-fig src="gantt_100ms.svg" w="100" label="simavr">One 100 ms window from the stress run. Top: every served slot at its real start and length. Bottom: zoom on the longest slot of the whole run, a 10 ms slot with a keypad lamp toggle and an EEPROM page write, with the tick ISRs (red) that interrupt it.</x-fig>
+<h3>I²C transactions</h3>
+<x-fig src="i2c_breakdown.svg" w="96" label="simavr">Transaction durations: computed (START + n × 90 µs) against simavr. The simavr value includes the CPU work between bytes; the Proteus value for the LCD byte is from hal_summary.md.</x-fig>
+<table class="tight">
+<thead><tr><th>Transaction</th><th class="n">Bytes</th><th class="n">Computed µs</th><th class="n">simavr µs</th><th>Where, how often</th></tr></thead>
+<tr><td>LCD byte (4 port values)</td><td class="n">5</td><td class="n">{{ f(N['TWI_TX']['lcd_byte'],0) }}</td><td class="n">{{ f(R['twi_types']['LCD (0x27) 4 B']['min_us']+10,0) }}–{{ f(R['twi_types']['LCD (0x27) 4 B']['max_us']+10,0) }}</td><td>LCD_BUF, at most once per 5 ms</td></tr>
+<tr><td>Lamp write</td><td class="n">2</td><td class="n">{{ f(N['TWI_TX']['lamp'],0) }}</td><td class="n">{{ f(R['twi_types']['Lamps (0x20) 1 B']['max_us']+10,0) }}</td><td>LIGHT, per toggle</td></tr>
+<tr><td>7-seg digit write</td><td class="n">2</td><td class="n">{{ f(N['TWI_TX']['seg_digit'],0) }}</td><td class="n">{{ f(R['twi_types_stress']['7-seg tens (0x21) 1 B']['max_us']+10,0) }}</td><td>HEATER, only when a digit changes (≤ 2 per call)</td></tr>
+<tr><td>EEPROM page write</td><td class="n">18</td><td class="n">{{ f(N['TWI_TX']['ee_page'],0) }}</td><td class="n">{{ f(R['twi_types']['EEPROM (0x50, W) 17 B']['min_us']+10,0) }}–{{ f(R['twi_types']['EEPROM (0x50, W) 17 B']['max_us']+10,0) }}</td><td>ESTORE, one per 20 ms while pages are dirty</td></tr>
+<tr><td>EEPROM ACK poll</td><td class="n">1</td><td class="n">{{ f(N['TWI_TX']['ee_poll'],0) }}</td><td class="n">{{ f(R['twi_types']['EEPROM (0x50, W) 0 B']['max_us']+10,0) }}</td><td>ESTORE, the slot after a page write</td></tr>
+<tr><td>EEPROM image read (boot)</td><td class="n">2 + 209</td><td class="n">{{ f(N['TWI_TX']['ee_boot_read'],0) }}</td><td class="n">{{ f(R['twi_types']['EEPROM read (0x50, R) 208 B']['max_us']+196,0) }}</td><td>once, before the scheduler</td></tr>
+</table>
+<p><b>Worst-case bus time per slot</b> (computed, one slot per tick): 5 ms slot 460 + 190 = 650 µs; 10 ms slot 190 + 1630 = 1820 µs; 100 ms slot 2 × 190 = 380 µs (+ 208 µs ADC); 500 ms slot 380 µs; 1 s slot 0. The bus is never busy for more than 1.82 ms in a row, and at most 650 µs of every 5 ms slot. Measured in simavr, the bus was busy {{ f(R['bus_busy']['main']*100,1) }} % of the time over the main run and {{ f(R['bus_busy']['stress']*100,1) }} % over the stress run.</p>
+
+<h2>7.4 Execution times and CPU load</h2>
+<h3>Interrupt service routines</h3>
+<table class="tight">
+<thead><tr><th>ISR</th><th>Work</th><th class="n">simavr cycles</th><th class="n">+ entry (computed)</th><th class="n">µs</th><th class="n">Rate</th><th class="n">CPU share</th></tr></thead>
+<tr><td>Timer2 COMP → SCHED_voidTick</td><td>tick++, 5 counters, reloads</td><td class="n">{{ R['isr_main']['4']['min_cyc'] }}–{{ R['isr_main']['4']['max_cyc'] }}</td><td class="n">+7</td><td class="n">{{ f((R['isr_main']['4']['max_cyc']+7)/16,1) }} max</td><td class="n">1000/s</td><td class="n">{{ f((R['isr_main']['4']['mean_cyc']+7)/16000*100,2) }} %</td></tr>
+<tr><td>USART RXC → RINGBUF_u8Put</td><td>read UDR, store 1 byte</td><td class="n">{{ R['isr_main']['13']['max_cyc'] }}</td><td class="n">+7</td><td class="n">{{ f((R['isr_main']['13']['max_cyc']+7)/16,1) }}</td><td class="n">≤ 962/s</td><td class="n">≤ 0.78 %</td></tr>
+<tr><td>USART UDRE → RINGBUF_u8Get</td><td>send 1 byte or UDRIE off</td><td class="n">{{ R['isr_main']['14']['min_cyc'] }}–{{ R['isr_main']['14']['max_cyc'] }}</td><td class="n">+7</td><td class="n">{{ f((R['isr_main']['14']['max_cyc']+7)/16,1) }}</td><td class="n">≤ 962/s</td><td class="n">≤ 0.88 %</td></tr>
+</table>
+<p>"Entry" = 4 cycles of interrupt response + 3 for the <code>jmp</code> in the vector table. The tick ISR is mostly register saving: avr-gcc saves 15 registers because the ISR calls the callback through a pointer, and the callee could use any call-clobbered register. Inlining the counter loop into the vector would roughly halve it, but the callback style of the course drivers was kept on purpose.</p>
+<h3>Loop slots</h3>
+<x-fig src="slot_hist.svg" w="96" label="simavr">Measured slot durations over both runs (≈ 9300 + 4900 slots); ISR time that falls inside a slot is included.</x-fig>
+<table class="tight">
+<thead><tr><th>Slot</th><th>Worst-case composition (computed)</th><th class="n">Computed bound</th><th class="n">simavr max</th><th class="n">simavr mean</th></tr></thead>
+<tr><td>5 ms</td><td>LCD byte 460 + lamp write from a terminal command 190 + one print step ≤ 64 B (≈ 0.15 ms) + 1 tick ISR</td><td class="n">≈ 0.82 ms</td><td class="n">{{ f(max(R['slots_main']['5 ms']['max_us'],R['slots_stress']['5 ms']['max_us']),0) }} µs</td><td class="n">{{ f(R['slots_main']['5 ms']['mean_us'],0) }} µs</td></tr>
+<tr><td>10 ms</td><td>EEPROM page 1630 + keypad lamp write 190 + UILOC redraw (RAM) + scans + 2 tick ISRs</td><td class="n">≈ 2.15 ms</td><td class="n">{{ f(max(R['slots_main']['10 ms']['max_us'],R['slots_stress']['10 ms']['max_us']),0) }} µs</td><td class="n">{{ f(R['slots_main']['10 ms']['mean_us'],0) }} µs</td></tr>
+<tr><td>100 ms</td><td>2 ADC 208 + 2 digit writes 380 + control code</td><td class="n">≈ 0.70 ms</td><td class="n">{{ f(max(R['slots_main']['100 ms']['max_us'],R['slots_stress']['100 ms']['max_us']),0) }} µs</td><td class="n">{{ f(R['slots_main']['100 ms']['mean_us'],0) }} µs</td></tr>
+<tr><td>500 ms</td><td>2 digit writes 380 + LED, buzzer</td><td class="n">≈ 0.43 ms</td><td class="n">{{ f(max(R['slots_main']['500 ms']['max_us'],R['slots_stress']['500 ms']['max_us']),0) }} µs</td><td class="n">{{ f(R['slots_main']['500 ms']['mean_us'],0) }} µs</td></tr>
+<tr><td>1 s</td><td>status redraw into RAM, idle counters</td><td class="n">≈ 0.2 ms</td><td class="n">{{ f(max(R['slots_main']['1 s']['max_us'],R['slots_stress']['1 s']['max_us']),0) }} µs</td><td class="n">{{ f(R['slots_main']['1 s']['mean_us'],0) }} µs</td></tr>
+</table>
+<div class="res"><b>Result — the "≈ 2.2 ms worst loop pass" of the README</b>
+The longest single slot is the 10 ms slot in which an EEPROM page write (1.63 ms of bus) meets a keypad lamp toggle (0.19 ms). Computed bound ≈ 2.15 ms; measured in simavr {{ f(max(R['slots_main']['10 ms']['max_us'],R['slots_stress']['10 ms']['max_us'])/1000,2) }} ms (stress run, t = {{ f(R['longest_passes'][0]['t_ms']/1000,2) }} s). <b>The README's 2.2 ms is a correct, slightly conservative bound for one slot.</b> Under the worst alignment of §7.7, several slots can follow each other back-to-back, so the loop can be busy for up to ≈ 2.7 ms in a row (computed) without any flag being lost.</div>
+<h3>CPU utilisation</h3>
+<x-fig src="cpu_load.svg" w="96" label="simavr">CPU busy time = slots + ISRs outside slots. The rest is idle polling.</x-fig>
+<p>Computed long-term average from the slot means: 200 × {{ f(R['slots_main']['5 ms']['mean_us'],0) }} µs + 100 × {{ f(R['slots_main']['10 ms']['mean_us'],0) }} µs + 10 × {{ f(R['slots_main']['100 ms']['mean_us'],0) }} µs + 2 × {{ f(R['slots_main']['500 ms']['mean_us'],0) }} µs + 1 × {{ f(R['slots_main']['1 s']['mean_us'],0) }} µs per second ≈ {{ f((200*R['slots_main']['5 ms']['mean_us']+100*R['slots_main']['10 ms']['mean_us']+10*R['slots_main']['100 ms']['mean_us']+2*R['slots_main']['500 ms']['mean_us']+R['slots_main']['1 s']['mean_us'])/1e4,1) }} % (ISRs inside slots included), in line with the {{ f(R['util_main_whole']*100,1) }} % measured over the main run. Even the worst 1-second window of the stress run uses {{ f(R['util_stress_worst_1s']['util']*100,1) }} % of the CPU, leaving more than 90 % idle. The limiting resource is not CPU time but the length of single blocking transfers: an EEPROM page write is the longest thing the loop ever does.</p>
+
+<h2>7.5 Latency chains</h2>
+<x-fig src="latency_waterfall.svg" w="100" label="simavr">Measured latency from stimulus to effect.</x-fig>
+<table class="tight">
+<thead><tr><th style="width:24%">Chain</th><th>Computed expectation</th><th class="n" style="width:14%">simavr</th></tr></thead>
+<tr><td>Keypress → LCD update</td><td>debounce: 2 scans → accepted 10–20 ms after the press; UILOC acts in the same pass; LCD_BUF needs a cursor call + a character call → <b>15–30 ms</b> for one changed cell (+ 5 ms per extra cell)</td><td class="n">lamp {{ f(R['latency']['key_lamp']['lamp_write_after_ms'],1) }} ms · LCD {{ f(R['latency']['key_lamp']['lcd_writes_after_ms'][1],1) }} ms</td></tr>
+<tr><td>UART command → actuator</td><td>Enter received → the next 5 ms slot reads the line (0–5 ms; only if the print queue is empty and ≥ 64 TX bytes are free) → lamp write → <b>0.2–5.2 ms</b>; the reply follows at 1.04 ms per byte</td><td class="n">{{ f(R['latency']['uart_lamp']['cmd_to_lamp_ms'],1) }} ms · reply done {{ f(R['latency']['uart_lamp']['reply_done_ms'],1) }} ms</td></tr>
+<tr><td>Up / Down press → 7-seg change</td><td>debounce 20–30 ms → setting mode starts in the same 10 ms slot → the value is shown by the next 100 ms task → <b>20–130 ms</b> (see the blink corner case below)</td><td class="n">{{ f(R['latency']['btn_up_7seg']['first_write_after_ms'],1) }} ms</td></tr>
+<tr><td>Heater turn-on → first decision</td><td>release debounce 20–30 ms → average reset → 10 samples at 100 ms → <b>0.92–1.03 s</b> (HTR-08)</td><td class="n">{{ f(R['latency']['heater_on_to_heating']['relay_on_after_release_ms'],0) }} ms</td></tr>
+<tr><td>Water step → element change</td><td>a step from 40 to 80 °C with set = 70: the average exceeds set + 5 = 75 °C after 9 new samples ((1·40 + 9·80) / 10 = 76) → <b>0.8–0.9 s</b>, plus up to 100 ms until the first new sample</td><td class="n">{{ f(R['latency']['water_step_to_cooling_ms'],0) }} ms</td></tr>
+<tr><td>Ambient step → AC</td><td>25 → 30 °C: average &gt; 28 °C after 7 samples → <b>0.6–0.7 s</b>, then the <code>[INFO]</code> line ≈ 20 ms</td><td class="n">{{ f(R['latency']['ambient_step_to_ac_info_ms'],0) }} ms</td></tr>
+<tr><td>EEPROM write-behind</td><td>change → next 10 ms slot writes the page (0–10 ms) → the slot after polls (10 ms) → saved after <b>10–20 ms</b> per page; never more than 1.7 ms of one slot</td><td class="n">page after {{ f(R['latency']['set_temp_eeprom']['enter_to_page_write_ms'],1) }} ms, ACK after +{{ f(R['latency']['set_temp_eeprom']['polls_after_ms'][0],1) }} ms</td></tr>
+<tr><td>Setting-mode timeout</td><td>timer = 50, decremented by each 100 ms task → mode ends 4.9–5.0 s after the last accepted press (HTR-12)</td><td class="n">≈ 4.94 s</td></tr>
+<tr><td>Blink periods</td><td>phase toggled every 500 ms → 1 s period for the display (HTR-11) and the heater LED (HTR-13)</td><td class="n">500.0 ms steps</td></tr>
+<tr><td>Debounce</td><td>buttons 3 samples → 20–30 ms; keypad 2 scans → 10–20 ms</td><td class="n">—</td></tr>
+<tr><td>3rd wrong login → lockdown</td><td>inside the same <code>SEC_u8Login</code> call → <b>&lt; 1 ms</b>; buzzer beat 500 ms</td><td class="n">{{ f(R['latency']['lockdown']['enter_to_buzzer_ms'],1) }} ms</td></tr>
+</table>
+<x-fig src="blink_corner.svg" w="96" label="simavr">The blink corner case seen in simavr: the press is shown by the 100 ms task, and the 500 ms task blanks it 2 ms later.</x-fig>
+<p><b>Why the corner case exists.</b> <code>HEATER_voidRestartSetting</code> sets the blink phase to 1 but leaves the 500 ms flag on its own fixed grid. Every 5th 100 ms task (tick ≡ 501 mod 500) runs 2 ms before a 500 ms task. A press that is first shown by that task is blanked almost at once, and the new value is next seen at the following "on" phase, ≤ 500 ms later. HTR-11 still holds (blinking at a 1 s period; the value is never wrong), but "every change is shown immediately" is met only in about 4 of 5 presses. A fix would be to restart the blink timing at each press, for example by counting the phase in the 100 ms task instead of using the 500 ms flag.</p>
+
+<h2>7.6 Jitter, overruns and headroom</h2>
+<h3>Release jitter</h3>
+<p>A flag set by the ISR is served when the loop next reaches that <code>if</code>. With an otherwise idle loop, the delay is the remaining tick ISR plus at most one pass through the five checks. simavr measured the delay from the start of the setting tick ISR to the start of the slot:</p>
+<table class="tight">
+<thead><tr><th>Slot</th><th class="n">min µs</th><th class="n">mean µs</th><th class="n">max µs (both runs)</th></tr></thead>
+{{ ''.join('<tr><td>%s</td><td class="n">%s</td><td class="n">%s</td><td class="n">%s</td></tr>' % (k, f(R['release_latency']['main'][k]['min_us'],1), f(R['release_latency']['main'][k]['mean_us'],1), f(max(R['release_latency']['main'][k]['max_us'], R['release_latency']['stress'][k]['max_us']),1)) for k in ['5 ms','10 ms','100 ms','500 ms','1 s']) }}
+</table>
+<h3>Worst alignment (computed)</h3>
+<p>Because the tasks are released on different ticks, a slot can only be delayed by a slot released before it that has not finished. The tightest sequence is ticks 1001–1005 (mod 1000), using the computed bounds of §7.4:</p>
+<table class="tight">
+<thead><tr><th>Tick</th><th>Flag</th><th class="n">Starts (worst)</th><th class="n">Ends (worst)</th><th class="n">Release delay</th><th class="n">Margin to its next release</th></tr></thead>
+<tr><td class="n">1001</td><td>100 ms</td><td class="n">1001.00</td><td class="n">1001.70</td><td class="n">0</td><td class="n">99.3 ms</td></tr>
+<tr><td class="n">1002</td><td>10 ms</td><td class="n">1002.00</td><td class="n">1004.15</td><td class="n">0</td><td class="n">7.9 ms</td></tr>
+<tr><td class="n">1003</td><td>500 ms</td><td class="n">1004.15</td><td class="n">1004.58</td><td class="n">1.15 ms</td><td class="n">498.4 ms</td></tr>
+<tr><td class="n">1004</td><td>1 s</td><td class="n">1004.58</td><td class="n">1004.78</td><td class="n">0.58 ms</td><td class="n">999.2 ms</td></tr>
+<tr><td class="n">1005</td><td>5 ms</td><td class="n">1005.00</td><td class="n">1005.82</td><td class="n">0</td><td class="n">4.2 ms</td></tr>
+</table>
+<p>The loop is busy from 1002.00 to 1004.78 ms, a 2.8 ms stretch, once per second at worst. No release is delayed by more than 1.15 ms, and no flag comes anywhere near being set a second time before it is served. The smallest margin, 4.2 ms, belongs to the 5 ms task. An <b>overrun</b> — a flag set again before it was served — needs a slot chain longer than the period of a waiting task; with normal bus behaviour that cannot happen. Both simavr runs ended with <code>SCHED_u16GetOverruns() = 0</code>, as did <code>test_service</code> over 10 s.</p>
+<h3>Fault case: stuck I²C bus (computed)</h3>
+<p>If a slave holds SDA low, every TWI wait ends after the 1.33 ms timeout, and each driver gives up after its first failed step:</p>
+<ul>
+<li>LCD_BUF then pauses 1 s;</li>
+<li>ESTORE goes to FAULT after its first failed page write;</li>
+<li>LAMP and SEVEN_SEG return an error and retry at their next call.</li>
+</ul>
+<p>Worst slots then become about 1.5 ms (5 ms), 2.8 ms (10 ms: lamp + EEPROM attempt), 2.9 ms (100 ms: two digits + ADC) and 2.7 ms (500 ms). In the 1001–1005 chain this can delay the 5 ms task by a few milliseconds and, in the worst case, count an overrun of the 5 ms flag (one LCD byte step lost, no wrong output). The loop never hangs. That is exactly what the timeout was added for (§2.8); <code>test_mcal</code> checks a timeout within 2 ms with SDA forced low.</p>
+<h3>Headroom</h3>
+<ul>
+<li><b>CPU:</b> ≥ 92 % idle in every measured second.</li>
+<li><b>Single-slot budget:</b> the longest slot (≈ 2.1 ms) uses 21 % of its own 10 ms period, and leaves ≥ 2.8 ms before the 5 ms task that follows it.</li>
+<li><b>RAM:</b> ≈ 1.3 KB for the stack (§1.6).</li>
+<li><b>Flash:</b> 16.4 KB free.</li>
+</ul>
+<p>The design could take a much higher I²C speed, more tasks or a faster terminal before timing became a constraint. The first limit would be the length of single blocking transfers, which is the place to look if features are added.</p>

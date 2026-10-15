@@ -1,0 +1,284 @@
+<h1 data-ch="2"><span class="num">Chapter 2</span>MCAL — the register layer</h1>
+<p class="lead">The Microcontroller Abstraction Layer is the only code that touches registers. Most drivers come from the course base set by Eng. Eslam Hefny. They were kept and fixed in their own style rather than rewritten; TIMER1, TIMER2 and the restyled TWI are new.</p>
+
+<h2>2.0 Common ground: registers, bits and interrupts</h2>
+<p>All register addresses are in <code>lib/MCAL/reg_def.h</code> as volatile pointers in data-space addresses (I/O address + 0x20), with bit-name macros. No module includes <code>&lt;avr/io.h&gt;</code>. Bits are changed with the four macros of <code>lib/Service/Bit_math.h</code>:</p>
+<x-code src="lib/Service/Bit_math.h" lines="11-14" title="read-modify-write on any register"/>
+<p><code>SET_BIT(reg,bit)</code> compiles to a single <code>sbi</code> or a read-modify-write. That is safe in the main loop, with one exception that matters here: registers whose flags are cleared by writing a one (<code>ADIF</code>, <code>TWINT</code>) and registers that share one address (<code>UBRRH</code>/<code>UCSRC</code>). Each of these is dealt with in its driver below.</p>
+<div class="pit"><b>Pitfall found in Phase 0 — ISRs dropped by link-time optimisation</b>
+The course drivers declared their ISRs as <code>void __vector_N() __attribute__((signal));</code>. Nothing in C calls an ISR by name, so PlatformIO's <code>-flto</code> treated the function as unused and removed it: the vector pointed at <code>__bad_interrupt</code>, which jumps to address 0, and the MCU reset whenever the interrupt fired. The fix, now used for every ISR, is:</div>
+<x-code src="lib/MCAL/TIMER2/TIMER2.h" grep="__vector_4" n="1"/>
+<p>Every ISR follows the course pattern: the vector function only calls a callback through a function pointer, after a <code>NULL</code> check, so the upper layer decides what happens without MCAL including any upper header. The callbacks of this project are short: the Timer2 callback counts, and the two USART callbacks move one byte.</p>
+<table class="tight">
+<thead><tr><th>Vector</th><th>Source</th><th>Driver</th><th>Callback in the application</th><th class="n">Measured length (simavr)</th></tr></thead>
+<tr><td><code>__vector_4</code></td><td>TIMER2 COMP</td><td>TIMER2</td><td><code>SCHED_voidTick</code></td><td class="n">{{ R['isr_main']['4']['min_cyc'] }}–{{ R['isr_main']['4']['max_cyc'] }} cycles</td></tr>
+<tr><td><code>__vector_13</code></td><td>USART RXC</td><td>USART</td><td><code>TERM_voidRxCallback</code></td><td class="n">{{ R['isr_main']['13']['max_cyc'] }} cycles</td></tr>
+<tr><td><code>__vector_14</code></td><td>USART UDRE</td><td>USART</td><td><code>TERM_voidTxCallback</code></td><td class="n">{{ R['isr_main']['14']['min_cyc'] }}–{{ R['isr_main']['14']['max_cyc'] }} cycles</td></tr>
+<tr><td><code>__vector_1/2/3</code>, <code>_10/_11</code>, <code>_16</code></td><td>INT0–2, TIMER0, ADC</td><td>EXTI, TIMER0, ADC</td><td>not enabled in <code>app</code></td><td class="n">—</td></tr>
+</table>
+<p class="small">Cycle counts are from the first instruction of the vector function to the end of <code>reti</code>. Add 4 cycles of interrupt response and 3 for the <code>jmp</code> in the vector table for the full cost (§7.4).</p>
+
+<!-- ======================================================= DIO -->
+<h2>2.1 DIO — digital I/O <span class="tag mcal">MCAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>Pin and port access for every HAL driver that drives or reads a GPIO: KPAD, BUTTON, RELAY, LED, BUZZER, and the PWM pins in DIMMER, SERVO and FAN. One addition was made: <code>DIO_voidDisableJTAG</code>.</p>
+<p class="k">Hardware / registers</p>
+<table class="reg">
+<thead><tr><th>Register</th><th class="n">Address</th><th>Meaning of a 1 bit</th></tr></thead>
+<tr><td>DDRA/B/C/D</td><td class="n">0x3A / 0x37 / 0x34 / 0x31</td><td>the pin is an output</td></tr>
+<tr><td>PORTA/B/C/D</td><td class="n">0x3B / 0x38 / 0x35 / 0x32</td><td>output: drive high · input: enable the internal pull-up (≈ 20–50 kΩ)</td></tr>
+<tr><td>PINA/B/C/D</td><td class="n">0x39 / 0x36 / 0x33 / 0x30</td><td>the level on the pin (read only)</td></tr>
+<tr><td>MCUCSR.JTD</td><td class="n">0x54 bit 7</td><td>JTAG off, PC2–PC5 become I/O; must be written twice within 4 cycles</td></tr>
+</table>
+<p class="k">Design and API</p>
+<p>Every function takes a port ID (<code>DIO_PORTA</code> … <code>DIO_PORTD</code> = 0…3) and a pin ID (0…7), checks the range and switches on the port. The pull-up function writes the PORT bit, which is what the hardware needs for an input.</p>
+<pre class="plain">void DIO_voidSetPinDirection(u8 Port, u8 Pin, u8 Dir);   /* DIO_PIN_OUTPUT / DIO_INPUT */
+void DIO_voidSetPinValue    (u8 Port, u8 Pin, u8 Value); /* DIO_PIN_HIGH / DIO_PIN_LOW */
+u8   DIO_u8GetPinValue      (u8 Port, u8 Pin);
+void DIO_voidSetPortDirection(u8 Port, u8 Dir);  void DIO_voidSetPortValue(u8 Port, u8 Value);
+u8   DIO_u8GetPortValue(u8 Port);   void DIO_voidEnablePullUp(u8 Port, u8 Pin);
+void DIO_voidTogPin(u8 Port, u8 Pin);   void DIO_voidDisableJTAG();</pre>
+<x-code src="lib/MCAL/DIO/DIO.c" fn="DIO_voidDisableJTAG"/>
+<p class="k">Example — a safe output</p>
+<p>RELAY sets the level first and then the direction: <code>DIO_voidSetPinValue(DIO_PORTB, DIO_PIN_6, LOW)</code>, then <code>DIO_voidSetPinDirection(DIO_PORTB, DIO_PIN_6, OUTPUT)</code>. If the order were reversed and PORTB.6 still held a 1, the heating element would switch on for a few cycles.</p>
+<p class="k">Pitfalls</p>
+<ul>
+<li>MCUCSR also holds the reset-cause flags and ISC2. The JTAG function keeps ISC2 and writes 0 to the flags (writing 0 has no effect on them).</li>
+<li>Reading a pin right after changing a nearby output can return the old level: the pin synchroniser needs about 1.5 cycles. KPAD therefore waits 5 µs after driving a column low (§3.5).</li>
+</ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Define DDR/PORT/PIN addresses for the four ports.</li><li>Write set-direction, set-value and get-value per pin with a <code>switch</code> on the port.</li><li>Pull-up = write 1 to PORT while DDR = 0.</li><li>Range-check the arguments.</li><li>JTAG disable: compute the MCUCSR value once, then write it twice back-to-back.</li></ol>
+
+<!-- ======================================================= GIE -->
+<h2>2.2 GIE — global interrupt enable <span class="tag mcal">MCAL</span><span class="tag e">E</span></h2>
+<p>Two one-line functions: <code>GIE_voidEnableGlobalInterrupt()</code> executes <code>SEI</code> and <code>GIE_voidDisableGlobalInterrupt()</code> executes <code>CLI</code> (SREG bit I). They are used in two places: once in <code>main()</code> before the tick starts, and as short critical sections in SERVICE — <code>SCHED</code> reads the 32-bit tick and does the test-and-clear of a task flag with interrupts off; <code>TERM</code> reads and clears its RX-activity flag the same way. Those sections run only in the main loop, where interrupts are always enabled, so a plain disable/enable pair is correct. A version that saves and restores SREG would only be needed if one were ever called from an ISR.</p>
+
+<!-- ======================================================= ADC -->
+<h2>2.3 ADC — analog-to-digital converter <span class="tag mcal">MCAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>Ten-bit conversions for the two LM35 sensors (AC-01, HTR-07). The application uses only the blocking (polled) conversion, which takes {{ f(N['ADC_CONV_US'],0) }} µs.</p>
+<p class="k">Hardware / registers</p>
+<table class="reg">
+<thead><tr><th>Bits</th><th>Value</th><th>Why</th></tr></thead>
+<tr><td>ADMUX.REFS1:0</td><td>11</td><td>internal 2.56 V reference: 2560 mV / 1024 = {{ f(N['ADC_LSB_MV'],1) }} mV per LSB, and the LM35 gives 10 mV/°C, so one LSB = 0.25 °C and the raw value is the temperature × 4</td></tr>
+<tr><td>ADMUX.ADLAR</td><td>0</td><td>result right-adjusted: read the 16-bit <code>ADC</code> (ADCL first, then ADCH)</td></tr>
+<tr><td>ADMUX.MUX4:0</td><td>0 / 1</td><td>channel ADC0 (ambient, PA0) or ADC1 (water, PA1); set before each conversion</td></tr>
+<tr><td>ADCSRA.ADPS2:0</td><td>111</td><td>prescaler 128: 16 MHz / 128 = {{ f(N['ADC_CLK_KHZ'],0) }} kHz, inside the 50–200 kHz range needed for full 10-bit accuracy</td></tr>
+<tr><td>ADCSRA.ADEN</td><td>1</td><td>ADC on</td></tr>
+<tr><td>ADCSRA.ADSC</td><td>1 per conversion</td><td>start; the hardware clears it at the end</td></tr>
+<tr><td>ADCSRA.ADIF</td><td>poll, then write 1</td><td>conversion complete; cleared by writing a one</td></tr>
+<tr><td>ADCSRA.ADIE</td><td>0 in the sync path</td><td>an enabled ADC interrupt would clear ADIF and the poll would never end</td></tr>
+</table>
+<p class="k">Timing (computed)</p>
+<p>t<sub>conv</sub> = 13 ADC clocks / 125 kHz = <b>{{ f(N['ADC_CONV_US'],0) }} µs</b>. The first conversion after ADEN takes 25 clocks = {{ f(N['ADC_FIRST_US'],0) }} µs; that is the very first HEATER sample at boot. Each 100 ms task does two conversions (water, then ambient): 208 µs of busy-waiting.</p>
+<x-code src="lib/MCAL/ADC/ADC.c" grep="CLR_BIT(ADCSRA,ADCSRA_ADIE)" n="14" title="ADC_u16StartConversion, body"/>
+<p class="k">API</p>
+<pre class="plain">void ADC_voidInit();                               /* 2.56 V ref , /128 , enable */
+u16  ADC_u16StartConversion(u8 Channel);           /* blocking , 104 µs */
+void ADC_voidStartConvertionAsyn(u8 Channel);      /* with ADIE (not used by the app) */
+void ADC_voidDisableInterrupt();                   /* new */
+void ADC_SetCallBack(void (*ptr)(void), u16 *data);</pre>
+<p class="k">Example</p>
+<p>Water at 55 °C → LM35 output 550 mV → ADC = 550 / 2.5 = 220 = 55 × 4. HEATER compares this directly with <code>(set ± 5) × 4</code>, so no division or floating point is needed.</p>
+<p class="k">Pitfalls (fixed in Phase 2)</p>
+<ul>
+<li><b>Sync after async hung.</b> After one interrupt-driven conversion, ADIE stayed set, the ISR cleared ADIF, and the polling loop waited for ever. <code>ADC_u16StartConversion</code> now clears ADIE and a stale ADIF first.</li>
+<li><b>Wrong comment.</b> The course code said AVCC but selected 2.56 V, which is what the LM35 needs; the comment was corrected.</li>
+<li>The ISR lacked <code>used, externally_visible</code> (LTO).</li>
+<li>AREF must stay unconnected (pin_map C-5). Tied to 5 V it would fight the internal reference and every temperature would read wrong.</li>
+</ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Choose the reference from the sensor range (0–255 °C fits 2.56 V).</li><li>Prescaler so that the ADC clock is 50–200 kHz.</li><li>Per conversion: clear ADIE and ADIF, set MUX, set ADSC.</li><li>Poll ADIF, clear it by writing 1, read ADCL then ADCH.</li><li>Keep the result integer: value × 2.5 mV.</li></ol>
+
+<!-- ======================================================= TIMER0 -->
+<h2>2.4 TIMER0 — 8-bit PWM for the dimmer <span class="tag mcal">MCAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>Hardware PWM on OC0 (PB3) for the dimmable lamp (LGT-02). An RC filter (R6 10 kΩ, C1 10 µF) turns the PWM into a 0–5 V level for the lamp driver transistor.</p>
+<p class="k">Hardware / registers</p>
+<table class="reg">
+<thead><tr><th>Bits</th><th>Value</th><th>Why</th></tr></thead>
+<tr><td>TCCR0.CS02:00</td><td>010</td><td>clock F_CPU / 8 = 2 MHz (<code>DIMMER_TIMER_PRESCALER = TIMER0_DIV_8</code>)</td></tr>
+<tr><td>TCCR0.WGM01:00</td><td>11</td><td>fast PWM, TOP = 0xFF</td></tr>
+<tr><td>TCCR0.COM01:00</td><td>10 (or 00)</td><td>non-inverting: OC0 set at BOTTOM, cleared on compare match. 00 = pin disconnected (used for 0 %)</td></tr>
+<tr><td>OCR0</td><td>p × 255 / 100</td><td>duty cycle</td></tr>
+</table>
+<p class="k">Formulas (computed)</p>
+<p>f<sub>PWM</sub> = F_CPU / (N × 256) = 16 MHz / (8 × 256) = <b>{{ f(N['T0_FREQ'],1) }} Hz</b>, period {{ f(N['T0_PERIOD_US'],0) }} µs. In fast PWM the pin is high for OCR0 + 1 counts, so the real duty is (OCR0 + 1) / 256. With the RC filter (τ = 100 ms) the ripple at 7.8 kHz is negligible, and a level change settles in about 0.5 s (5τ).</p>
+<x-fig src="t0_pwm.svg" w="96" label="computed">Timer0 fast PWM on OC0 for three dimmer levels.</x-fig>
+<table class="tight">
+<thead><tr><th class="n">Level %</th><th class="n">OCR0</th><th>High time</th><th class="n">Real duty %</th><th class="n">Level %</th><th class="n">OCR0</th><th>High time</th><th class="n">Real duty %</th></tr></thead>
+<tr><td class="n">0</td><td class="n">—</td><td>pin low, disconnected</td><td class="n">0</td><td class="n">60</td><td class="n">153</td><td>77.0 µs</td><td class="n">60.16</td></tr>
+<tr><td class="n">10</td><td class="n">25</td><td>13.0 µs</td><td class="n">10.16</td><td class="n">70</td><td class="n">178</td><td>89.5 µs</td><td class="n">69.92</td></tr>
+<tr><td class="n">20</td><td class="n">51</td><td>26.0 µs</td><td class="n">20.31</td><td class="n">80</td><td class="n">204</td><td>102.5 µs</td><td class="n">80.08</td></tr>
+<tr><td class="n">30</td><td class="n">76</td><td>38.5 µs</td><td class="n">30.08</td><td class="n">90</td><td class="n">229</td><td>115.0 µs</td><td class="n">89.84</td></tr>
+<tr><td class="n">40</td><td class="n">102</td><td>51.5 µs</td><td class="n">40.23</td><td class="n">100</td><td class="n">255</td><td>constant high</td><td class="n">100</td></tr>
+<tr><td class="n">50</td><td class="n">127</td><td>64.0 µs</td><td class="n">50.00</td><td></td><td></td><td></td><td></td></tr>
+</table>
+<x-code src="lib/MCAL/TIMER0/TIMER0.c" grep="case TIMER0_PWM_NONINVERTED:" n="5" title="TIMER0_GeneratePWM, non-inverting case after the fix"/>
+<p class="k">API</p>
+<pre class="plain">void TIMER0_voidInit(u8 Prescaler, u8 Mode);   /* TIMER0_DIV_8 , TIMER0_FAST_PWM */
+void TIMER0_GeneratePWM(u8 Mode, u8 DutyCycle); /* TIMER0_PWM_DISCONNECTED / INVERTED / NONINVERTED , 0..100 */
+void TIMER0_voidSetOCR(u8);  TIMER0_SetCallBack_OV/OC(...);  (CTC and interrupt functions unused)</pre>
+<p class="k">Pitfalls (fixed in Phase 2)</p>
+<ul>
+<li><b>Swapped COM bits.</b> The course code set COM01:00 = 11 for "non-inverting", which is the inverting mode, so the lamp was brightest at 0 %. <code>test_base</code> reported it as <code>[FAIL]</code>.</li>
+<li><b>100 % wrapped to 0.</b> <code>OCR0 = Duty × 256 / 100</code> gave 256 for 100 %, which an 8-bit register stores as 0. It is now <code>× 255</code>, computed in 16 bits.</li>
+<li><b>0 % is not OCR0 = 0.</b> In fast PWM, OCR0 = 0 still produces a one-count spike every period. DIMMER disconnects the pin (COM = 00) and drives it low instead.</li>
+<li>A <code>case</code> label carried the wrong name (<code>TIMER0_CTC_DISCONNECTED</code> for <code>TIMER0_NORMAL</code>; same value 0). The name was corrected.</li>
+</ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Prescaler from the wanted PWM frequency (F_CPU / (N · 256)).</li><li>WGM = fast PWM, COM = 10.</li><li>OCR = p · TOP / 100 in 16-bit arithmetic.</li><li>0 % → disconnect and drive low; 100 % → OCR = TOP.</li><li>Pin = output before enabling COM.</li></ol>
+
+<!-- ======================================================= TIMER1 -->
+<h2>2.5 TIMER1 — 16-bit PWM for the servo and the fan <span class="tag mcal">MCAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>Two PWM channels with one period: OC1A (PD5) drives the door servo (DOR-02), OC1B (PD4) the AC fan transistor (AC-03). Both SERVO and FAN call <code>TIMER1_voidInit</code>; a second call writes the same values and changes nothing.</p>
+<p class="k">Hardware / registers</p>
+<table class="reg">
+<thead><tr><th>Bits</th><th>Value</th><th>Why</th></tr></thead>
+<tr><td>TCCR1A.WGM11:10, TCCR1B.WGM13:12</td><td>10, 11</td><td>mode 14: fast PWM with TOP = ICR1, so the period is set by ICR1 and both OCR1A and OCR1B stay free for duty cycles</td></tr>
+<tr><td>TCCR1B.CS12:10</td><td>010</td><td>F_CPU / 8 = 2 MHz → {{ f(N['T1_TICK_US'],1) }} µs per count</td></tr>
+<tr><td>ICR1</td><td>{{ N['T1_TOP'] }}</td><td>TOP = F_CPU / (8 × 50 Hz) − 1</td></tr>
+<tr><td>TCCR1A.COM1A1:0 / COM1B1:0</td><td>10 or 00</td><td>non-inverting per channel; 00 = disconnected (fan at 0 %)</td></tr>
+<tr><td>OCR1A / OCR1B</td><td>see tables</td><td>high time in counts</td></tr>
+</table>
+<x-code src="lib/MCAL/TIMER1/TIMER1_cfg.h" grep="#define TIMER1_PRESCALER" n="7" title="all numbers derived from F_CPU"/>
+<p>16-bit registers go through the shared TEMP latch: the <b>high byte must be written first</b>, then the low byte, which commits both at once. <code>TIMER1_voidSetOCRA/B</code> and the ICR1 write in <code>TIMER1_voidInit</code> do exactly that.</p>
+<x-fig src="t1_pwm.svg" w="96" label="computed">Timer1 mode 14: one 20 ms ramp, the servo pulse on OC1A and the fan on OC1B.</x-fig>
+<div class="cols2">
+<div><table class="tight"><caption>Servo (OC1A): OCR1A = pulse_us × 2000 / 1000</caption>
+<thead><tr><th class="n">Angle</th><th class="n">Pulse µs</th><th class="n">OCR1A</th><th class="n">Real high time µs</th></tr></thead>
+<tr><td class="n">0° (closed)</td><td class="n">1000</td><td class="n">2000</td><td class="n">1000.5</td></tr>
+<tr><td class="n">45°</td><td class="n">1250</td><td class="n">2500</td><td class="n">1250.5</td></tr>
+<tr><td class="n">90° (open)</td><td class="n">1500</td><td class="n">3000</td><td class="n">1500.5</td></tr>
+<tr><td class="n">180°</td><td class="n">2000</td><td class="n">4000</td><td class="n">2000.5</td></tr>
+</table></div>
+<div><table class="tight"><caption>Fan (OC1B): OCR1B = p × (TOP + 1) / 100</caption>
+<thead><tr><th class="n">Speed</th><th class="n">OCR1B</th><th>Output</th></tr></thead>
+<tr><td class="n">0 %</td><td class="n">—</td><td>disconnected, pin low</td></tr>
+<tr><td class="n">10 %</td><td class="n">4000</td><td>2.0005 ms of 20 ms</td></tr>
+<tr><td class="n">50 %</td><td class="n">20000</td><td>10.0005 ms of 20 ms</td></tr>
+<tr><td class="n">100 %</td><td class="n">39999</td><td>constant high (= TOP)</td></tr>
+</table>
+<p class="small">CLIMATE uses only 0 % and 100 % (<code>CLIMATE_FAN_SPEED 100</code>); the speed ramp is not built (D-16).</p></div>
+</div>
+<x-fig src="repo_scope_servo_dimmer_1.png" w="70" label="proteus">Proteus oscilloscope (presentation capture): channel A = dimmer PWM at 7.8 kHz, channel C = the servo pulse at 1 ms/div.</x-fig>
+<p class="k">API</p>
+<pre class="plain">void TIMER1_voidInit();  void TIMER1_voidSetOCRA(u16);  void TIMER1_voidSetOCRB(u16);
+void TIMER1_voidGeneratePWM_A(u8 Mode);  void TIMER1_voidGeneratePWM_B(u8 Mode);   /* DISCONNECTED / INVERTED / NONINVERTED */</pre>
+<p class="k">Pitfalls</p>
+<ul>
+<li>The first pin plan put the dimmer on Timer1 too; one TOP for both would have made the dimmer a 50 Hz PWM, too slow to filter into a steady 0–5 V. The dimmer moved to Timer0 (D-17, conflict C-1).</li>
+<li>The Proteus servo model maps 1–2 ms to −90…+90° by default; set its Min/Max Angle to 0/180.</li>
+</ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Mode 14, prescaler 8.</li><li>ICR1 = F_CPU/(8·f) − 1, high byte first.</li><li>OCR = pulse_µs × ticks_per_ms / 1000.</li><li>COM = 10 on the channels in use; pins as outputs.</li><li>Make init idempotent, because two drivers share the timer.</li></ol>
+
+<!-- ======================================================= TIMER2 -->
+<h2>2.6 TIMER2 — the 1 ms system tick <span class="tag mcal">MCAL</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>The time base of the whole firmware. Timer2 counts in CTC mode and raises a compare interrupt exactly every millisecond; <code>SCHED</code> (§4.1) owns it.</p>
+<p class="k">Hardware / registers</p>
+<table class="reg">
+<thead><tr><th>Bits</th><th>Value</th><th>Why</th></tr></thead>
+<tr><td>TCCR2.CS22:20</td><td>100</td><td>F_CPU / 64 = {{ f(N['T2_CLK_KHZ'],0) }} kHz. Timer2's prescaler codes differ from Timer0's (it adds /32 and /128), hence its own <code>TIMER2_DIV_x</code> macros</td></tr>
+<tr><td>TCCR2.WGM21:20</td><td>10</td><td>CTC: the counter clears to 0 on compare match with OCR2</td></tr>
+<tr><td>TCCR2.COM21:20</td><td>00</td><td>OC2 pin not used</td></tr>
+<tr><td>OCR2</td><td>{{ N['T2_OCR'] }}</td><td>F_CPU / (64 × 1000) − 1</td></tr>
+<tr><td>TIMSK.OCIE2</td><td>1</td><td>compare-match interrupt (<code>__vector_4</code>); set by <code>SCHED_voidStart</code></td></tr>
+</table>
+<p class="k">Formula (computed)</p>
+<p>T = (OCR2 + 1) × 64 / F_CPU = 250 × 4 µs = <b>{{ f(N['T2_PERIOD_US'],3) }} µs</b>, so the error is {{ f(N['T2_ERR_PPM'],0) }} ppm: the only error left is the crystal's tolerance. At 16 MHz two prescalers give an exact millisecond with an 8-bit compare value: ÷64 (OCR2 = 249) and ÷128 (OCR2 = 124); ÷32 would need 499, which does not fit. The code uses ÷64. A compile-time check stops a build with an <code>F_CPU</code> that cannot give an exact tick:</p>
+<x-code src="lib/Service/SCHED/SCHED_cfg.h" grep="#define SCHED_TIMER_PRESCALER" n="7"/>
+<x-fig src="t2_ctc.svg" w="96" label="computed">Timer2 in CTC mode: one compare match per millisecond.</x-fig>
+<x-code src="lib/MCAL/TIMER2/TIMER2.c" fn="__vector_4" title="the vector only calls the callback"/>
+<p class="k">API</p>
+<pre class="plain">void TIMER2_voidInit(u8 Prescaler, u8 Mode);   /* TIMER2_DIV_64 , TIMER2_CTC */
+void TIMER2_voidSetOCR(u8);  void TIMER2_voidEnableOCInterrupt();  void TIMER2_voidDisableOCInterrupt();
+void TIMER2_voidSetCallBack_OC(void (*ptr)(void));</pre>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>Pick N so that F_CPU/(N·1000) is an integer ≤ 256.</li><li>CTC, OCR = that integer − 1.</li><li>Callback pointer + <code>NULL</code> check in the ISR.</li><li>Enable OCIE only after everything the tick drives is initialised.</li><li>Keep the ISR body to counting (chapter 4).</li></ol>
+
+<!-- ======================================================= USART -->
+<h2>2.7 USART — 9600 8N1, interrupt driven <span class="tag mcal">MCAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>The serial link to the remote terminal (RUI-01). The driver stays thin: it configures the hardware, exposes the RX-complete and data-register-empty interrupts through callbacks, and writes one byte without waiting. The ring buffers live one layer up in <code>TERM</code> (D-3).</p>
+<p class="k">Hardware / registers</p>
+<table class="reg">
+<thead><tr><th>Bits</th><th>Value</th><th>Why</th></tr></thead>
+<tr><td>UBRRH : UBRRL</td><td>0 : {{ N['UBRR'] }}</td><td>baud divider from F_CPU (<code>USART_cfg.h</code>); UBRRH first</td></tr>
+<tr><td>UCSRA.U2X</td><td>0</td><td>normal speed is accurate enough (+0.16 %)</td></tr>
+<tr><td>UCSRB.RXEN, TXEN</td><td>1, 1</td><td>receiver and transmitter on</td></tr>
+<tr><td>UCSRB.RXCIE</td><td>1</td><td>interrupt for every received byte (enabled by <code>TERM_voidInit</code>)</td></tr>
+<tr><td>UCSRB.UDRIE</td><td>on demand</td><td>"data register empty" interrupt: on while the TX ring holds bytes, off when it is empty</td></tr>
+<tr><td>UCSRC</td><td>0x86</td><td>URSEL = 1 (select UCSRC), UCSZ1:0 = 11 (8 bits), UPM = 00 (no parity), USBS = 0 (1 stop bit). Written once, never read-modify-write</td></tr>
+</table>
+<p class="k">Formulas (computed)</p>
+<p>UBRR = F_CPU / (16 × baud) − 1 = 16 000 000 / 153 600 − 1 = 103.17 → <b>103</b> (integer division). Real baud = F_CPU / (16 × (UBRR + 1)) = <b>{{ f(N['BAUD_REAL'],2) }}</b>, error <b>+{{ f(N['BAUD_ERR_PCT'],2) }} %</b>, far inside the ±2 % an 8N1 link tolerates. U2X would give UBRR = 207 with the same error, so it brings nothing. One byte is 10 bits = <b>{{ f(N['BYTE_MS'],3) }} ms</b>; the link carries at most {{ f(1000/N['BYTE_MS'],0) }} bytes per second in each direction.</p>
+<x-code src="lib/MCAL/USART/USART.c" fn="USART_voidInit"/>
+<x-fig src="uart_frame.svg" w="96" label="computed">One 8N1 frame at 9615 baud.</x-fig>
+<x-code src="lib/MCAL/USART/USART.c" grep="void __vector_13 (){" n="15" title="RX and UDRE vectors"/>
+<p class="k">API</p>
+<pre class="plain">void USART_voidInit();
+void USART_voidEnableRxInterrupt();  void USART_voidEnableTxInterrupt();  void USART_voidDisableTxInterrupt();
+void USART_voidSetCallBack_RX(void (*ptr)(u8));   /* the ISR passes the received byte */
+void USART_voidSetCallBack_TX(void (*ptr)(void)); /* called when UDR is empty */
+void USART_voidWriteData(u8);                     /* writes UDR , no wait */
+void USART_voidSend(u8); u8 USART_u8Recieve(); void USART_voidSendString(const c8*);  /* blocking , kept for test_base */</pre>
+<p class="k">Pitfalls (fixed)</p>
+<ul>
+<li><b>UBRRH and UCSRC share address 0x40.</b> A read of that address returns UBRRH on a real ATmega32, so <code>SET_BIT(UCSRC, …)</code> read UBRRH, set a bit and wrote it back as UCSRC without URSEL — corrupting the format. The register is now written once with URSEL = 1 (Phase 0). Proteus seems to return UCSRC on that read, so the bug did not show in simulation (specification §4, Proteus notes).</li>
+<li><b>Hard-coded baud value.</b> <code>UBRRL = 103</code> was right only at 16 MHz. It is now computed from <code>F_CPU</code>.</li>
+<li><b>Blocking TX/RX.</b> Printing the 408-byte admin menu with <code>USART_voidSend</code> would block the loop for 408 × 1.04 ms ≈ 0.42 s. The interrupt API and TERM's rings remove all waiting.</li>
+<li>The UDRE vector switches UDRIE off when no callback is set; otherwise the interrupt would fire for ever and lock the CPU.</li>
+</ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>UBRR from F_CPU; check the error (&lt; 2 %).</li><li>Write UBRRH, UBRRL, then UCSRC once with URSEL.</li><li>RX ISR: always read UDR (it clears RXC), then pass the byte on.</li><li>TX: enable UDRIE after putting a byte in the ring; in the ISR send one byte or disable UDRIE.</li><li>Keep the blocking functions only for test code.</li></ol>
+
+<!-- ======================================================= TWI -->
+<h2>2.8 TWI — the I²C master <span class="tag mcal">MCAL</span><span class="tag f">F</span></h2>
+<p class="k">Purpose</p>
+<p>The bus to the LCD, the lamps, both display digits and the EEPROM. The driver was restyled to the course conventions and extended with a timeout on every wait, error codes on every function, and an address probe used for 24C08 ACK polling. It stays polled, not interrupt-driven (D-4): every transfer is short and bounded (longest regular one: an EEPROM page, ≈ 1.7 ms).</p>
+<p class="k">Hardware / registers</p>
+<table class="reg">
+<thead><tr><th>Register / bits</th><th>Value</th><th>Why</th></tr></thead>
+<tr><td>TWSR.TWPS1:0</td><td>00</td><td>prescaler 1</td></tr>
+<tr><td>TWBR</td><td>{{ N['TWBR'] }}</td><td>SCL = F_CPU / (16 + 2·TWBR·4<sup>TWPS</sup>) = 16 MHz / 160 = {{ f(N['SCL_KHZ'],0) }} kHz</td></tr>
+<tr><td>TWCR.TWEN</td><td>1</td><td>TWI on; the TWI takes over PC0/PC1</td></tr>
+<tr><td>TWCR.TWINT</td><td>write 1 to start an action</td><td>flag "action finished"; writing a one clears it and starts the next step</td></tr>
+<tr><td>TWCR.TWSTA / TWSTO</td><td>1 for START / STOP</td><td>generate a (repeated) START or a STOP</td></tr>
+<tr><td>TWCR.TWEA</td><td>1 / 0</td><td>when receiving: ACK (more bytes wanted) / NACK (last byte)</td></tr>
+<tr><td>TWDR</td><td>address or data</td><td>byte to send / byte received</td></tr>
+<tr><td>TWSR & 0xF8</td><td>status</td><td>0x08 START, 0x10 rep. START, 0x18/0x20 SLA+W ACK/NACK, 0x28/0x30 data ACK/NACK, 0x40/0x48 SLA+R, 0x50/0x58 data received ACK/NACK, 0x38 arbitration lost</td></tr>
+</table>
+<p class="k">Timing (computed)</p>
+<p>One SCL period is {{ f(N['SCL_PERIOD_US'],0) }} µs; one byte on the wire, including its ACK bit, takes 9 periods = <b>{{ f(N['TWI_BYTE_US'],0) }} µs</b>. A transaction of <i>n</i> bytes (address included) takes about 10 µs + n × 90 µs. Transaction-by-transaction numbers are in §7.3.</p>
+<x-fig src="twi_txn.svg" w="96" label="computed">Anatomy of the most frequent transaction, one LCD byte.</x-fig>
+<x-code src="lib/MCAL/TWI/TWI.c" grep="TWCR = (1<<TWCR_TWINT) | (1<<TWCR_TWEN) | Copy_u8Flags ;" n="15" title="TWI_u8SendCommand: every wait has a timeout"/>
+<p>The timeout counts loop passes, not time. <code>TWI_cfg.h</code> assumes 6 cycles per pass, giving 2666 passes ≈ 1 ms. The compiled loop (<code>in</code>, <code>sbrs</code>, <code>rjmp</code>, <code>sbiw</code>, <code>brne</code>) takes <b>{{ N['TWI_LOOP_CYC'] }} cycles</b>, so the real timeout is 2666 × 8 / 16 MHz = <b>{{ f(N['TWI_TIMEOUT_MS'],2) }} ms</b> (computed from the disassembly of the avr-gcc 7.3.0 build). It is still far longer than a normal byte (90 µs ≈ 180 passes) and inside the 2 ms that <code>test_mcal</code> checks.</p>
+<x-code src="lib/MCAL/TWI/TWI.c" fn="TWI_u8ProbeAddress" title="START + SLA+W + STOP"/>
+<p class="k">API</p>
+<pre class="plain">void TWI_voidMasterInit();  void TWI_voidDisable();  u8 TWI_u8GetStatus();
+u8 TWI_u8SendStartCondition();  u8 TWI_u8SendRepeatedStart();  void TWI_voidSendStopCondition();
+u8 TWI_u8SendSlaveAddressWrite(u8);  u8 TWI_u8SendSlaveAddressRead(u8);
+u8 TWI_u8MasterWriteDataByte(u8);  u8 TWI_u8MasterReadDataByteAck(u8*);  u8 TWI_u8MasterReadDataByteNack(u8*);
+u8 TWI_u8MasterTransmit(u8 addr, const u8 *data, u8 n);        /* START , SLA+W , n bytes , STOP */
+u8 TWI_u8MasterReceive (u8 addr, u8 *data, u8 n);
+u8 TWI_u8MasterWriteRead(u8 addr, const u8 *w, u8 nw, u8 *r, u8 nr);   /* write , repeated START , read */
+u8 TWI_u8ProbeAddress(u8 addr);     /* TWI_OK = ACK , TWI_ERR_SLA_NACK = absent or busy */
+/* return codes: TWI_OK 0, ERR_START 1, ERR_SLA_NACK 2, ERR_DATA_NACK 3, ERR_ARB_LOST 4, ERR_BUS 5, ERR_TIMEOUT 6 */</pre>
+<p class="k">Pitfalls</p>
+<ul>
+<li><b>A stuck bus hung the loop.</b> The course driver waited for TWINT for ever. With a slave holding SDA low, every loop pass stopped. Each wait now ends after ≈ 1.33 ms, the bus is released (STOP, then TWEN off/on), and <code>TWI_ERR_TIMEOUT</code> goes up the call chain. LCD_BUF, LAMP, SEVEN_SEG and ESTORE each react to it (chapter 3).</li>
+<li>A STOP does not set TWINT, so <code>TWI_voidSendStopCondition</code> does not wait. The hardware finishes the STOP before it starts the next START.</li>
+<li>Bus timing depends on the pull-ups: 4.7 kΩ at 100 kHz is right for the short Proteus bus.</li>
+</ul>
+<p class="k">Re-implementation checklist</p>
+<ol class="steps"><li>TWBR from F_CPU and the SCL frequency.</li><li>One <code>SendCommand(flags)</code> = write TWCR, wait TWINT with a timeout.</li><li>Check TWSR after every step and return a code.</li><li>Build transmit, receive and write-read on top; always end with STOP.</li><li>Add a probe (START + SLA+W + STOP) for presence checks and EEPROM ACK polling.</li></ol>
+
+<!-- ======================================================= EXTI -->
+<h2>2.9 EXTI — external interrupts <span class="tag mcal">MCAL</span><span class="tag f">F</span></h2>
+<p>INT0 (PD2), INT1 (PD3) and INT2 (PB2) with selectable sense (MCUCR.ISC0x/ISC1x: low level, any change, falling, rising; MCUCSR.ISC2 for INT2) and enable bits in GICR. The application does not use EXTI in v1; PD2 stays reserved for the PIR sensor (ALM-02, not built). <code>test_base</code> and <code>test_mcal</code> exercise it with a push button on PD2.</p>
+<p><b>Fixed in Phase 2:</b> the three ISRs got <code>used, externally_visible</code>; the callback setters <code>EXTI_voidINT0/1/2_callBack</code> are now declared in <code>EXTI.h</code>; and each ISR checks the callback for <code>NULL</code> before calling it. Before the fix, an interrupt with no callback set jumped to address 0.</p>
+<x-code src="lib/MCAL/EXTI/EXTI.c" fn="__vector_1"/>
+<p class="small">Also present but unused: <code>lib/MCAL/SPI</code> (course stub; its missing <code>return</code> was fixed in Phase 0). No SPI device is fitted.</p>
