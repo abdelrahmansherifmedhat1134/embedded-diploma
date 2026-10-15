@@ -1,0 +1,93 @@
+==== SMART HOME + WATER HEATER ====
+Hey, please enter your username:
+admin
+Please enter your password:
+****
+Welcome admin. You are logged in as ADMIN.
+---------- MENU ----------
+ 1  Lamp on/off (1-5)
+ 2  Dimmer level
+ 3  AC status
+ 4  Heater status
+ 5  Heater set temperature
+ 6  System status
+ 7  Open the door
+ 8  Close the door
+ 9  Keypad control: allow / block
+10  Add remote user
+11  Remove remote user
+12  Add keypad user
+13  Remove keypad user
+14  List users
+15  Change admin password
+16  Factory reset
+ 0  Logout
+ ?  Show this menu
+admin> 12
+New keypad ID (1-8 digits):
+1111
+PIN (4-8 digits):
+****
+[OK] Keypad user 1111 added.
+admin> 10
+New remote username (1-8 characters):
+bob
+Password (4-8 characters):
+****
+[OK] Remote user bob added.
+admin> 9
+[OK] Keypad control is now ALLOWED
+admin> 1 3
+[OK] Lamp 3 is now ON
+admin> 2 70
+[OK] Dimmer is now 70%
+admin> 5 65
+[OK] Heater set temperature is now 65C
+admin> 7
+[OK] Door is now OPEN
+admin> 6
+---- System status ----
+Lamps : 1=OFF 2=OFF 3=ON 4=OFF 5=OFF
+Dimmer: 70%
+AC    : OFF, room 25C
+Heater: OFF, water 40C, set 65C
+Door  : OPEN
+Keypad: ALLOWED, nobody logged in
+admin> 
+[INFO] Keypad user logged in
+admin> 
+[INFO] Lamp 2 is now ON
+admin> 
+[INFO] Heater set temperature is now 70C
+admin> 
+[INFO] Keypad user logged out
+admin> 
+[INFO] Heater is now ON
+admin> 
+[INFO] Heater: HEATING
+admin> 
+[INFO] Heater: COOLING
+admin> 
+[INFO] AC is now ON
+admin> 
+[INFO] Heater: HEATING
+admin> 
+[INFO] AC is now OFF
+admin> 0
+Goodbye admin.
+==== SMART HOME + WATER HEATER ====
+Hey, please enter your username:
+x
+Please enter your password:
+*
+[ERR] Wrong username or password. 2 attempts left.
+Hey, please enter your username:
+x
+Please enter your password:
+*
+[ERR] Wrong username or password. 1 attempt left.
+Hey, please enter your username:
+x
+Please enter your password:
+*
+[ALERT] 3 wrong logins. SYSTEM LOCKED. Reset to restart.

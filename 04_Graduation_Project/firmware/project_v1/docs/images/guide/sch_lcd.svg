@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="487.449pt" height="196.56pt" viewBox="0 0 487.449 196.56" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:09.675583</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 196.56 
+L 487.449 196.56 
+L 487.449 0 
+L 0 0 
+L 0 196.56 
+z
+" style="fill: none"/>
+  </g>
+  <g id="axes_1">
+   <g id="line2d_1">
+    <path d="M 112.806 191.88 
+L 206.406 191.88 
+L 206.406 17.28 
+L 112.806 17.28 
+L 112.806 191.88 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 112.806 144.18 
+L 98.406 144.18 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 112.806 124.38 
+L 98.406 124.38 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 112.806 104.58 
+L 98.406 104.58 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_5">
+    <path d="M 112.806 84.78 
+L 98.406 84.78 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_6">
+    <path d="M 112.806 64.98 
+L 98.406 64.98 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_7">
+    <path d="M 206.406 173.88 
+L 220.806 173.88 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_8">
+    <path d="M 206.406 154.08 
+L 220.806 154.08 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_9">
+    <path d="M 206.406 134.28 
+L 220.806 134.28 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_10">
+    <path d="M 206.406 114.48 
+L 220.806 114.48 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_11">
+    <path d="M 206.406 94.68 
+L 220.806 94.68 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_12">
+    <path d="M 206.406 74.88 
+L 220.806 74.88 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_13">
+    <path d="M 206.406 55.08 
+L 220.806 55.08 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_14">
+    <path d="M 206.406 35.28 
+L 220.806 35.28 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #c05621; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_15">
+    <path d="M 98.406 144.18 
+L 82.206 144.18 
+L 66.006 144.18 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_16">
+    <path d="M 98.406 124.38 
+L 82.206 124.38 
+L 66.006 124.38 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_17">
+    <path d="M 98.406 104.58 
+L 89.406 104.58 
+L 80.406 104.58 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_18">
+    <path d="M 98.406 84.78 
+L 89.406 84.78 
+L 80.406 84.78 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_19">
+    <path d="M 98.406 64.98 
+L 89.406 64.98 
+L 80.406 64.98 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_20">
+    <path d="M 80.406 104.58 
+L 80.406 84.78 
+L 80.406 64.98 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_21">
+    <path d="M 220.806 173.88 
+L 246.006 173.88 
+L 271.206 173.88 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_22">
+    <path d="M 220.806 154.08 
+L 246.006 154.08 
+L 271.206 154.08 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_23">
+    <path d="M 220.806 134.28 
+L 246.006 134.28 
+L 271.206 134.28 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_24">
+    <path d="M 220.806 114.48 
+L 246.006 114.48 
+L 271.206 114.48 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_25">
+    <path d="M 220.806 94.68 
+L 246.006 94.68 
+L 271.206 94.68 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_26">
+    <path d="M 220.806 74.88 
+L 246.006 74.88 
+L 271.206 74.88 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_27">
+    <path d="M 220.806 55.08 
+L 246.006 55.08 
+L 271.206 55.08 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_28">
+    <path d="M 220.806 35.28 
+L 246.006 35.28 
+L 271.206 35.28 
+" clip-path="url(#p9a7dc92f72)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: start; fill: #c05621" x="118.206" y="149.252813" transform="rotate(-0 118.206 149.252813)">SCL</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: start; fill: #c05621" x="118.206" y="129.452812" transform="rotate(-0 118.206 129.452812)">SDA</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: start; fill: #c05621" x="118.206" y="109.6725" transform="rotate(-0 118.206 109.6725)">A0</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: start; fill: #c05621" x="118.206" y="89.8725" transform="rotate(-0 118.206 89.8725)">A1</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: start; fill: #c05621" x="118.206" y="70.141406" transform="rotate(-0 118.206 70.141406)">A2</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="178.9725" transform="rotate(-0 201.006 178.9725)">P0</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="159.1725" transform="rotate(-0 201.006 159.1725)">P1</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="139.441406" transform="rotate(-0 201.006 139.441406)">P2</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="119.5725" transform="rotate(-0 201.006 119.5725)">P3</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="99.7725" transform="rotate(-0 201.006 99.7725)">P4</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="79.903594" transform="rotate(-0 201.006 79.903594)">P5</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="60.1725" transform="rotate(-0 201.006 60.1725)">P6</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 14px; font-family: 'Inter'; text-anchor: end; fill: #c05621" x="201.006" y="40.3725" transform="rotate(-0 201.006 40.3725)">P7</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: middle; fill: #c05621" x="159.606" y="11.508926" transform="rotate(-0 159.606 11.508926)">PCF8574 · 0x27</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: end; fill: #1f2933" x="62.406" y="151.041094" transform="rotate(-0 62.406 151.041094)">PC0 SCL</text>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: end; fill: #1f2933" x="62.406" y="131.241094" transform="rotate(-0 62.406 131.241094)">PC1 SDA</text>
+   </g>
+   <g id="text_17">
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(53.038969 89.854277)">+5 V</text>
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(6.427406 100.788223)">(A2 A1 A0 = 111)</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="177.141094" transform="rotate(-0 274.806 177.141094)">RS</text>
+   </g>
+   <g id="text_19">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="156.824297" transform="rotate(-0 274.806 156.824297)">RW (always 0)</text>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="137.55375" transform="rotate(-0 274.806 137.55375)">E</text>
+   </g>
+   <g id="text_21">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="116.983125" transform="rotate(-0 274.806 116.983125)">backlight (not connected)</text>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="97.95375" transform="rotate(-0 274.806 97.95375)">D4</text>
+   </g>
+   <g id="text_23">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="78.109453" transform="rotate(-0 274.806 78.109453)">D5</text>
+   </g>
+   <g id="text_24">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="58.35375" transform="rotate(-0 274.806 58.35375)">D6</text>
+   </g>
+   <g id="text_25">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="274.806" y="38.55375" transform="rotate(-0 274.806 38.55375)">D7</text>
+   </g>
+   <g id="text_26">
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(445.391859 93.364102)">LM016L</text>
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(441.445922 104.25375)">16×2 LCD</text>
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(439.372406 114.93668)">(4-bit bus)</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p9a7dc92f72">
+   <rect x="0" y="0" width="487.449" height="196.56"/>
+  </clipPath>
+ </defs>
+</svg>

@@ -1,0 +1,128 @@
+<h1 data-ch="8"><span class="num">Chapter 8</span>Verification</h1>
+<p class="lead">In this project "verified" means: it builds with <code>-Wall</code> and zero warnings, the logic was traced by hand against the requirement, and a test step for it was run in Proteus (specification §2). This chapter lists the test programs, summarises the recorded Proteus runs, maps every requirement to its code and its tests, and records what failed along the way and what is still open.</p>
+
+<h2>8.1 Test environments</h2>
+<p>Each layer was finished with its own test program before the next layer started (specification §3). A test program prints one <code>[PASS]</code>/<code>[FAIL]</code> line per check on the terminal, <code>MANUAL:</code> lines for things a person must do or look at in Proteus, and a summary line; a status LED on PA3 shows running / all passed / failure.</p>
+<table class="tight">
+<thead><tr><th>Program</th><th class="n">Check calls in the source</th><th>What it proves</th><th>Proteus project</th></tr></thead>
+<tr><td><code>test_base</code></td><td class="n">27</td><td>the original course drivers, before and after the Phase 0/2 fixes (built with LTO)</td><td>simulation/design/base_wiring_phase0</td></tr>
+<tr><td><code>test_mcal</code></td><td class="n">40</td><td>JTAG bit, ADC sync after async, Timer0 0/50/100 %, Timer1 ICR1 = 39999 and pulse widths, 1000 Timer2 interrupts in 1.000 s, UBRR = 103, RX callback, 300-byte TX burst without loss, TWI ACK/NACK and timeout, EXTI with and without callback</td><td>layer_tests/1_mcal_test</td></tr>
+<tr><td><code>test_hal</code></td><td class="n">65</td><td>LCD through LCD_BUF (longest update &lt; 1 ms), keypad once per press, button events, 7-segment (by eye), LM35, outputs, lamp chase with read-back, fan/servo/dimmer ramps, EEPROM page write, ready flag and persistence</td><td>layer_tests/2_hal_test</td></tr>
+<tr><td><code>test_service</code></td><td class="n">140</td><td>RINGBUF, MAVG, FMT edge cases; SCHED 2000/1000/100/20/10 flags in 10 s with 0 overruns; TERM editor; EVQ order/drop/mute; ESTORE defaults, magic page last, one byte = one page write, write during write cycle, fault; USERDB all rules and the write gate</td><td>layer_tests/3_service_test</td></tr>
+<tr><td><code>test_app</code></td><td class="n">42</td><td>automatic: 3-strike counters per source, permissions, dimmer rounding, set-temperature clamp, both hysteresis bands, "no decision before 10 samples", save after 5 s, ALARM latch, keypad arbitration; then the full super-loop for the interactive steps</td><td>layer_tests/4_app_test_partA, 5_app_test_partB</td></tr>
+</table>
+<x-fig src="repo_test_hal_results.png" w="70" label="proteus">HAL layer test output in the Proteus terminal (presentation capture).</x-fig>
+
+<h2>8.2 The Proteus test plan and the 130 recorded APP steps</h2>
+<p><code>docs/test_plan.md</code> §3 defines 78 requirement steps (T-01 … T-78) for the full application. The APP layer was then run block by block in Proteus with <code>test_app</code> and recorded on 2026-10-04 in two sequence documents: <b>part A, 48 steps in 9 blocks</b> (the features without a UI), and <b>part B, 82 steps in 13 blocks</b> (both UIs and the full super-loop). <b>All 130 steps passed.</b></p>
+<div class="cols2">
+<table class="tight"><caption>Part A — LIGHT, DOOR, CLIMATE, HEATER, ALARM, SEC</caption>
+<thead><tr><th>Block</th><th class="n">Steps</th><th>Covers</th></tr></thead>
+<tr><td>1 Automatic part</td><td class="n">2</td><td>all automatic checks, then live loop</td></tr>
+<tr><td>2 Start-up state</td><td class="n">3</td><td>T-40, T-51</td></tr>
+<tr><td>3 Lights and door</td><td class="n">9</td><td>T-41, 42, 44, 45</td></tr>
+<tr><td>4 Air conditioning</td><td class="n">6</td><td>T-46 – T-50</td></tr>
+<tr><td>5 Heater power, setting mode</td><td class="n">12</td><td>T-52 – T-59, 70, 71</td></tr>
+<tr><td>6 Element control and LED</td><td class="n">9</td><td>T-63 – T-69</td></tr>
+<tr><td>7 Persistence</td><td class="n">2</td><td>T-61</td></tr>
+<tr><td>8 Lockdown</td><td class="n">5</td><td>T-73, T-74</td></tr>
+<tr><td><b>Total</b></td><td class="n"><b>48</b></td><td>all PASS</td></tr>
+</table>
+<table class="tight"><caption>Part B — UILOC, UIREM, full super-loop</caption>
+<thead><tr><th>Block</th><th class="n">Steps</th><th>Covers</th></tr></thead>
+<tr><td>1 Automatic part and boot</td><td class="n">4</td><td>T-33</td></tr>
+<tr><td>2 Factory reset</td><td class="n">5</td><td>T-01, 21, 76</td></tr>
+<tr><td>3 Accounts</td><td class="n">11</td><td>T-02, 03, 05, 06</td></tr>
+<tr><td>4 Terminal commands, errors</td><td class="n">13</td><td>T-36 – 39, 41 – 46, 70</td></tr>
+<tr><td>5 Remote user permissions</td><td class="n">5</td><td>T-13, 15, 36, 39</td></tr>
+<tr><td>6 Keypad and LCD</td><td class="n">12</td><td>T-22 – T-32</td></tr>
+<tr><td>7 Arbitration</td><td class="n">6</td><td>T-16 – T-20</td></tr>
+<tr><td>8 Events</td><td class="n">6</td><td>T-34, 35, 72</td></tr>
+<tr><td>9 Persistence</td><td class="n">4</td><td>T-07, 61</td></tr>
+<tr><td>10 Counters and lockdown</td><td class="n">8</td><td>T-08 – 12, 73, 74</td></tr>
+<tr><td>11 Storage</td><td class="n">4</td><td>T-77, 78</td></tr>
+<tr><td>12 Admin password, final reset</td><td class="n">4</td><td>T-21</td></tr>
+<tr><td><b>Total</b></td><td class="n"><b>82</b></td><td>all PASS</td></tr>
+</table>
+</div>
+<div class="cols2">
+<x-fig src="repo_test_app_partA_header.png" w="100" label="proteus">Header of the part A record (docs/test_app_partA_sequence.pdf).</x-fig>
+<x-fig src="repo_test_app_partB_header.png" w="100" label="proteus">Header of the part B record.</x-fig>
+</div>
+<h3>Captures not in the repository</h3>
+<p>The records above are tables of observed results. Three observations would be easier to check with a picture; they are left as marked placeholders:</p>
+<x-ph>Proteus I²C debugger during T-60 / T-77: one 16-byte page write <code>S A0 A 10 A 32 …  P</code> followed 10 ms later by the poll <code>S A0 A P</code>.</x-ph>
+<x-ph>Proteus oscilloscope channel B on PD4 (fan) with the AC on (100 %, flat high) and off (flat low) — T-50.</x-ph>
+<x-ph>Proteus 24C08 memory window after a first boot on a blank chip: 0x00 = A5, 0x01 = 01, 0x10 = 3C, 0x20 = "admin", 0x28 = "1234" — T-76.</x-ph>
+
+<h2>8.3 Requirement traceability</h2>
+<p>Every requirement ID appears in the code as a <code>/* REQ-… */</code> comment where it is implemented. The README counts 126 lines carrying such tags across <code>src/</code> and <code>lib/</code>; a recount gives the same 126 lines, carrying 150 tags (129 of them in <code>.c</code> files), and every implemented ID — 42 of the 43; ALM-02 is not built — appears at least once.</p>
+<x-fig src="trace_matrix.svg" w="100" label="code">Requirement tags per module, counted from the source by the generator.</x-fig>
+<table class="tight">
+<thead><tr><th>Requirement</th><th>Code (tags found in)</th><th>Test plan steps</th><th>Recorded APP blocks</th></tr></thead>
+<tr><td>SEC-01 … 09</td><td>SEC, USERDB, ESTORE, UIREM, UILOC</td><td>T-01 – T-21</td><td>B2, B3, B5, B7, B9, B10, B12 · A8</td></tr>
+<tr><td>LUI-01 … 04</td><td>UILOC</td><td>T-22 – T-32</td><td>B6</td></tr>
+<tr><td>RUI-01 … 04</td><td>UIREM, TERM</td><td>T-33 – T-39</td><td>B1, B4, B5, B8</td></tr>
+<tr><td>LGT-01, 02</td><td>LIGHT, UILOC, UIREM</td><td>T-24, 25, 40 – 43</td><td>A3, B4, B6</td></tr>
+<tr><td>DOR-01, 02</td><td>DOOR, UIREM</td><td>T-13, 44, 45</td><td>A3, B4, B5</td></tr>
+<tr><td>AC-01 … 03</td><td>CLIMATE</td><td>T-26, 46 – 50</td><td>A4, B6</td></tr>
+<tr><td>HTR-01 … 14</td><td>HEATER, UILOC, UIREM</td><td>T-27, 51 – 72</td><td>A2, A5, A6, A7, B4, B8, B9</td></tr>
+<tr><td>ALM-01</td><td>ALARM</td><td>T-08, 12, 73, 74</td><td>A8, B10</td></tr>
+<tr><td>EEP-01 … 03</td><td>ESTORE, EXT_EEPROM</td><td>T-60, 76 – 78</td><td>A5, B2, B11</td></tr>
+</table>
+<p class="small">The full one-line-per-requirement table with step numbers is test_plan.md §4; §1.1 of this guide repeats it with the implementing modules.</p>
+
+<h2>8.4 Independent cross-check in simavr</h2>
+<p>The timing harness of chapter 7 doubles as a functional regression check of the binary, independent of Proteus. In the main scenario the terminal transcript produced by <code>app.elf</code> matches the documented protocol (uart_protocol.md) line for line, and the observed behaviour matches the requirements:</p>
+<ul>
+<li>the 13 first-boot pages written highest first;</li>
+<li><code>[OK]</code> replies and <code>[INFO]</code> events;</li>
+<li>the keypad session and its events;</li>
+<li>the AC switching at the hysteresis limits;</li>
+<li>heating after 10 samples;</li>
+<li>the lockdown with buzzer and alert.</li>
+</ul>
+<p>The scheduler counted 0 overruns in both runs. The harness, the scenarios and the analysis script are kept with the guide sources so the check can be repeated after any firmware change (Appendix H).</p>
+
+<h2>8.5 Design decisions and failures</h2>
+<h3>The 7-segment display that failed (D-20)</h3>
+<p>The first display design used one 7447 BCD-to-7-segment decoder on PC2–PC5, two PNP digit drivers on PC6/PC7, and multiplexing from the 1 ms tick (<code>SEVEN_SEG_voidRefresh</code>). In Proteus it was unreliable: 37 showed as 33, and the counter showed the same odd symbol on both digits.</p>
+<p>The test bench <code>firmware/experiments/hal_testing_v1</code> isolated the cause step by step:</p>
+<ul>
+<li>the port pins followed the code;</li>
+<li>JTAG was off (MCUCSR = 128);</li>
+<li>the generated code was correct (checked in the disassembly);</li>
+<li>a first sampling check gave a false error because it read the digit pins and the BCD pins separately while the tick switched digits — fixed with a single port snapshot.</li>
+</ul>
+<p>The real symptom was both digits conducting at once through the slow PNP drivers. A 1 ms blanking interval (<code>SEVEN_SEG_BLANK_TICKS</code>) did not make it reliable.</p>
+<div class="cols2">
+<x-fig src="repo_7seg_v1_7447_failed.png" w="100" label="reused">Version 1: 7447 decoder + multiplexed PNP digits (failed in Proteus).</x-fig>
+<x-fig src="repo_7seg_v2_i2c_expanders.png" w="100" label="reused">Version 2: one PCF8574 per digit (D-20, as built).</x-fig>
+</div>
+<p><b>Decision D-20 (2026-10-03):</b> two PCF8574 expanders, one per common-anode digit (tens 0x21, units 0x22). A second bench, <code>hal_testing_v2</code> (bus scan, 22 raw patterns per chip, all 100 numbers, bus sharing with the LCD and lamps, stress), showed the right digits. Gains: no multiplexing, no tick hook (the Timer2 ISR does no real work at all), no JTAG handling, six port pins freed (PC2–PC7). Cost: two more I²C devices and 190 µs of bus time per changed digit.</p>
+<h3>Other things that went wrong and were fixed</h3>
+<table class="tight">
+<thead><tr><th>Problem</th><th>Cause</th><th>Fix</th></tr></thead>
+<tr><td>MCU reset on the first ADC/Timer0/EXTI interrupt</td><td>LTO removed ISRs declared only with <code>signal</code></td><td><code>__attribute__((signal, used, externally_visible))</code> on every ISR (§2.0)</td></tr>
+<tr><td>Dimmer brightest at 0 %, off at 100 %</td><td>swapped COM bits; 100 % → OCR0 = 256 → 0</td><td>COM01:00 = 10; OCR0 = p × 255 / 100 (§2.4)</td></tr>
+<tr><td>Sync ADC read hung after an async one</td><td>ADIE left on, the ISR stole ADIF</td><td>clear ADIE and ADIF before each polled conversion (§2.3)</td></tr>
+<tr><td>Serial format corrupted on real hardware</td><td>read-modify-write of UCSRC read UBRRH</td><td>one write with URSEL (§2.7)</td></tr>
+<tr><td>Loop blocked by a held key, a long text, a stuck bus or an EEPROM write</td><td>blocking course drivers</td><td>KPAD scan, TERM rings, TWI timeout, ESTORE write-behind</td></tr>
+<tr><td>Buzzer silent in Proteus</td><td>model defaults 5 V / 12 Ω (0.4 A)</td><td>model set to 3 V / 150 Ω; NPN stage needed on real hardware (C-9)</td></tr>
+<tr><td>≈ 100 B of RAM lost to a pointer table</td><td>compiler turned a text-returning <code>switch</code> into a RAM table</td><td>cases print directly (§4.9)</td></tr>
+</table>
+
+<h2>8.6 Known limitations</h2>
+<ul>
+<li><b>Not built in v1</b> (D-16): fan speed ramp (optional part of AC-03), PIR alarm (ALM-02), LDR street light. Pins PD2 and PA2 stay reserved.</li>
+<li><b>Security:</b> passwords are stored and compared as plain text (D-13), and the UART link is not encrypted. Acceptable for a simulation project; hashing (and a salted record format) is the next step.</li>
+<li><b>Timing:</b> the blink corner case and the up-to-100 ms display/LED lag at turn-off (§7.5, §5.6).</li>
+<li><b>Untested paths in simulation:</b>
+ <ul>
+ <li>The Proteus 24C08 has no write delay, so the "chip still busy" branch of the ACK polling (NACK, retry) was never exercised. In simavr with a 5 ms model, the first poll, 10 ms after the write, always succeeded too. Only a write cycle above 10 ms, or a faulty chip, takes that branch.</li>
+ <li>UBRRH cannot be verified in Proteus (§2.7).</li>
+ </ul></li>
+<li><b>Robustness:</b> no watchdog is enabled; a firmware fault that stops the loop would not be recovered. No brown-out handling is configured in firmware (the BOD fuses are a hardware setting).</li>
+<li><b>Hardware for a real board</b> (pin_map.md §4): NPN driver for the buzzer (C-9), series resistors on the ISP pins PB5–PB7 (C-4), a stronger base drive for the dimmer lamp transistor, AREF left open (C-5).</li>
+<li><b>Power:</b> the idle loop polls flags at full speed; there is no sleep mode.</li>
+</ul>

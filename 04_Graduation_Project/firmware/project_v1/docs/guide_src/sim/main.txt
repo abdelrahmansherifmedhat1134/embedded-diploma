@@ -1,0 +1,41 @@
+# full-system scenario , blank 24C08 , real-chip write cycle 5 ms
+end 30000
+eedelay 5
+1000 uart admin\r
+1100 uart 1234\r
+3000 uart 12\r
+3100 uart 1111\r
+3200 uart 2222\r
+4000 uart 10\r
+4100 uart bob\r
+4200 uart 5678\r
+5000 uart 9\r
+6000 uart 1 3\r
+6500 uart 2 70\r
+7000 uart 5 65\r
+7500 uart 7\r
+8000 uart 6\r
+9000 keys 1111=2222=
+12000 keys 1
+12500 keys 2
+13000 keys C
+13300 keys 4
+13600 keys +
+14000 keys C
+14300 keys C
+15000 btn onoff 150
+17000 btn up 120
+17500 btn up 120
+18000 btn down 120
+20000 adc 1 800
+23000 adc 1 600
+24300 adc 1 500
+22000 adc 0 300
+24000 adc 0 200
+25000 uart 0\r
+26000 uart x\r
+26100 uart y\r
+26400 uart x\r
+26500 uart y\r
+26800 uart x\r
+26900 uart y\r

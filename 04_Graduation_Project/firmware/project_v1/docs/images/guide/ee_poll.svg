@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="422.108844pt" height="115.211125pt" viewBox="0 0 422.108844 115.211125" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:11.744958</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 115.211125 
+L 422.108844 115.211125 
+L 422.108844 -0 
+L 0 -0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="line2d_1">
+    <path d="M 28.4765 112.331125 
+L 28.4765 18.083125 
+" clip-path="url(#pfb9cfb30bc)" style="fill: none; stroke: #c9d1d9; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 154.0265 112.331125 
+L 154.0265 18.083125 
+" clip-path="url(#pfb9cfb30bc)" style="fill: none; stroke: #c9d1d9; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 279.5765 112.331125 
+L 279.5765 18.083125 
+" clip-path="url(#pfb9cfb30bc)" style="fill: none; stroke: #c9d1d9; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 405.1265 112.331125 
+L 405.1265 18.083125 
+" clip-path="url(#pfb9cfb30bc)" style="fill: none; stroke: #c9d1d9; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="patch_2">
+    <path d="M 28.4765 51.843603 
+L 48.94115 51.843603 
+L 48.94115 39.183424 
+L 28.4765 39.183424 
+z
+" clip-path="url(#pfb9cfb30bc)" style="fill: #e9f6ef; stroke: #2f855a; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 48.94115 70.130528 
+L 111.71615 70.130528 
+L 111.71615 60.283722 
+L 48.94115 60.283722 
+z
+" clip-path="url(#pfb9cfb30bc)" style="fill: url(#h7d28f3281b); stroke: #52606d; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 154.0265 51.843603 
+L 155.5331 51.843603 
+L 155.5331 39.183424 
+L 154.0265 39.183424 
+z
+" clip-path="url(#pfb9cfb30bc)" style="fill: #2f855a; stroke: #2f855a; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 279.5765 51.843603 
+L 300.04115 51.843603 
+L 300.04115 39.183424 
+L 279.5765 39.183424 
+z
+" clip-path="url(#pfb9cfb30bc)" style="fill: #e9f6ef; stroke: #2f855a; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 6.4px; font-family: 'Inter'; fill: #2f855a" transform="translate(22.662825 26.519876)">page write</text>
+    <text style="font-size: 6.4px; font-family: 'Inter'; fill: #2f855a" transform="translate(11.485325 34.263626)">1.63 ms (18 bytes)</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 6.4px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="79.952" y="80.550588" transform="rotate(-0 79.952 80.550588)">internal write cycle ≤ 5 ms: chip NACKs its address</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 6.4px; font-family: 'Inter'; fill: #2f855a" transform="translate(131.6883 26.519876)">ACK poll 0.1 ms</text>
+    <text style="font-size: 6.4px; font-family: 'Inter'; fill: #2f855a" transform="translate(132.4858 34.263626)">→ ACK → IDLE</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 6.4px; font-family: 'Inter'; text-anchor: middle; fill: #2f855a" x="289.808825" y="34.263626" transform="rotate(-0 289.808825 34.263626)">next dirty page</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(21.528688 98.450013)">0 ms</text>
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(14.374156 105.709779)">10 ms slot</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(145.858531 98.450013)">10 ms</text>
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(139.924156 105.709779)">10 ms slot</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(270.799156 98.450013)">20 ms</text>
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(265.474156 105.709779)">10 ms slot</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(396.325719 98.450013)">30 ms</text>
+    <text style="font-size: 6px; font-family: 'Inter'; fill: #52606d" transform="translate(391.024156 105.709779)">10 ms slot</text>
+   </g>
+   <g id="text_9">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="15.9215" y="12.083125" transform="rotate(-0 15.9215 12.083125)">ESTORE write-behind on the bus: one step per 10 ms slot, never a wait</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pfb9cfb30bc">
+   <rect x="15.9215" y="18.083125" width="401.76" height="94.248"/>
+  </clipPath>
+ </defs>
+ <defs>
+  <pattern id="h7d28f3281b" patternUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
+   <rect x="0" y="0" width="73" height="73" fill="#ffffff"/>
+   <path d="M -36 36 
+L 36 -36 
+M -33 39 
+L 39 -33 
+M -30 42 
+L 42 -30 
+M -27 45 
+L 45 -27 
+M -24 48 
+L 48 -24 
+M -21 51 
+L 51 -21 
+M -18 54 
+L 54 -18 
+M -15 57 
+L 57 -15 
+M -12 60 
+L 60 -12 
+M -9 63 
+L 63 -9 
+M -6 66 
+L 66 -6 
+M -3 69 
+L 69 -3 
+M 0 72 
+L 72 0 
+M 3 75 
+L 75 3 
+M 6 78 
+L 78 6 
+M 9 81 
+L 81 9 
+M 12 84 
+L 84 12 
+M 15 87 
+L 87 15 
+M 18 90 
+L 90 18 
+M 21 93 
+L 93 21 
+M 24 96 
+L 96 24 
+M 27 99 
+L 99 27 
+M 30 102 
+L 102 30 
+M 33 105 
+L 105 33 
+M 36 108 
+L 108 36 
+" style="fill: #52606d; stroke: #52606d; stroke-width: 1.0; stroke-linecap: butt; stroke-linejoin: miter"/>
+  </pattern>
+ </defs>
+</svg>

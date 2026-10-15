@@ -1,0 +1,173 @@
+<h1 data-ch="5"><span class="num">Chapter 5</span>Subsystems — the APP layer</h1>
+<p class="lead">Eight modules carry the behaviour: two user interfaces (UIREM, UILOC), the security core (SEC, ALARM) and four features (LIGHT, DOOR, CLIMATE, HEATER). Each is a non-blocking state machine: it keeps its state in <code>static</code> variables, runs to completion every time it is called, and never waits. The state tables follow the code, not the design documents.</p>
+
+<table class="tight">
+<thead><tr><th>Module</th><th>Called by the loop</th><th>Calls</th><th>Requirement IDs</th></tr></thead>
+<tr><td>SEC</td><td>— (called by the UIs)</td><td>USERDB, ALARM, EVQ</td><td>SEC-01, 02, 05, 06, 07, 08</td></tr>
+<tr><td>ALARM</td><td>500 ms</td><td>HEATER, CLIMATE, BUZZER, EVQ</td><td>ALM-01, SEC-05</td></tr>
+<tr><td>LIGHT</td><td>—</td><td>LAMP, DIMMER, EVQ</td><td>LGT-01, LGT-02</td></tr>
+<tr><td>DOOR</td><td>—</td><td>SERVO</td><td>DOR-01, DOR-02</td></tr>
+<tr><td>CLIMATE</td><td>100 ms</td><td>LM35, MAVG, FAN, EVQ</td><td>AC-01, 02, 03</td></tr>
+<tr><td>HEATER</td><td>10, 100, 500 ms</td><td>BUTTON, LM35, MAVG, RELAY, LED, SEVEN_SEG, ESTORE, EVQ</td><td>HTR-01 … HTR-14</td></tr>
+<tr><td>UILOC</td><td>10 ms, 1 s</td><td>KPAD, LCD_BUF, FMT, SEC, LIGHT, CLIMATE, HEATER, ALARM</td><td>LUI-01 … 04, SEC-06, SEC-08</td></tr>
+<tr><td>UIREM</td><td>5 ms, 1 s</td><td>TERM, EVQ, FMT, SEC, USERDB, ESTORE, LIGHT, DOOR, CLIMATE, HEATER, ALARM</td><td>RUI-01 … 04, SEC-01/03/06, DOR-01, HTR-14</td></tr>
+</table>
+
+<!-- ======================================================= SEC -->
+<h2>5.1 SEC — sessions, roles and the lockdown counter <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>SEC decides who is logged in where, what role they have, and when the system locks. It keeps one session and one failure counter per login source: <code>SEC_SOURCE_REMOTE</code> (UART) and <code>SEC_SOURCE_LOCAL</code> (keypad).</p>
+<x-fig src="sm_sec.svg" w="96" label="code">SEC session machine (per source) and the lockdown transition.</x-fig>
+<p class="k">Events and transitions</p>
+<ul>
+<li><b>Login(src, name, pass)</b> — one attempt = one name+password pair checked together; the reply never says which half was wrong.
+ <ul>
+ <li>If the alarm is active, the result is <code>SEC_LOGIN_LOCKED</code> and nothing is checked.</li>
+ <li>REMOTE: the admin record first (only for this source, SEC-01), then the remote list. LOCAL: the keypad list, and only if <code>SEC_u8IsLocalAllowed()</code>.</li>
+ <li>On success: <code>fail[src] = 0</code> and a role is set. An admin login also opens the USERDB write gate, sets local-allowed = 0 and ends any keypad session (decision 1). A keypad login posts <code>EVQ_LOCAL_SESSION(1)</code>.</li>
+ <li>On failure: <code>++fail[src]</code>; at 3 (<code>SEC_MAX_FAILED_LOGINS</code>) it calls <code>ALARM_voidTrigger()</code> and returns <code>SEC_LOGIN_LOCKED</code> (SEC-05: the 3rd failure, decision 2).</li></ul></li>
+<li><b>Logout(src)</b> — ends the session. For the admin it closes the write gate and resets local-allowed; for the keypad it posts <code>EVQ_LOCAL_SESSION(0)</code>.</li>
+<li><b>SetLocalAllowed(x)</b> — effective only while the admin is logged in; x = 0 also ends a keypad session (SEC-08).</li>
+</ul>
+<x-code src="src/APP/SEC/SEC.c" grep="/* REQ-SEC-05 : the 3rd failure in a row on this source locks the system */" n="6" title="end of SEC_u8Login"/>
+<p><code>SEC_u8IsLocalAllowed()</code> = not locked AND NOT (remote role is ADMIN and local-allowed = 0). A successful login on the same source resets its counter, and the two counters are independent, so 2 wrong on the terminal + 2 wrong on the keypad does not lock (test T-11).</p>
+<table class="tight"><caption>Permissions (enforced by the UIs through <code>SEC_u8GetRole</code>, SEC-06, decision D-9/D-12)</caption>
+<thead><tr><th>Action</th><th>Admin (UART)</th><th>Remote user</th><th>Keypad user</th></tr></thead>
+<tr><td>Lamps, dimmer, view AC / heater / status</td><td>yes</td><td>yes</td><td>yes</td></tr>
+<tr><td>Change heater set temperature</td><td>yes</td><td>yes</td><td>yes</td></tr>
+<tr><td>Open / close the door</td><td>yes</td><td>no</td><td>no (no menu entry)</td></tr>
+<tr><td>Accounts, admin password, factory reset, keypad allow/block</td><td>yes</td><td>no</td><td>no</td></tr>
+</table>
+<p class="k">Integration</p>
+<p><code>SEC_voidInit()</code> after <code>USERDB_voidInit</code> and <code>ALARM_voidInit</code>. No task function: SEC reacts only to calls from UIREM and UILOC. Note: a LOCAL login attempt while the keypad is blocked would count as a failure; UILOC prevents this by showing "Keypad blocked" instead of calling SEC (§5.7).</p>
+
+<!-- ======================================================= ALARM -->
+<h2>5.2 ALARM — latched lockdown <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<x-fig src="sm_alarm.svg" w="88" label="code">ALARM: once active, only an MCU reset leaves the state.</x-fig>
+<p><code>ALARM_voidTrigger()</code> brings the system to its safe state (decision 2): <code>HEATER_voidForceOff()</code> (both elements off, display blank, panel LOCKED), <code>CLIMATE_voidForceOff()</code> (fan off, FORCED_OFF), buzzer on, post <code>EVQ_LOCKDOWN</code>. Lamps, dimmer and door keep their state. The 500 ms task toggles the buzzer, 0.5 s on / 0.5 s off (<code>ALARM_BUZZER_BEEP 1</code>; 0 makes it continuous, D-15). The lockdown state is not stored in EEPROM, so a reset always clears it (SEC-05, ALM-01). Both UIs poll <code>ALARM_u8IsActive()</code> and switch to their own LOCKED state, which ignores all input.</p>
+<p class="small">Call order: ALARM calls HEATER and CLIMATE, and SEC calls ALARM, so the modules were built and tested bottom-up: LIGHT → DOOR → CLIMATE → HEATER → ALARM → SEC.</p>
+
+<!-- ======================================================= LIGHT DOOR -->
+<h2>5.3 LIGHT — lamps and dimmer <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<p>No modes, only data: a 5-bit lamp mask and the dimmer percentage; both start at 0 at boot (lamp and dimmer states are not stored, D-14).</p>
+<ul>
+<li><b><code>LIGHT_u8ToggleLamp(n)</code></b> (n = 1…5) flips the bit and calls <code>LAMP_u8SetState</code>. Only if the chip acknowledged does it post <code>EVQ_LAMP(n)</code>; on an I²C error the bit is flipped back, so LIGHT, LAMP and the chip stay consistent.</li>
+<li><b><code>LIGHT_voidSetDimmer(p)</code></b> clamps p to 100, rounds down to a multiple of 10 (<code>LIGHT_DIMMER_STEP</code>), sets the PWM, and posts <code>EVQ_DIMMER</code> only if the value changed.</li>
+</ul>
+<x-code src="src/APP/LIGHT/LIGHT.c" grep="TOG_BIT(Global_u8LampMask,(Copy_u8LampNumber - 1));" n="10" title="LIGHT_u8ToggleLamp"/>
+
+<h2>5.4 DOOR — servo door, admin only <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<x-fig src="sm_door.svg" w="74" label="code">DOOR: two states; <code>SetState</code> returns whether the servo moved.</x-fig>
+<p>Closed = <code>DOOR_CLOSED_ANGLE</code> 0° (1.0 ms pulse), open = <code>DOOR_OPEN_ANGLE</code> 90° (1.5 ms). Only UIREM calls DOOR, and only for the admin (commands 7 and 8). Because nothing else can move the door, DOOR posts no event. Boot = closed (D-14).</p>
+
+<!-- ======================================================= CLIMATE -->
+<h2 class="mod-start">5.5 CLIMATE — air conditioning with hysteresis <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>Keep the room between 21 and 28 °C with an on/off fan (AC-01, AC-02, AC-03).</p>
+<x-fig src="sm_climate.svg" w="72" label="code">CLIMATE state machine.</x-fig>
+<x-fig src="climate_hyst.svg" w="78" label="computed">Hysteresis: between 21 and 28 °C the fan keeps its state.</x-fig>
+<p class="k">Algorithm</p>
+<p>Every 100 ms: one ambient sample into a <code>MAVG_t</code>, in every state, so the UIs can always show the room temperature. In WAIT nothing is decided until 10 samples exist (1 s after boot). Then, in quarter degrees: AC_OFF → AC_ON when avg_x4 &gt; 28 × 4 = 112 (strictly above 28 °C); AC_ON → AC_OFF when avg_x4 &lt; 21 × 4 = 84. Each change sets the fan (<code>CLIMATE_FAN_SPEED</code> = 100 % or 0) and posts <code>EVQ_AC</code>. FORCED_OFF (lockdown) stays until reset. The 7-degree band prevents the fan from chattering around a single threshold.</p>
+<x-code src="src/APP/CLIMATE/CLIMATE.c" grep="case CLIMATE_STATE_AC_OFF:" n="15" title="decision part of CLIMATE_voidFeedSample"/>
+<p class="k">Integration</p>
+<p><code>CLIMATE_voidInit()</code> after FAN and LM35; <code>CLIMATE_voidTask100ms()</code> in the 100 ms slot. <code>CLIMATE_voidFeedSample</code> is public so that <code>test_app</code> can inject temperatures. Getters: <code>CLIMATE_u8IsAcOn</code>, <code>CLIMATE_u8IsTempValid</code> (0 during the first second), <code>CLIMATE_u8GetRoomTemp</code> (rounded °C).</p>
+<p class="small">Measured in simavr: ambient 25 → 30 °C at t = 22 s; <code>[INFO] AC is now ON</code> completed {{ f(R['latency']['ambient_step_to_ac_info_ms'],0) }} ms later. The 7th sample after the step lifts the average above 28 °C: (7 × 30 + 3 × 25) / 10 = 28.5.</p>
+
+<!-- ======================================================= HEATER -->
+<h2 class="mod-start">5.6 HEATER — the water heater <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>The complete second course project as one module: panel buttons, set temperature with setting mode and timeout, 100 ms sampling with a 10-sample average, a ±5 °C two-element control law, a blinking display and a blinking heater LED, EEPROM persistence, and the hooks for the terminal and the keypad (HTR-01 … HTR-14).</p>
+<p class="k">Two state machines</p>
+<x-fig src="sm_heater.svg" w="86" label="code">Panel states (HEATER.c).</x-fig>
+<x-fig src="sm_heater_element.svg" w="100" label="code">Element control, evaluated only while ON and only with a full average.</x-fig>
+<table class="tight"><caption>Panel transitions as built (HEATER_voidTask10ms, HEATER_voidTask100ms, HEATER_u8SetSetTemp, HEATER_voidForceOff)</caption>
+<thead><tr><th>State</th><th>Event</th><th>Action</th><th>Next</th></tr></thead>
+<tr><td>OFF</td><td>ON/OFF <b>released</b></td><td>set = stored value (or 60 if invalid); reset the water average; post HEATER_POWER(1)</td><td>RUN</td></tr>
+<tr><td>OFF</td><td>Up / Down</td><td>ignored (events are read and discarded, D-10)</td><td>OFF</td></tr>
+<tr><td>RUN</td><td>Up or Down pressed</td><td><b>value not changed</b> (HTR-01); timer = 50; blink phase = 1</td><td>SET</td></tr>
+<tr><td>SET</td><td>Up / Down pressed</td><td>set ± 5, clamped 35…75 (HTR-02, 03); timer = 50; phase = 1</td><td>SET</td></tr>
+<tr><td>SET</td><td>100 ms task, <code>--timer == 0</code></td><td>save if changed (write byte 0x10, post HEATER_SET)</td><td>RUN</td></tr>
+<tr><td>RUN / SET</td><td>ON/OFF released</td><td>save if changed; post HEATER_POWER(0); both elements off</td><td>OFF</td></tr>
+<tr><td>any</td><td><code>HEATER_u8SetSetTemp(t)</code></td><td>if 35 ≤ t ≤ 75 and t % 5 == 0: set = t, save now; in SET restart the 5 s</td><td>same</td></tr>
+<tr><td>any</td><td><code>HEATER_voidForceOff()</code></td><td>as ON/OFF released</td><td>LOCKED</td></tr>
+</table>
+<p class="k">Control law (HTR-07 … HTR-09)</p>
+<p>The water LM35 is sampled every 100 ms in every state, so the UIs can show the water temperature while the heater is off. Decisions are made only in RUN/SET and only when <code>MAVG_u8IsFull</code>: after turn-on the average restarts (decision 5), so the first decision comes after 10 samples, about 1 s (HTR-08). All comparisons are in quarter degrees, so no division is needed:</p>
+<x-code src="src/APP/HEATER/HEATER.c" grep="if(Local_u16AvgX4 < ((u16)(Global_u8SetTemp - HEATER_BAND) * LM35_STEPS_PER_C)){" n="10"/>
+<x-fig src="heater_band.svg" w="96" label="computed">The ±5 °C band around the set temperature.</x-fig>
+<p><code>HEATER_voidSetElement</code> always switches one element off before switching the other on, so heating and cooling are never on together, not even for one instruction.</p>
+<p class="k">Outputs (HTR-06, 10, 11, 13)</p>
+<x-fig src="heater_outputs.svg" w="96" label="computed">Blink phase, heater LED and display in setting mode.</x-fig>
+<table class="tight">
+<thead><tr><th>Panel state</th><th>7-segment</th><th>Heater LED</th></tr></thead>
+<tr><td>OFF, LOCKED</td><td>blank</td><td>off</td></tr>
+<tr><td>RUN</td><td>water temperature <code>(avg_x4 + 2) / 4</code>, limited to 99</td><td rowspan="2">HEATING: follows the 500 ms phase (1 s period) · COOLING: steady on · NONE: off</td></tr>
+<tr><td>SET</td><td>set temperature while phase = 1, blank while 0</td></tr>
+</table>
+<p>The outputs are refreshed by the 100 ms task and by the 500 ms task (which toggles the phase); <code>HEATER_voidShow</code> writes the display only when the shown number or the blank state changes, so a stable value costs no I²C traffic.</p>
+<div class="note"><b>Two timing effects of this design (measured in simavr, see §7.5)</b>
+<ul style="margin:0">
+<li>On turn-off the elements go off at once, but the display and the LED follow in the next 100 ms or 500 ms task, i.e. up to 100 ms later. architecture.md §5.6 describes all four as immediate.</li>
+<li>After an Up/Down press the set value appears at the next 100 ms task. If that task falls 2 ms before a 500 ms phase toggle, the value is blanked again 2 ms later and reappears at the next "on" phase, up to 0.5 s later. The comment in <code>HEATER_voidRestartSetting</code> ("the value is visible at once") describes the intent; about one press in five hits this window.</li>
+</ul></div>
+<p class="k">Persistence (HTR-04, decision 6)</p>
+<p>The working copy lives in HEATER; the stored copy is byte 0x10 of the ESTORE image. Saving happens when setting mode times out, on turn-off, and at once for a remote or keypad change — in each case only if the value differs from the stored byte, so an unchanged value costs no EEPROM write and no event. At boot an invalid stored byte (not 35…75 in steps of 5) gives 60; that 60 is written only at the next save (eeprom_map.md §4 says "stores it", which suggests at once).</p>
+<p class="k">Integration</p>
+<p><code>HEATER_voidInit()</code> after ESTORE, RELAY, LED, SEVEN_SEG, BUTTON and LM35. In the loop: <code>HEATER_voidTask10ms()</code> after <code>BUTTON_voidUpdate()</code> in the same slot, so a button event is handled in the pass that detects it; <code>HEATER_voidTask100ms()</code>; <code>HEATER_voidTask500ms()</code>. Getters for the UIs: <code>HEATER_u8IsOn</code>, <code>HEATER_u8GetElement</code>, <code>HEATER_u8GetWaterTemp</code>, <code>HEATER_u8GetSetTemp</code>.</p>
+
+<!-- ======================================================= UILOC -->
+<h2 class="mod-start">5.7 UILOC — keypad and LCD <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>The local interface for keypad users (LUI-01 … 04): login with numeric ID and PIN, a menu for lamps, dimmer, AC and heater, and a status screen when nobody is using the keypad.</p>
+<x-fig src="sm_uiloc.svg" w="90" label="code">UILOC state machine. Keys: digits, <code>=</code> Enter, <code>*</code> or <code>C</code> back, <code>+</code>/<code>-</code> step (D-7).</x-fig>
+<p class="k">How a pass works</p>
+<p><code>UILOC_voidTask10ms</code> always takes the key from KPAD first, so a key pressed while it means nothing is not kept for later. It then checks, in this order:</p>
+<ol style="margin-bottom:5pt">
+<li>LOCKED → return.</li>
+<li>Alarm active → LOCKED screen.</li>
+<li>MESSAGE → count down 2 s.</li>
+<li>Logged-in screen but SEC says role NONE (the admin logged in or blocked the keypad) → STATUS.</li>
+<li>ID/PIN being typed but the keypad is no longer allowed → "Keypad blocked". Without this check, SEC would refuse the login and count a failure.</li>
+<li>Otherwise the key goes to the state's handler.</li>
+</ol>
+<p>Every handler only changes RAM and calls <code>UILOC_voidDraw()</code>, which rewrites the whole wanted screen in <code>LCD_BUF</code>. LCD_BUF then sends only the cells that changed, so a redraw neither blocks nor flickers. <code>UILOC_voidTask1s</code> refreshes the values every second, flips the status page every 3 s, and ends a session (or a half-typed login) after 30 s without a key.</p>
+<table class="tight"><caption>Screens (16 × 2) as built</caption>
+<thead><tr><th>Screen</th><th>Row 1</th><th>Row 2</th></tr></thead>
+<tr><td>Status page 1</td><td><code>Lamps:1-3-- D70%</code></td><td><code>AC:ON   Room:29C</code></td></tr>
+<tr><td>Status page 2</td><td><code>Heater:HEATING</code> / OFF / COOLING / IDLE</td><td><code>Water:55C Set:60</code></td></tr>
+<tr><td>Login</td><td><code>User ID:1111</code></td><td><code>PIN:****</code> (LUI-04)</td></tr>
+<tr><td>Menu</td><td><code>1Lamps  2Dimmer</code></td><td><code>3AC 4Heat C=Exit</code> (no door, SEC-06)</td></tr>
+<tr><td>Lamps</td><td><code>Lamp 1 2 3 4 5</code></td><td><code>     * - * - -</code></td></tr>
+<tr><td>Dimmer / AC / Heater</td><td><code>Dimmer:  70%</code> · <code>AC:ON  Room:29C</code> · <code>Water:55C HEAT</code></td><td><code>+ / -     C=Back</code> · <code>on&gt;28 off&lt;21</code> · <code>Set:60C  + / -</code></td></tr>
+<tr><td>Messages</td><td><code>Wrong ID or PIN</code> · <code>Keypad blocked</code> · <code>SYSTEM LOCKED</code></td><td><code>2 tries left</code> · <code>by admin</code> · <code>Reset required</code></td></tr>
+</table>
+<div class="cols2">
+<x-fig src="repo_lcd_menu.png" w="100" label="proteus">LCD menu in Proteus (presentation capture).</x-fig>
+<x-fig src="repo_lcd_heater_status.png" w="100" label="proteus">Status page 2 in Proteus.</x-fig>
+</div>
+<p class="k">Integration</p>
+<p><code>UILOC_voidInit()</code> after LCD_BUF and all features. <code>UILOC_voidTask10ms()</code> right after <code>KPAD_voidUpdate()</code> in the 10 ms slot; <code>UILOC_voidTask1s()</code> in the 1 s slot. <code>LCD_BUF_voidUpdate()</code> runs in the 5 ms slot.</p>
+
+<!-- ======================================================= UIREM -->
+<h2 class="mod-start">5.8 UIREM — the UART terminal <span class="tag app">APP</span><span class="tag n">N</span></h2>
+<p class="k">Purpose</p>
+<p>The remote interface (RUI-01 … 04): banner and login, role-specific menus, 17 commands with an argument either on the same line or prompted, <code>[OK]</code>/<code>[ERR]</code> replies, and <code>[INFO]</code> lines for every change made elsewhere. The full command list is Appendix D.</p>
+<x-fig src="sm_uirem.svg" w="90" label="code">UIREM input states. Output is decoupled through a print queue.</x-fig>
+<p class="k">The output rule: never block on a 128-byte ring</p>
+<p>The admin menu is 408 bytes; the TX ring holds 128. UIREM therefore never prints a reply in one go. Every reply is a chain of <b>messages</b> in a 6-entry print queue (for example error line → menu → prompt). Multi-line messages (menu, status block, user list) print <b>one line per step</b>.</p>
+<x-code src="src/APP/UIREM/UIREM.c" grep="if(TERM_u8TxFree() < UIREM_TX_RESERVE){" n="14" title="UIREM_voidTask5ms: at most one print step per call"/>
+<p>The task does nothing while fewer than <code>UIREM_TX_RESERVE</code> = 64 bytes are free, and it reads typed input only when the queue is empty. The result: no output is ever dropped, the echo of a typed line always fits, and typed bytes simply wait in the RX ring. The cost per 5 ms call is bounded by one line of at most 64 bytes copied into the ring.</p>
+<p class="k">Events, mute and idle</p>
+<ul>
+<li>An <code>[INFO]</code> event is printed only at the prompt and only when nothing has been typed yet (<code>TERM_u8IsLineEmpty</code>), so it never cuts into a half-typed line. It is followed by the prompt again.</li>
+<li>While nobody is logged in, events are read and discarded. The lockdown alert is printed from <code>ALARM_u8IsActive()</code> whoever caused it, even with nobody logged in.</li>
+<li>EVQ is muted around commands 1, 2, 5 and 16, whose result is answered with <code>[OK]</code>. It is not muted around login, logout and command 9, so the admin sees <code>[INFO] Keypad user logged out</code> when the admin's own action ended a keypad session.</li>
+<li>120 s without a received byte ends the session (D-11), so an admin who walks away does not block the keypad for ever.</li>
+</ul>
+<div class="cols2">
+<x-fig src="repo_terminal_login_menu.png" w="100" label="proteus">Login and admin menu in the Proteus terminal.</x-fig>
+<x-fig src="repo_terminal_system_status.png" w="100" label="proteus">Command 6, system status.</x-fig>
+</div>
+<p class="k">Integration</p>
+<p><code>UIREM_voidInit()</code> last among the APP inits; it queues the banner. <code>UIREM_voidTask5ms()</code> in the 5 ms slot (after <code>LCD_BUF_voidUpdate</code>), <code>UIREM_voidTask1s()</code> in the 1 s slot. TERM must be initialised first, at boot step 2.</p>
+<p class="small">The simavr run reproduced the documented session byte for byte: login, adding users, <code>1 3</code>, <code>2 70</code>, <code>5 65</code>, door, status, events and the lockdown alert (the transcript is kept in <code>guide_src/data</code>).</p>

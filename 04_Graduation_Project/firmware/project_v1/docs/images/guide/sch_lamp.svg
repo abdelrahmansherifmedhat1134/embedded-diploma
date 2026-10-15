@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="292.995703pt" height="298.26pt" viewBox="0 0 292.995703 298.26" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:09.718819</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 298.26 
+L 292.995703 298.26 
+L 292.995703 0 
+L 0 0 
+L 0 298.26 
+z
+" style="fill: none"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 56.07 187.38 
+L 47.07 199.98 
+L 38.07 187.38 
+L 56.07 187.38 
+z
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 47.07 31.68 
+L 47.07 17.28 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 47.07 17.28 
+L 40.32 17.28 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 47.07 17.28 
+L 53.82 17.28 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 47.07 31.68 
+L 47.07 67.68 
+L 56.07 70.68 
+L 38.07 76.68 
+L 56.07 82.68 
+L 38.07 88.68 
+L 56.07 94.68 
+L 38.07 100.68 
+L 47.07 103.68 
+L 47.07 139.68 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_5">
+    <path d="M 47.07 139.68 
+L 47.07 187.38 
+M 56.07 199.98 
+L 38.07 199.98 
+M 47.07 199.98 
+L 47.07 247.68 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_6">
+    <path d="M 60.57 196.38 
+L 70.068649 201.8078 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 71.49753 199.307259 
+L 76.32 205.38 
+L 68.639769 204.30834 
+z
+" clip-path="url(#pac51ba58f3)" style="fill: #1f2933"/>
+   </g>
+   <g id="line2d_7">
+    <path d="M 60.57 188.28 
+L 70.068649 193.7078 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 71.49753 191.207259 
+L 76.32 197.28 
+L 68.639769 196.20834 
+z
+" clip-path="url(#pac51ba58f3)" style="fill: #1f2933"/>
+   </g>
+   <g id="line2d_8">
+    <path d="M 47.07 247.68 
+L 47.07 258.48 
+L 47.07 269.28 
+" clip-path="url(#pac51ba58f3)" style="fill: none; stroke: #1f2933; stroke-width: 1.1; stroke-linecap: round"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="47.07" y="11.464629" transform="rotate(-0 47.07 11.464629)">+5 V</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="59.67" y="88.95375" transform="rotate(-0 59.67 88.95375)">220 Ω</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 9px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="85.68" y="196.441875" transform="rotate(-0 85.68 196.441875)">lamp n (LED)</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(165.103594 115.436777)">active low (D-18, C-2):</text>
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(142.981172 126.759551)">the PCF8574 can sink 25 mA but</text>
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(134.936719 136.770293)">sources only ≈ 0.1 mA, and it powers</text>
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(132.344297 147.706348)">up with every pin HIGH = all lamps off</text>
+   </g>
+   <g id="patch_5">
+    <path d="M 47.07 271.98 
+C 47.786048 271.98 48.472866 271.695511 48.979188 271.189188 
+C 49.485511 270.682866 49.77 269.996048 49.77 269.28 
+C 49.77 268.563952 49.485511 267.877134 48.979188 267.370812 
+C 48.472866 266.864489 47.786048 266.58 47.07 266.58 
+C 46.353952 266.58 45.667134 266.864489 45.160812 267.370812 
+C 44.654489 267.877134 44.37 268.563952 44.37 269.28 
+C 44.37 269.996048 44.654489 270.682866 45.160812 271.189188 
+C 45.667134 271.695511 46.353952 271.98 47.07 271.98 
+z
+" clip-path="url(#pac51ba58f3)" style="fill: #ffffff; stroke: #1f2933; stroke-width: 1.1; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(2.607187 283.553965)">PCF8574 0x20, Pn−1</text>
+    <text style="font-size: 9px; font-family: 'Inter'; fill: #1f2933" transform="translate(9.575859 294.676348)">(LOW = lamp ON)</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pac51ba58f3">
+   <rect x="0" y="0" width="291.654" height="298.26"/>
+  </clipPath>
+ </defs>
+</svg>

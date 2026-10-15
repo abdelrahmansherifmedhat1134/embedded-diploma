@@ -1,0 +1,3 @@
+end 1500
+eedelay 5
+eeprom keep

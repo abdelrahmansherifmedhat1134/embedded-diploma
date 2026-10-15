@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="494.597233pt" height="220.463965pt" viewBox="0 0 494.597233 220.463965" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:12.738530</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 220.463965 
+L 494.597233 220.463965 
+L 494.597233 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 41.283529 19.011036 
+L 82.641176 19.011036 
+Q 83.232 19.011036 83.232 19.3822 
+L 83.232 37.198089 
+Q 83.232 37.569254 82.641176 37.569254 
+L 41.283529 37.569254 
+Q 40.692706 37.569254 40.692706 37.198089 
+L 40.692706 19.3822 
+Q 40.692706 19.011036 41.283529 19.011036 
+z
+" clip-path="url(#pd5c1c55562)" style="fill: #ffffff; stroke: #52606d; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 90.518824 19.011036 
+L 131.876471 19.011036 
+Q 132.467294 19.011036 132.467294 19.3822 
+L 132.467294 37.198089 
+Q 132.467294 37.569254 131.876471 37.569254 
+L 90.518824 37.569254 
+Q 89.928 37.569254 89.928 37.198089 
+L 89.928 19.3822 
+Q 89.928 19.011036 90.518824 19.011036 
+z
+" clip-path="url(#pd5c1c55562)" style="fill: #ffffff; stroke: #c05621; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 139.754118 19.011036 
+L 181.111765 19.011036 
+Q 181.702588 19.011036 181.702588 19.3822 
+L 181.702588 37.198089 
+Q 181.702588 37.569254 181.111765 37.569254 
+L 139.754118 37.569254 
+Q 139.163294 37.569254 139.163294 37.198089 
+L 139.163294 19.3822 
+Q 139.163294 19.011036 139.754118 19.011036 
+z
+" clip-path="url(#pd5c1c55562)" style="fill: #ffffff; stroke: #2b6cb0; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 188.989412 19.011036 
+L 230.347059 19.011036 
+Q 230.937882 19.011036 230.937882 19.3822 
+L 230.937882 37.198089 
+Q 230.937882 37.569254 230.347059 37.569254 
+L 188.989412 37.569254 
+Q 188.398588 37.569254 188.398588 37.198089 
+L 188.398588 19.3822 
+Q 188.398588 19.011036 188.989412 19.011036 
+z
+" clip-path="url(#pd5c1c55562)" style="fill: #ffffff; stroke: #2b6cb0; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 238.224706 19.011036 
+L 279.582353 19.011036 
+Q 280.173176 19.011036 280.173176 19.3822 
+L 280.173176 37.198089 
+Q 280.173176 37.569254 279.582353 37.569254 
+L 238.224706 37.569254 
+Q 237.633882 37.569254 237.633882 37.198089 
+L 237.633882 19.3822 
+Q 237.633882 19.011036 238.224706 19.011036 
+z
+" clip-path="url(#pd5c1c55562)" style="fill: #ffffff; stroke: #c05621; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 287.46 19.011036 
+L 328.817647 19.011036 
+Q 329.408471 19.011036 329.408471 19.3822 
+L 329.408471 37.198089 
+Q 329.408471 37.569254 328.817647 37.569254 
+L 287.46 37.569254 
+Q 286.869176 37.569254 286.869176 37.198089 
+L 286.869176 19.3822 
+Q 286.869176 19.011036 287.46 19.011036 
+z
+" clip-path="url(#pd5c1c55562)" style="fill: #ffffff; stroke: #c05621; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 336.695294 19.011036 
+L 378.052941 19.011036 
+Q 378.643765 19.011036 378.643765 19.3822 
+L 378.643765 37.198089 
+Q 378.643765 37.569254 378.052941 37.569254 
+L 336.695294 37.569254 
+Q 336.104471 37.569254 336.104471 37.198089 
+L 336.104471 19.3822 
+Q 336.104471 19.011036 336.695294 19.011036 
+z
+" clip-path="url(#pd5c1c55562)" style="fill: #ffffff; stroke: #2f855a; stroke-linejoin: miter"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 61.962353 37.569254 
+L 61.962353 215.728143 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 111.197647 37.569254 
+L 111.197647 215.728143 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #c05621; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 160.432941 37.569254 
+L 160.432941 215.728143 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #2b6cb0; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 209.668235 37.569254 
+L 209.668235 215.728143 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #2b6cb0; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_5">
+    <path d="M 258.903529 37.569254 
+L 258.903529 215.728143 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #c05621; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_6">
+    <path d="M 308.138824 37.569254 
+L 308.138824 215.728143 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #c05621; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_7">
+    <path d="M 357.374118 37.569254 
+L 357.374118 215.728143 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #2f855a; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_8">
+    <path d="M 111.197647 60.767026 
+L 120.06 60.767026 
+L 120.06 66.334491 
+L 112.674706 66.334491 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_9">
+    <path d="M 111.197647 75.6136 
+L 120.06 75.6136 
+L 120.06 81.181065 
+L 112.674706 81.181065 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_10">
+    <path d="M 308.138824 164.693045 
+L 317.001176 164.693045 
+L 317.001176 170.26051 
+L 309.615882 170.26051 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_11">
+    <path d="M 308.138824 179.539619 
+L 317.001176 179.539619 
+L 317.001176 185.107084 
+L 309.615882 185.107084 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_12">
+    <path d="M 357.374118 194.386193 
+L 366.236471 194.386193 
+L 366.236471 199.953658 
+L 358.851176 199.953658 
+" clip-path="url(#pd5c1c55562)" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: square"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="61.962353" y="30.545516" transform="rotate(-0 61.962353 30.545516)">Keypad</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(102.987006 26.794637)">KPAD</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(100.49635 34.296395)">(10 ms)</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(150.992957 26.794637)">UILOC</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(149.731644 34.296395)">(10 ms)</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #2b6cb0" x="209.668235" y="30.545516" transform="rotate(-0 209.668235 30.545516)">LIGHT</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(248.242436 26.794637)">LAMP /</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(245.450014 34.296395)">PCF8574</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(294.410183 26.794637)">LCD_BUF</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(298.769558 34.296395)">(5 ms)</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2f855a" transform="translate(347.276352 26.794637)">EVQ →</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2f855a" transform="translate(347.575696 34.296395)">UIREM</text>
+   </g>
+   <g id="patch_9">
+    <path d="M 63.960734 48.704184 
+Q 86.580192 48.704184 108.19342 48.704184 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 104.79342 47.004184 
+L 108.19342 48.704184 
+L 104.79342 50.404184 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_8">
+    <g id="patch_10">
+     <path d="M 42.133266 47.962691 
+L 131.026734 47.962691 
+L 131.026734 39.716933 
+L 42.133266 39.716933 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="86.58" y="46.095183" transform="rotate(-0 86.58 46.095183)">key "2" pressed (row C, col 2)</text>
+   </g>
+   <g id="patch_11">
+    <path d="M 112.743366 66.334491 
+Q 112.265918 66.334491 112.682898 66.334491 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+    <path d="M 116.082898 68.034491 
+L 112.682898 66.334491 
+L 116.082898 64.634491 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_9">
+    <g id="patch_12">
+     <path d="M 121.803294 67.921637 
+L 185.065575 67.921637 
+L 185.065575 59.179879 
+L 121.803294 59.179879 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="122.423294" y="65.806129" transform="rotate(-0 122.423294 65.806129)">scan 1: candidate "2"</text>
+   </g>
+   <g id="patch_13">
+    <path d="M 112.743366 81.181065 
+Q 112.265918 81.181065 112.682898 81.181065 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+    <path d="M 116.082898 82.881065 
+L 112.682898 81.181065 
+L 116.082898 79.481065 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_10">
+    <g id="patch_14">
+     <path d="M 121.803294 82.768211 
+L 255.776575 82.768211 
+L 255.776575 74.026454 
+L 121.803294 74.026454 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="122.423294" y="80.652704" transform="rotate(-0 122.423294 80.652704)">scan 2 (10 ms later): accepted, pending = "2"</text>
+   </g>
+   <g id="patch_15">
+    <path d="M 158.43456 93.243907 
+Q 135.815102 93.243907 114.201875 93.243907 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 117.601875 94.943907 
+L 114.201875 93.243907 
+L 117.601875 91.543907 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_11">
+    <g id="patch_16">
+     <path d="M 81.926638 92.502414 
+L 189.70395 92.502414 
+L 189.70395 84.256656 
+L 81.926638 84.256656 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="135.815294" y="90.634906" transform="rotate(-0 135.815294 90.634906)">KPAD_u8GetKey() = "2" (same pass)</text>
+   </g>
+   <g id="patch_17">
+    <path d="M 162.431322 108.090481 
+Q 185.05078 108.090481 206.664008 108.090481 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 203.264008 106.390481 
+L 206.664008 108.090481 
+L 203.264008 109.790481 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_12">
+    <g id="patch_18">
+     <path d="M 148.249229 107.348988 
+L 221.851948 107.348988 
+L 221.851948 99.10323 
+L 148.249229 99.10323 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="185.050588" y="105.48148" transform="rotate(-0 185.050588 105.48148)">LIGHT_u8ToggleLamp(2)</text>
+   </g>
+   <g id="patch_19">
+    <path d="M 211.666616 122.937055 
+Q 234.286074 122.937055 255.899302 122.937055 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 252.499302 121.237055 
+L 255.899302 122.937055 
+L 252.499302 124.637055 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_13">
+    <g id="patch_20">
+     <path d="M 176.490742 122.195562 
+L 292.081023 122.195562 
+L 292.081023 113.949804 
+L 176.490742 113.949804 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="234.285882" y="120.328054" transform="rotate(-0 234.285882 120.328054)">LAMP_u8SetState → S 40 xx P (190 µs)</text>
+   </g>
+   <g id="patch_21">
+    <path d="M 211.665114 137.783629 
+Q 283.521335 137.783629 354.371325 137.783629 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 350.971325 136.083629 
+L 354.371325 137.783629 
+L 350.971325 139.483629 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_14">
+    <g id="patch_22">
+     <path d="M 241.041005 137.042136 
+L 326.001348 137.042136 
+L 326.001348 128.796378 
+L 241.041005 128.796378 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="283.521176" y="135.174628" transform="rotate(-0 283.521176 135.174628)">EVQ_voidPost(EVQ_LAMP, 2)</text>
+   </g>
+   <g id="patch_23">
+    <path d="M 162.429819 152.630203 
+Q 234.28604 152.630203 305.136031 152.630203 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 301.736031 150.930203 
+L 305.136031 152.630203 
+L 301.736031 154.330203 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_15">
+    <g id="patch_24">
+     <path d="M 173.668289 151.88871 
+L 294.903476 151.88871 
+L 294.903476 143.642952 
+L 173.668289 143.642952 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="234.285882" y="150.021202" transform="rotate(-0 234.285882 150.021202)">UILOC_voidDraw: "*" in row 2 (RAM only)</text>
+   </g>
+   <g id="patch_25">
+    <path d="M 309.684543 170.26051 
+Q 309.207095 170.26051 309.624074 170.26051 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+    <path d="M 313.024074 171.96051 
+L 309.624074 170.26051 
+L 313.024074 168.56051 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_16">
+    <g id="patch_26">
+     <path d="M 318.744471 171.847656 
+L 397.359502 171.847656 
+L 397.359502 163.105898 
+L 318.744471 163.105898 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="319.364471" y="169.732148" transform="rotate(-0 319.364471 169.732148)">5 ms: set cursor (0.46 ms)</text>
+   </g>
+   <g id="patch_27">
+    <path d="M 309.684543 185.107084 
+Q 309.207095 185.107084 309.624074 185.107084 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+    <path d="M 313.024074 186.807084 
+L 309.624074 185.107084 
+L 313.024074 183.407084 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_17">
+    <g id="patch_28">
+     <path d="M 318.744471 186.69423 
+L 393.049533 186.69423 
+L 393.049533 177.952473 
+L 318.744471 177.952473 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="319.364471" y="184.578723" transform="rotate(-0 319.364471 184.578723)">5 ms: write "*" (0.46 ms)</text>
+   </g>
+   <g id="patch_29">
+    <path d="M 358.919837 199.953658 
+Q 358.442389 199.953658 358.859368 199.953658 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+    <path d="M 362.259368 201.653658 
+L 358.859368 199.953658 
+L 362.259368 198.253658 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_18">
+    <g id="patch_30">
+     <path d="M 367.979765 201.540804 
+L 492.337233 201.540804 
+L 492.337233 192.799047 
+L 367.979765 192.799047 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="368.599765" y="199.425297" transform="rotate(-0 368.599765 199.425297)">at the prompt: "[INFO] Lamp 2 is now ON"</text>
+   </g>
+   <g id="text_19">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="50.886801" transform="rotate(-0 32.421176 50.886801)">t = 0</text>
+   </g>
+   <g id="text_20">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="125.119672" transform="rotate(-0 32.421176 125.119672)">+14.6 ms</text>
+   </g>
+   <g id="text_21">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="169.659394" transform="rotate(-0 32.421176 169.659394)">+17.6 ms</text>
+   </g>
+   <g id="text_22">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="184.505969" transform="rotate(-0 32.421176 184.505969)">+22.6 ms</text>
+   </g>
+   <g id="text_23">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="199.352543" transform="rotate(-0 32.421176 199.352543)">+44.7 ms</text>
+   </g>
+   <g id="text_24">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="2.88" y="12.083125" transform="rotate(-0 2.88 12.083125)">Scenario 2 — keypad user toggles lamp 2 (times: simavr run)</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pd5c1c55562">
+   <rect x="2.88" y="18.083125" width="401.76" height="199.50084"/>
+  </clipPath>
+ </defs>
+</svg>

@@ -69,6 +69,7 @@ Open [`simulation/final/smart_home_water_heater_final.pdsprj`](simulation/final/
 |---|---|
 | [`firmware/project_v1/`](firmware/project_v1/) | The firmware (PlatformIO project) — start with its [README](firmware/project_v1/README.md) |
 | [`firmware/project_v1/docs/`](firmware/project_v1/docs/) | Specification, architecture, pin map, EEPROM map, UART protocol, test plan, test records |
+| [`Technical_Guide.pdf`](firmware/project_v1/docs/Technical_Guide.pdf) | Complete technical guide (86 pages): every layer bottom-up, timing analysis, verification and interview Q&A; generated from the code ([sources](firmware/project_v1/docs/guide_src/)) |
 | [`simulation/`](simulation/) | Proteus projects: final system, one per layer test, experiments |
 | [`firmware/experiments/`](firmware/experiments/) | Test benches (7-segment redesign) and the original course baseline |
 | [`docs/`](docs/) | Course brief and pre-design notes |

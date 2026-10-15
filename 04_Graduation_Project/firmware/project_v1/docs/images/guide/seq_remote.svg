@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="425.060358pt" height="284.829805pt" viewBox="0 0 425.060358 284.829805" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-15T11:16:12.617796</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 284.829805 
+L 425.060358 284.829805 
+L 425.060358 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 41.283529 18.959758 
+L 82.641176 18.959758 
+Q 83.232 18.959758 83.232 19.310412 
+L 83.232 36.141775 
+Q 83.232 36.492428 82.641176 36.492428 
+L 41.283529 36.492428 
+Q 40.692706 36.492428 40.692706 36.141775 
+L 40.692706 19.310412 
+Q 40.692706 18.959758 41.283529 18.959758 
+z
+" clip-path="url(#pfc94c4e523)" style="fill: #ffffff; stroke: #52606d; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 90.518824 18.959758 
+L 131.876471 18.959758 
+Q 132.467294 18.959758 132.467294 19.310412 
+L 132.467294 36.141775 
+Q 132.467294 36.492428 131.876471 36.492428 
+L 90.518824 36.492428 
+Q 89.928 36.492428 89.928 36.141775 
+L 89.928 19.310412 
+Q 89.928 18.959758 90.518824 18.959758 
+z
+" clip-path="url(#pfc94c4e523)" style="fill: #ffffff; stroke: #6b46c1; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 139.754118 18.959758 
+L 181.111765 18.959758 
+Q 181.702588 18.959758 181.702588 19.310412 
+L 181.702588 36.141775 
+Q 181.702588 36.492428 181.111765 36.492428 
+L 139.754118 36.492428 
+Q 139.163294 36.492428 139.163294 36.141775 
+L 139.163294 19.310412 
+Q 139.163294 18.959758 139.754118 18.959758 
+z
+" clip-path="url(#pfc94c4e523)" style="fill: #ffffff; stroke: #2b6cb0; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 188.989412 18.959758 
+L 230.347059 18.959758 
+Q 230.937882 18.959758 230.937882 19.310412 
+L 230.937882 36.141775 
+Q 230.937882 36.492428 230.347059 36.492428 
+L 188.989412 36.492428 
+Q 188.398588 36.492428 188.398588 36.141775 
+L 188.398588 19.310412 
+Q 188.398588 18.959758 188.989412 18.959758 
+z
+" clip-path="url(#pfc94c4e523)" style="fill: #ffffff; stroke: #2b6cb0; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 238.224706 18.959758 
+L 279.582353 18.959758 
+Q 280.173176 18.959758 280.173176 19.310412 
+L 280.173176 36.141775 
+Q 280.173176 36.492428 279.582353 36.492428 
+L 238.224706 36.492428 
+Q 237.633882 36.492428 237.633882 36.141775 
+L 237.633882 19.310412 
+Q 237.633882 18.959758 238.224706 18.959758 
+z
+" clip-path="url(#pfc94c4e523)" style="fill: #ffffff; stroke: #2b6cb0; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 287.46 18.959758 
+L 328.817647 18.959758 
+Q 329.408471 18.959758 329.408471 19.310412 
+L 329.408471 36.141775 
+Q 329.408471 36.492428 328.817647 36.492428 
+L 287.46 36.492428 
+Q 286.869176 36.492428 286.869176 36.141775 
+L 286.869176 19.310412 
+Q 286.869176 18.959758 287.46 18.959758 
+z
+" clip-path="url(#pfc94c4e523)" style="fill: #ffffff; stroke: #2f855a; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 336.695294 18.959758 
+L 378.052941 18.959758 
+Q 378.643765 18.959758 378.643765 19.310412 
+L 378.643765 36.141775 
+Q 378.643765 36.492428 378.052941 36.492428 
+L 336.695294 36.492428 
+Q 336.104471 36.492428 336.104471 36.141775 
+L 336.104471 19.310412 
+Q 336.104471 18.959758 336.695294 18.959758 
+z
+" clip-path="url(#pfc94c4e523)" style="fill: #ffffff; stroke: #c05621; stroke-linejoin: miter"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 61.962353 36.492428 
+L 61.962353 280.196538 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 111.197647 36.492428 
+L 111.197647 280.196538 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #6b46c1; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 160.432941 36.492428 
+L 160.432941 280.196538 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #2b6cb0; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 209.668235 36.492428 
+L 209.668235 280.196538 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #2b6cb0; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_5">
+    <path d="M 258.903529 36.492428 
+L 258.903529 280.196538 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #2b6cb0; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_6">
+    <path d="M 308.138824 36.492428 
+L 308.138824 280.196538 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #2f855a; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_7">
+    <path d="M 357.374118 36.492428 
+L 357.374118 280.196538 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke-dasharray: 2.4,1.6; stroke-dashoffset: 0; stroke: #c05621; stroke-width: 0.8"/>
+   </g>
+   <g id="line2d_8">
+    <path d="M 209.668235 123.279144 
+L 218.530588 123.279144 
+L 218.530588 128.538945 
+L 211.145294 128.538945 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_9">
+    <path d="M 357.374118 244.254565 
+L 366.236471 244.254565 
+L 366.236471 249.514366 
+L 358.851176 249.514366 
+" clip-path="url(#pfc94c4e523)" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: square"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #52606d" x="61.962353" y="29.981464" transform="rotate(-0 61.962353 29.981464)">Terminal</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #6b46c1" transform="translate(95.078131 26.230586)">USART ISR</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #6b46c1" transform="translate(99.615272 33.732343)">+ TERM</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(150.634519 26.230586)">UIREM</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(151.063676 33.732343)">(5 ms)</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(201.562704 26.230586)">SEC /</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2b6cb0" transform="translate(197.247892 33.732343)">USERDB</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #2b6cb0" x="258.903529" y="29.981464" transform="rotate(-0 258.903529 29.981464)">HEATER</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2f855a" transform="translate(296.149089 26.230586)">ESTORE</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #2f855a" transform="translate(297.437527 33.732343)">(10 ms)</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(347.391633 26.230586)">24C08</text>
+    <text style="font-size: 6.2px; font-family: 'Inter'; fill: #c05621" transform="translate(350.646149 33.732343)">(I²C)</text>
+   </g>
+   <g id="patch_9">
+    <path d="M 63.960734 47.01203 
+Q 86.580192 47.01203 108.19342 47.01203 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 104.79342 45.31203 
+L 108.19342 47.01203 
+L 104.79342 48.71203 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_8">
+    <g id="patch_10">
+     <path d="M 52.711047 46.33207 
+L 120.448953 46.33207 
+L 120.448953 38.086312 
+L 52.711047 38.086312 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="86.58" y="44.464562" transform="rotate(-0 86.58 44.464562)">"admin\r" (6 B, 6.2 ms)</text>
+   </g>
+   <g id="patch_11">
+    <path d="M 113.196028 62.791433 
+Q 135.815486 62.791433 157.428714 62.791433 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 154.028714 61.091433 
+L 157.428714 62.791433 
+L 154.028714 64.491433 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_9">
+    <g id="patch_12">
+     <path d="M 95.406794 62.111473 
+L 176.223794 62.111473 
+L 176.223794 53.865715 
+L 95.406794 53.865715 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="135.815294" y="60.243965" transform="rotate(-0 135.815294 60.243965)">TERM_u8GetLine → READY</text>
+   </g>
+   <g id="patch_13">
+    <path d="M 158.43456 75.064302 
+Q 111.197978 75.064302 64.967626 75.064302 
+" style="fill: none; stroke-dasharray: 3.33,1.44; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 68.367626 76.764302 
+L 64.967626 75.064302 
+L 68.367626 73.364302 
+" style="fill: none; stroke-dasharray: 3.33,1.44; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_10">
+    <g id="patch_14">
+     <path d="M 85.157163 74.384342 
+L 137.238131 74.384342 
+L 137.238131 66.138584 
+L 85.157163 66.138584 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="111.197647" y="72.516834" transform="rotate(-0 111.197647 72.516834)">password prompt</text>
+   </g>
+   <g id="patch_15">
+    <path d="M 63.960734 89.090438 
+Q 86.580192 89.090438 108.19342 89.090438 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 104.79342 87.390438 
+L 108.19342 89.090438 
+L 104.79342 90.790438 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_11">
+    <g id="patch_16">
+     <path d="M 73.967844 88.410477 
+L 99.192156 88.410477 
+L 99.192156 80.16472 
+L 73.967844 80.16472 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="86.58" y="86.54297" transform="rotate(-0 86.58 86.54297)">"1234\r"</text>
+   </g>
+   <g id="patch_17">
+    <path d="M 113.196028 101.363306 
+Q 135.815486 101.363306 157.428714 101.363306 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 154.028714 99.663306 
+L 157.428714 101.363306 
+L 154.028714 103.063306 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_12">
+    <g id="patch_18">
+     <path d="M 130.303107 100.683346 
+L 141.327482 100.683346 
+L 141.327482 92.437588 
+L 130.303107 92.437588 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="135.815294" y="98.815838" transform="rotate(-0 135.815294 98.815838)">line</text>
+   </g>
+   <g id="patch_19">
+    <path d="M 162.431322 113.636175 
+Q 185.05078 113.636175 206.664008 113.636175 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 203.264008 111.936175 
+L 206.664008 113.636175 
+L 203.264008 115.336175 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_13">
+    <g id="patch_20">
+     <path d="M 150.362557 112.956215 
+L 219.738619 112.956215 
+L 219.738619 104.710457 
+L 150.362557 104.710457 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="185.050588" y="111.088707" transform="rotate(-0 185.050588 111.088707)">SEC_u8Login(REMOTE)</text>
+   </g>
+   <g id="patch_21">
+    <path d="M 211.213954 128.538945 
+Q 210.736507 128.538945 211.153486 128.538945 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+    <path d="M 214.553486 130.238945 
+L 211.153486 128.538945 
+L 214.553486 126.838945 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_14">
+    <g id="patch_22">
+     <path d="M 220.273882 130.279923 
+L 335.777945 130.279923 
+L 335.777945 121.538165 
+L 220.273882 121.538165 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="220.893882" y="128.164415" transform="rotate(-0 220.893882 128.164415)">CheckAdmin: 8+8 bytes vs RAM image</text>
+   </g>
+   <g id="patch_23">
+    <path d="M 207.669855 139.93518 
+Q 185.050396 139.93518 163.437169 139.93518 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 166.837169 141.63518 
+L 163.437169 139.93518 
+L 166.837169 138.23518 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_15">
+    <g id="patch_24">
+     <path d="M 130.385479 139.25522 
+L 239.715698 139.25522 
+L 239.715698 131.009462 
+L 130.385479 131.009462 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="185.050588" y="137.387712" transform="rotate(-0 185.050588 137.387712)">SEC_LOGIN_ADMIN · write gate open</text>
+   </g>
+   <g id="patch_25">
+    <path d="M 158.43456 152.208049 
+Q 111.197978 152.208049 64.967626 152.208049 
+" style="fill: none; stroke-dasharray: 3.33,1.44; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 68.367626 153.908049 
+L 64.967626 152.208049 
+L 68.367626 150.508049 
+" style="fill: none; stroke-dasharray: 3.33,1.44; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_16">
+    <g id="patch_26">
+     <path d="M 35.614319 151.528089 
+L 186.780975 151.528089 
+L 186.780975 143.282331 
+L 35.614319 143.282331 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="111.197647" y="149.660581" transform="rotate(-0 111.197647 149.660581)">Welcome … + menu (408 B, one line per 5 ms step)</text>
+   </g>
+   <g id="patch_27">
+    <path d="M 63.960734 169.740718 
+Q 86.580192 169.740718 108.19342 169.740718 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 104.79342 168.040718 
+L 108.19342 169.740718 
+L 104.79342 171.440718 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_17">
+    <g id="patch_28">
+     <path d="M 74.472563 169.060758 
+L 98.687438 169.060758 
+L 98.687438 160.815 
+L 74.472563 160.815 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="86.58" y="167.19325" transform="rotate(-0 86.58 167.19325)">"5 65\r"</text>
+   </g>
+   <g id="patch_29">
+    <path d="M 113.196028 182.013587 
+Q 135.815486 182.013587 157.428714 182.013587 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 154.028714 180.313587 
+L 157.428714 182.013587 
+L 154.028714 183.713587 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_18">
+    <g id="patch_30">
+     <path d="M 119.979622 181.333627 
+L 151.650966 181.333627 
+L 151.650966 173.087869 
+L 119.979622 173.087869 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="135.815294" y="179.466119" transform="rotate(-0 135.815294 179.466119)">line "5 65"</text>
+   </g>
+   <g id="patch_31">
+    <path d="M 162.431322 194.286456 
+Q 209.667904 194.286456 255.898256 194.286456 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 252.498256 192.586456 
+L 255.898256 194.286456 
+L 252.498256 195.986456 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_19">
+    <g id="patch_32">
+     <path d="M 151.349001 193.606496 
+L 267.98747 193.606496 
+L 267.98747 185.360738 
+L 151.349001 185.360738 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="209.668235" y="191.738988" transform="rotate(-0 209.668235 191.738988)">EVQ mute · HEATER_u8SetSetTemp(65)</text>
+   </g>
+   <g id="patch_33">
+    <path d="M 260.90191 206.559325 
+Q 283.521368 206.559325 305.134596 206.559325 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 301.734596 204.859325 
+L 305.134596 206.559325 
+L 301.734596 208.259325 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_20">
+    <g id="patch_34">
+     <path d="M 213.100317 205.879365 
+L 353.942036 205.879365 
+L 353.942036 197.633607 
+L 213.100317 197.633607 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="283.521176" y="204.011857" transform="rotate(-0 283.521176 204.011857)">ESTORE_voidWriteByte(0x10, 65) → page 1 dirty</text>
+   </g>
+   <g id="patch_35">
+    <path d="M 158.43456 218.832194 
+Q 111.197978 218.832194 64.967626 218.832194 
+" style="fill: none; stroke-dasharray: 3.33,1.44; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 68.367626 220.532194 
+L 64.967626 218.832194 
+L 68.367626 217.132194 
+" style="fill: none; stroke-dasharray: 3.33,1.44; stroke-dashoffset: 0; stroke: #52606d; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_21">
+    <g id="patch_36">
+     <path d="M 49.173913 218.152234 
+L 173.221381 218.152234 
+L 173.221381 209.906476 
+L 49.173913 209.906476 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="111.197647" y="216.284726" transform="rotate(-0 111.197647 216.284726)">"[OK] Heater set temperature is now 65C"</text>
+   </g>
+   <g id="patch_37">
+    <path d="M 310.137204 232.85833 
+Q 332.756663 232.85833 354.36989 232.85833 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 350.96989 231.15833 
+L 354.36989 232.85833 
+L 350.96989 234.55833 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_22">
+    <g id="patch_38">
+     <path d="M 253.023502 232.178369 
+L 412.489439 232.178369 
+L 412.489439 223.932612 
+L 253.023502 223.932612 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="332.756471" y="230.310862" transform="rotate(-0 332.756471 230.310862)">next 10 ms slot: page write S A0 10 41 FF… P (1668 µs)</text>
+   </g>
+   <g id="patch_39">
+    <path d="M 358.919837 249.514366 
+Q 358.442389 249.514366 358.859368 249.514366 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+    <path d="M 362.259368 251.214366 
+L 358.859368 249.514366 
+L 362.259368 247.814366 
+" style="fill: none; stroke: #52606d; stroke-width: 0.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_23">
+    <g id="patch_40">
+     <path d="M 367.979765 251.255344 
+L 422.800358 251.255344 
+L 422.800358 242.513587 
+L 367.979765 242.513587 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="368.599765" y="249.139837" transform="rotate(-0 368.599765 249.139837)">write cycle ≤ 5 ms</text>
+   </g>
+   <g id="patch_41">
+    <path d="M 310.137204 262.663868 
+Q 332.756663 262.663868 354.36989 262.663868 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+    <path d="M 350.96989 260.963868 
+L 354.36989 262.663868 
+L 350.96989 264.363868 
+" style="fill: none; stroke: #1f2933; stroke-width: 0.9; stroke-linecap: round"/>
+   </g>
+   <g id="text_24">
+    <g id="patch_42">
+     <path d="M 272.491502 261.983908 
+L 393.021439 261.983908 
+L 393.021439 253.73815 
+L 272.491502 253.73815 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 6.2px; font-family: 'Inter'; text-anchor: middle; fill: #1f2933" x="332.756471" y="260.1164" transform="rotate(-0 332.756471 260.1164)">next slot: ACK poll S A0 P → ACK → IDLE</text>
+   </g>
+   <g id="text_25">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="171.923336" transform="rotate(-0 32.421176 171.923336)">Enter = 0</text>
+   </g>
+   <g id="text_26">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="235.040947" transform="rotate(-0 32.421176 235.040947)">+9.5 ms</text>
+   </g>
+   <g id="text_27">
+    <text style="font-weight: 600; font-size: 6px; font-family: 'Inter'; text-anchor: end; fill: #2b6cb0" x="32.421176" y="264.846485" transform="rotate(-0 32.421176 264.846485)">+19.5 ms</text>
+   </g>
+   <g id="text_28">
+    <text style="font-weight: 600; font-size: 9.5px; font-family: 'Inter'; text-anchor: start; fill: #1f2933" x="2.88" y="12.083125" transform="rotate(-0 2.88 12.083125)">Scenario 1 — remote login → set heater temperature 65 °C → EEPROM write-behind</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pfc94c4e523">
+   <rect x="2.88" y="18.083125" width="401.76" height="263.86668"/>
+  </clipPath>
+ </defs>
+</svg>
