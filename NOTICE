@@ -1,0 +1,136 @@
+NOTICE
+
+This repository mixes my own work with material from the AMIT Learning embedded
+systems diploma and with third-party software. The MIT License in LICENSE covers
+only my own work. Everything listed below keeps its original copyright and terms
+and is NOT licensed under MIT.
+
+1. FreeRTOS V7.0.2
+   Paths: 03_RTOS/FreeRTOS_src/
+          02_AVR_ATmega32/Nasr99/Free_RTOS/
+   Copyright (C) Real Time Engineers Ltd. Licensed under the GNU General Public
+   License v2 with the FreeRTOS linking exception (see the headers of each file).
+   macros.h and StackMacros.h in these folders name Islam Mohamed as author.
+
+2. AMIT Learning course material (instructor: Eng. Eslam Hefny)
+   - 02_AVR_ATmega32/drivers_reference/   the course MCAL / HAL / Service driver set
+   - 02_AVR_ATmega32/Nasr99/              course AVR + FreeRTOS project
+   - 04_Graduation_Project/docs/course_brief_graduation_projects.pdf
+   - 04_Graduation_Project/docs/course_brief_water_heater_slides.pdf
+   - Every source file whose header names Eslam Hefny / "eslam" as author,
+     listed below. In project_v1 these are the course drivers kept in the
+     project; the ones I fixed say "Modified: Abdelrahman Sherif Medhat" in
+     their header, and the fixes are described in
+     04_Graduation_Project/firmware/project_v1/docs/specification.md (section 4).
+   They are included for portfolio and educational reference. All rights remain
+   with their authors.
+
+   Files outside the folders above:
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/HAL/SEVEN_SEG/SEVEN_SEG.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/HAL/SEVEN_SEG/SEVEN_SEG.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/HAL/SEVEN_SEG/SEVEN_SEG_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/MCAL/GIE/GIE.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/MCAL/TIMER2/TIMER2.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/MCAL/TIMER2/TIMER2.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/MCAL/USART/USART.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/MCAL/USART/USART.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/MCAL/USART/USART_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/MCAL/reg_def.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/Service/Bit_math.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v1/lib/Service/std_types.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/BUTTON/BUTTON.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/BUTTON/BUTTON.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/BUTTON/BUTTON_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/BUZZER/BUZZER.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/BUZZER/BUZZER.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/BUZZER/BUZZER_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/CLCD/CLCD.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/CLCD/CLCD.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/CLCD/CLCD_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/DIMMER/DIMMER.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/DIMMER/DIMMER.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/DIMMER/DIMMER_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/EXT_EEPROM/EXT_EEPROM.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/EXT_EEPROM/EXT_EEPROM.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/EXT_EEPROM/EXT_EEPROM_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/FAN/FAN.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/FAN/FAN.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/FAN/FAN_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/KPAD/KPAD.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/KPAD/KPAD_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LAMP/LAMP.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LAMP/LAMP.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LAMP/LAMP_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LCD_BUF/LCD_BUF.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LCD_BUF/LCD_BUF.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LCD_BUF/LCD_BUF_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LED/LED.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LED/LED.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LED/LED_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LM35/LM35.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LM35/LM35.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/LM35/LM35_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/RELAY/RELAY.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/RELAY/RELAY.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/RELAY/RELAY_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SERVO/SERVO.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SERVO/SERVO.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SERVO/SERVO_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SEVEN_SEG/SEVEN_SEG.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SEVEN_SEG/SEVEN_SEG.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SEVEN_SEG/SEVEN_SEG_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SSG/SSG_CFG.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SSG/SSG_cfg.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/HAL/SSG/SSG_int.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/ADC/ADC.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/ADC/ADC.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/GIE/GIE.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/SPI/spi.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/TIMER0/TIMER0.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/TIMER1/TIMER1.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/TIMER1/TIMER1.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/TIMER1/TIMER1_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/TIMER2/TIMER2.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/TIMER2/TIMER2.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/USART/USART.c
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/USART/USART.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/USART/USART_cfg.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/MCAL/reg_def.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/Service/Bit_math.h
+     04_Graduation_Project/firmware/experiments/hal_testing_v2/lib/Service/std_types.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/CLCD/CLCD.c
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/CLCD/CLCD.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/CLCD/CLCD_cfg.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/KPAD/KPAD.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/KPAD/KPAD_cfg.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/SSG/SSG_CFG.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/SSG/SSG_cfg.c
+     04_Graduation_Project/firmware/experiments/led_switching/lib/HAL/SSG/SSG_int.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/ADC/ADC.c
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/ADC/ADC.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/GIE/GIE.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/SPI/spi.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/TIMER0/TIMER0.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/USART/USART.c
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/USART/USART.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/MCAL/reg_def.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/Service/Bit_math.h
+     04_Graduation_Project/firmware/experiments/led_switching/lib/Service/std_types.h
+     04_Graduation_Project/firmware/project_v1/lib/HAL/CLCD/CLCD.c
+     04_Graduation_Project/firmware/project_v1/lib/HAL/CLCD/CLCD.h
+     04_Graduation_Project/firmware/project_v1/lib/HAL/CLCD/CLCD_cfg.h
+     04_Graduation_Project/firmware/project_v1/lib/HAL/KPAD/KPAD.h
+     04_Graduation_Project/firmware/project_v1/lib/HAL/KPAD/KPAD_cfg.h
+     04_Graduation_Project/firmware/project_v1/lib/HAL/SSG/SSG_CFG.h
+     04_Graduation_Project/firmware/project_v1/lib/HAL/SSG/SSG_cfg.c
+     04_Graduation_Project/firmware/project_v1/lib/HAL/SSG/SSG_int.h
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/ADC/ADC.c
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/ADC/ADC.h
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/GIE/GIE.h
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/SPI/spi.h
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/TIMER0/TIMER0.h
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/USART/USART.c
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/USART/USART.h
+     04_Graduation_Project/firmware/project_v1/lib/MCAL/reg_def.h
+     04_Graduation_Project/firmware/project_v1/lib/Service/Bit_math.h
+     04_Graduation_Project/firmware/project_v1/lib/Service/std_types.h

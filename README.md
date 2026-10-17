@@ -1,5 +1,7 @@
 # Embedded Systems Diploma — Abdelrahman Sherif Medhat
 
+![C](https://img.shields.io/badge/C-bare--metal-blue) ![ATmega32](https://img.shields.io/badge/MCU-ATmega32-informational) ![FreeRTOS](https://img.shields.io/badge/RTOS-FreeRTOS-green) ![PlatformIO](https://img.shields.io/badge/build-PlatformIO-orange) ![License: MIT (own code)](https://img.shields.io/badge/license-MIT%20%28own%20code%29-lightgrey)
+
 Coursework and graduation project from the **AMIT Learning embedded systems diploma** (onsite, 14 Sep 2025 – 8 Apr 2026, instructor **Eng. Eslam Hefny**): C programming, AVR ATmega32 drivers, FreeRTOS, and a bare-metal graduation project.
 
 ## Graduation project — ATmega32 Smart Home + Electric Water Heater
@@ -26,3 +28,9 @@ pio run -e app          # firmware: .pio/build/app/firmware.hex
 ```
 
 Toolchain: PlatformIO (bare-metal avr-gcc), Antigravity IDE, Proteus 8 for simulation.
+
+> **Demo login:** on first boot (blank EEPROM) the firmware creates the admin account `admin` / `1234`. This is a simulation default, documented in [`uart_protocol.md`](04_Graduation_Project/firmware/project_v1/docs/uart_protocol.md); change it with admin command 15.
+
+## License
+
+My own code and documentation are under the [MIT License](LICENSE). FreeRTOS (GPLv2 with the FreeRTOS exception) and the AMIT course material (drivers by Eng. Eslam Hefny, course briefs) keep their own terms; see [NOTICE](NOTICE) for the full list.

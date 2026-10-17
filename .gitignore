@@ -19,13 +19,19 @@ Course_Material/lectures/
 # PlatformIO / clangd
 .pio/
 .cache/
+.cache/clangd/
 compile_commands.json
 **/firmware/**/.vscode/c_cpp_properties.json
 **/firmware/**/.vscode/launch.json
 
 # Proteus per-user workspace and autosave backups
 *.workspace
+*.pdsbak
 Project Backups/
+
+# Full-resolution simulation captures (334 MB each), kept locally
+04_Graduation_Project/simulation/images/s1.png
+04_Graduation_Project/simulation/images/s2.png
 
 # OS
 Thumbs.db
